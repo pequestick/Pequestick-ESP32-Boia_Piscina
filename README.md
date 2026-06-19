@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.7.0-ota-speed-eta
+1.8.0-security-auth
 ```
 
 Funcionalitats principals actuals:
@@ -31,6 +31,21 @@ Funcionalitats principals actuals:
 - Web amb menú lateral, subpàgines i estructura més professional.
 - Configuració exportable/importable.
 - Preparació per bateria, sensor intern SHT41 i futura gestió energètica.
+- Accés web protegit amb usuari i contrasenya persistents.
+- OTA GitHub validada amb TLS i SHA-256.
+
+### Primer accés a la web
+
+Després d'instal·lar aquesta versió o de fer un reset de fàbrica:
+
+```text
+Usuari:     admin
+Contrasenya: 1234
+```
+
+La web obliga a canviar aquestes credencials abans de permetre accedir a la resta del sistema. El nou usuari i el hash PBKDF2 de la contrasenya es guarden a NVS mitjançant `Preferences`.
+
+Les credencials Wi-Fi, MQTT i Home Assistant introduïdes des de la web també es mantenen a NVS. Els formularis les mostren emmascarades i permeten veure-les temporalment amb el botó de l'ull.
 
 ---
 
@@ -123,6 +138,7 @@ Dades per defecte:
 ```text
 SSID AP: BOIA-PISCINA-SETUP
 IP AP:   http://192.168.4.1
+Password: boia-xxxxxx (últims 6 caràcters de la MAC, també visible pel monitor sèrie)
 ```
 
 Aquest mode permet recuperar la boia després de:

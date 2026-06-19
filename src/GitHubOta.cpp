@@ -5,9 +5,105 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <Update.h>
+#include <mbedtls/sha256.h>
+#include <time.h>
 
 #include "AppConfig.h"
 #include "AppState.h"
+
+namespace {
+const char GITHUB_ROOT_CA[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw
+TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
+cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
+WhcNMzUwNjA0MTEwNDM4WjBPMQswCQYDVQQGEwJVUzEpMCcGA1UEChMgSW50ZXJu
+ZXQgU2VjdXJpdHkgUmVzZWFyY2ggR3JvdXAxFTATBgNVBAMTDElTUkcgUm9vdCBY
+MTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAK3oJHP0FDfzm54rVygc
+h77ct984kIxuPOZXoHj3dcKi/vVqbvYATyjb3miGbESTtrFj/RQSa78f0uoxmyF+
+0TM8ukj13Xnfs7j/EvEhmkvBioZxaUpmZmyPfjxwv60pIgbz5MDmgK7iS4+3mX6U
+A5/TR5d8mUgjU+g4rk8Kb4Mu0UlXjIB0ttov0DiNewNwIRt18jA8+o+u3dpjq+sW
+T8KOEUt+zwvo/7V3LvSye0rgTBIlDHCNAymg4VMk7BPZ7hm/ELNKjD+Jo2FR3qyH
+B5T0Y3HsLuJvW5iB4YlcNHlsdu87kGJ55tukmi8mxdAQ4Q7e2RCOFvu396j3x+UC
+B5iPNgiV5+I3lg02dZ77DnKxHZu8A/lJBdiB3QW0KtZB6awBdpUKD9jf1b0SHzUv
+KBds0pjBqAlkd25HN7rOrFleaJ1/ctaJxQZBKT5ZPt0m9STJEadao0xAH0ahmbWn
+OlFuhjuefXKnEgV4We0+UXgVCwOPjdAvBbI+e0ocS3MFEvzG6uBQE3xDk3SzynTn
+jh8BCNAw1FtxNrQHusEwMFxIt4I7mKZ9YIqioymCzLq9gwQbooMDQaHWBfEbwrbw
+qHyGO0aoSCqI3Haadr8faqU9GY/rOPNk3sgrDQoo//fb4hVC1CLQJ13hef4Y53CI
+rU7m2Ys6xt0nUW7/vGT1M0NPAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNV
+HRMBAf8EBTADAQH/MB0GA1UdDgQWBBR5tFnme7bl5AFzgAiIyBpY9umbbjANBgkq
+hkiG9w0BAQsFAAOCAgEAVR9YqbyyqFDQDLHYGmkgJykIrGF1XIpu+ILlaS/V9lZL
+ubhzEFnTIZd+50xx+7LSYK05qAvqFyFWhfFQDlnrzuBZ6brJFe+GnY+EgPbk6ZGQ
+3BebYhtF8GaV0nxvwuo77x/Py9auJ/GpsMiu/X1+mvoiBOv/2X/qkSsisRcOj/KK
+NFtY2PwByVS5uCbMiogziUwthDyC3+6WVwW6LLv3xLfHTjuCvjHIInNzktHCgKQ5
+ORAzI4JMPJ+GslWYHb4phowim57iaztXOoJwTdwJx4nLCgdNbOhdjsnvzqvHu7Ur
+TkXWStAmzOVyyghqpZXjFaH3pO3JLF+l+/+sKAIuvtd7u+Nxe5AW0wdeRlN8NwdC
+jNPElpzVmbUq4JUagEiuTDkHzsxHpFKVK7q4+63SM1N95R1NbdWhscdCb+ZAJzVc
+oyi3B43njTOQ5yOf+1CceWxG1bQVs5ZufpsMljq4Ui0/1lvh+wjChP4kqKOJ2qxq
+4RgqsahDYVvTH9w7jXbyLeiNdd8XM2w9U/t7y0Ff/9yi0GE44Za4rF2LN9d11TPA
+mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
+emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
+-----END CERTIFICATE-----
+)EOF";
+
+bool validSha256(String value) {
+  value.toLowerCase();
+  if (value.length() != 64) return false;
+  for (size_t i = 0; i < value.length(); i++) {
+    char c = value.charAt(i);
+    if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) return false;
+  }
+  return true;
+}
+
+String digestToHex(const uint8_t* digest, size_t length) {
+  static const char* HEX_CHARS = "0123456789abcdef";
+  String output;
+  output.reserve(length * 2);
+  for (size_t i = 0; i < length; i++) {
+    output += HEX_CHARS[(digest[i] >> 4) & 0x0f];
+    output += HEX_CHARS[digest[i] & 0x0f];
+  }
+  return output;
+}
+
+bool ensureTlsClock() {
+  const time_t MIN_VALID_TIME = 1704067200; // 2024-01-01 UTC
+  if (time(nullptr) >= MIN_VALID_TIME) return true;
+
+  configTime(0, 0, "pool.ntp.org", "time.cloudflare.com");
+  unsigned long started = millis();
+  while (time(nullptr) < MIN_VALID_TIME && millis() - started < 12000UL) {
+    delay(100);
+  }
+  return time(nullptr) >= MIN_VALID_TIME;
+}
+
+class Sha256Accumulator {
+public:
+  Sha256Accumulator() {
+    mbedtls_sha256_init(&context);
+    mbedtls_sha256_starts(&context, 0);
+  }
+
+  ~Sha256Accumulator() {
+    mbedtls_sha256_free(&context);
+  }
+
+  void update(const uint8_t* data, size_t length) {
+    mbedtls_sha256_update(&context, data, length);
+  }
+
+  String finish() {
+    uint8_t digest[32];
+    mbedtls_sha256_finish(&context, digest);
+    return digestToHex(digest, sizeof(digest));
+  }
+
+private:
+  mbedtls_sha256_context context;
+};
+}
 
 #ifndef FIRMWARE_BUILD_SHA
 #define FIRMWARE_BUILD_SHA "local"
@@ -138,6 +234,10 @@ static bool httpGetString(const String& url, String& body, int& code) {
     code = -1;
     return false;
   }
+  if (!ensureTlsClock()) {
+    code = -4;
+    return false;
+  }
 
   WiFiClientSecure secureClient;
   WiFiClient plainClient;
@@ -145,16 +245,14 @@ static bool httpGetString(const String& url, String& body, int& code) {
 
   bool https = url.startsWith("https://");
   if (https) {
-    secureClient.setInsecure();
+    secureClient.setCACert(GITHUB_ROOT_CA);
     if (!http.begin(secureClient, url)) {
       code = -2;
       return false;
     }
   } else {
-    if (!http.begin(plainClient, url)) {
-      code = -2;
-      return false;
-    }
+    code = -3;
+    return false;
   }
 
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -262,13 +360,22 @@ GitHubUpdateInfo checkGitHubUpdateNow(bool verboseLog) {
   if (info.buildSha.length() == 0) info.buildSha = jsonValue(manifest, "sha");
   info.buildDate = jsonValue(manifest, "build_date");
   info.firmwareUrl = jsonValue(manifest, "firmware_url");
+  info.firmwareSha256 = jsonValue(manifest, "sha256");
+  info.firmwareSha256.toLowerCase();
   info.notes = jsonValue(manifest, "notes");
   info.sizeBytes = (uint32_t)jsonValue(manifest, "size").toInt();
 
-  if (info.firmwareUrl.length() == 0) {
+  if (info.firmwareUrl.length() == 0 || !info.firmwareUrl.startsWith("https://")) {
     if (verboseLog) otaAppendLog("Manifest invalid: no porta firmware_url");
     info.message = "Manifest GitHub invalid";
-    info.details = "El manifest s'ha llegit, però no porta firmware_url.";
+    info.details = "El manifest no porta una firmware_url HTTPS vàlida.";
+    return info;
+  }
+
+  if (!validSha256(info.firmwareSha256)) {
+    if (verboseLog) otaAppendLog("Manifest invalid: falta un sha256 vàlid");
+    info.message = "Manifest GitHub invalid";
+    info.details = "El manifest no porta un SHA-256 vàlid del firmware.";
     return info;
   }
 
@@ -405,6 +512,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
     return false;
   }
   otaAppendLog("Update.begin OK. Començo a escriure flash per blocs.");
+  Sha256Accumulator firmwareHash;
 
   const size_t minRangeBlockSize = 32768;
   const size_t maxRangeBlockSize = 131072;
@@ -429,7 +537,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
     bool https = info.firmwareUrl.startsWith("https://");
 
     if (https) {
-      secureClient.setInsecure();
+      secureClient.setCACert(GITHUB_ROOT_CA);
       secureClient.setTimeout(30000);
       if (!http.begin(secureClient, info.firmwareUrl)) {
         messageOut = "No puc obrir URL firmware";
@@ -525,6 +633,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
 
       written += bytesWritten;
       receivedThisRequest += bytesWritten;
+      firmwareHash.update(buffer, bytesWritten);
       requestHadProgress = true;
       appState.otaProgressBytes = (uint32_t)written;
       appState.otaProgressPercent = (uint8_t)((written * 100UL) / (size_t)totalSize);
@@ -597,6 +706,19 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
   appState.otaLastMessage = "Verificant firmware";
   otaAppendLog("Descarrega completa. Verificant firmware.");
   if (progressCallback) progressCallback();
+
+  String downloadedSha256 = firmwareHash.finish();
+  if (downloadedSha256 != info.firmwareSha256) {
+    Update.abort();
+    messageOut = "SHA-256 del firmware incorrecte";
+    appState.otaInProgress = false;
+    appState.otaProgressPhase = "error";
+    appState.otaLastMessage = messageOut;
+    otaAppendLog("Verificació SHA-256 fallida. Actualització rebutjada.");
+    if (progressCallback) progressCallback();
+    return false;
+  }
+  otaAppendLog("SHA-256 verificat correctament.");
 
   if (!Update.end()) {
     messageOut = "Error finalitzant OTA: " + String(Update.getError());

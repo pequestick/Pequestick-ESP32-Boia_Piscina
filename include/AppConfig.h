@@ -6,7 +6,6 @@
 extern const char* DEFAULT_WIFI_SSID;
 extern const char* DEFAULT_WIFI_PASSWORD;
 extern const char* WIFI_AP_SSID;
-extern const char* WIFI_AP_PASSWORD;
 extern const unsigned long WIFI_CONNECT_TIMEOUT_MS;
 
 // MQTT per defecte

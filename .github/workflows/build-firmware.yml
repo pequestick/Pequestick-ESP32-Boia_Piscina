@@ -53,6 +53,9 @@ jobs:
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 
+      - name: Run project tests
+        run: python -m unittest discover -s test -p 'test_*.py'
+
       - name: Build firmware
         env:
           GITHUB_SHA: ${{ github.sha }}
@@ -63,19 +66,14 @@ jobs:
         run: |
           mkdir -p firmware
           cp .pio/build/esp32-c6-devkitc-1/firmware.bin firmware/firmware.bin
-          SIZE=$(stat -c%s firmware/firmware.bin)
-          SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-12)
-          cat > firmware/manifest.json <<JSON
-          {
-            "version": "${FIRMWARE_VERSION}",
-            "build_sha": "${GITHUB_SHA}",
-            "build_short_sha": "${SHORT_SHA}",
-            "build_date": "${BUILD_DATE}",
-            "size": ${SIZE},
-            "firmware_url": "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/firmware/firmware.bin",
-            "notes": "${FIRMWARE_CHANGE_NOTES}"
-          }
-          JSON
+          python tools/generate_manifest.py \
+            --firmware firmware/firmware.bin \
+            --output firmware/manifest.json \
+            --version "${FIRMWARE_VERSION}" \
+            --build-sha "${GITHUB_SHA}" \
+            --build-date "${BUILD_DATE}" \
+            --firmware-url "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/firmware/firmware.bin" \
+            --notes "${FIRMWARE_CHANGE_NOTES}"
 
       - name: Commit firmware artifacts
         run: |

@@ -7,18 +7,17 @@
 // ==========================
 
 // Wi-Fi per defecte. Es pot canviar des de la web i queda guardat a Preferences.
-const char* DEFAULT_WIFI_SSID = "RDM24_WIFI_IOT";
-const char* DEFAULT_WIFI_PASSWORD = "636695549";
+const char* DEFAULT_WIFI_SSID = "";
+const char* DEFAULT_WIFI_PASSWORD = "";
 const char* WIFI_AP_SSID = "BOIA-PISCINA-SETUP";
-const char* WIFI_AP_PASSWORD = "boiapiscina";
 const unsigned long WIFI_CONNECT_TIMEOUT_MS = 15000;
 
 // MQTT per defecte. Es pot canviar des de la web i, parcialment, des de Home Assistant.
 const bool DEFAULT_MQTT_ENABLED = true;
-const char* DEFAULT_MQTT_HOST = "192.168.5.5";
+const char* DEFAULT_MQTT_HOST = "";
 const uint16_t DEFAULT_MQTT_PORT = 1883;
-const char* DEFAULT_MQTT_USER = "mqttuseragent";
-const char* DEFAULT_MQTT_PASSWORD = "636695549";
+const char* DEFAULT_MQTT_USER = "";
+const char* DEFAULT_MQTT_PASSWORD = "";
 const char* DEFAULT_MQTT_TOPIC_BASE = "boia_piscina";
 
 // Home Assistant Discovery per defecte.
@@ -42,9 +41,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.7.0-ota-speed-eta";
-const char* FIRMWARE_CHANGE_TITLE = "v1.7.0 ota speed eta";
-const char* FIRMWARE_CHANGE_NOTES = "Optimitza la OTA de GitHub amb blocs Range mes grans, estimacio de velocitat, ETA i log menys sorollos durant la descarrega.";
+const char* FIRMWARE_VERSION = "1.8.0-security-auth";
+const char* FIRMWARE_CHANGE_TITLE = "v1.8.0 seguretat i autenticacio";
+const char* FIRMWARE_CHANGE_NOTES = "Afegeix autenticacio web persistent, canvi obligatori de credencials, secrets fora del firmware i verificacio TLS i SHA-256 per OTA.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
@@ -575,6 +574,11 @@ void factoryResetConfigAndSetupMode() {
   preferences.begin("boia", false);
   preferences.clear();
   preferences.putBool("wifi_force", true);
+  preferences.end();
+
+  // El reset físic també restaura l'accés web inicial.
+  preferences.begin("boia_auth", false);
+  preferences.clear();
   preferences.end();
 
   configReadIntervalSeconds = DEFAULT_READ_INTERVAL_SECONDS;

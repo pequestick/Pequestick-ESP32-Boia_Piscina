@@ -16,6 +16,7 @@
 #include "MqttManager.h"
 #include "HardwareManager.h"
 #include "GitHubOta.h"
+#include "AuthManager.h"
 
 // ==========================
 // OBJECTE WEB SERVER
@@ -27,6 +28,7 @@ static unsigned long lastWebSocketBroadcastMillis = 0;
 static const unsigned long WEBSOCKET_BROADCAST_INTERVAL_MS = 1000;
 static void notifyOtaProgressNow();
 static String buildStatusJsonPayload();
+static unsigned long lastFailedLoginMillis = 0;
 
 // ==========================
 // HTML HELPERS
@@ -241,6 +243,7 @@ static void appendTabs(String& html, const String& active) {
   html += "<a class='"; html += (active == "system" && section == "sys-identity") ? "active" : ""; html += "' href='/system?section=sys-identity'>Identitat</a>";
   html += "<a class='"; html += (active == "system" && section == "sys-mode") ? "active" : ""; html += "' href='/system?section=sys-mode'>Mode</a>";
   html += "<a class='"; html += (active == "system" && section == "sys-leds") ? "active" : ""; html += "' href='/system?section=sys-leds'>LEDs</a>";
+  html += "<a class='"; html += (active == "system" && section == "sys-users") ? "active" : ""; html += "' href='/system?section=sys-users'>Usuaris</a>";
   html += "</div></div>";
 
   html += "<div class='menu-group has-sub "; html += active == "maintenance" ? "open" : ""; html += "'>";
@@ -266,6 +269,9 @@ static void appendTabs(String& html, const String& active) {
 
   html += "<div class='menu-group'>";
   html += "<a class='tab' href='/status'>{} JSON</a>";
+  html += "</div>";
+  html += "<div class='menu-group'>";
+  html += "<a class='tab' href='/logout'>Tancar sessió</a>";
   html += "</div>";
   html += "</div>";
 }
@@ -1244,7 +1250,7 @@ static void appendFirmwareSection(String& html) {
   html += "<div class='grid'>";
   html += "<div class='item'><div class='label'>Wi-Fi a buscar</div><div class='value'>";
   html += htmlEscape(String(WIFI_AP_SSID));
-  html += "</div><div class='small'>Connecta el mòbil o el portàtil a aquesta xarxa. Si demana contrasenya, és la configurada com a AP password al firmware.</div></div>";
+  html += "</div><div class='small'>La contrasenya és única per placa: boia- seguida dels 6 últims caràcters de la MAC. També es mostra pel monitor sèrie quan s'activa l'AP.</div></div>";
   html += "<div class='item'><div class='label'>IP per defecte</div><div class='value'>http://192.168.4.1</div><div class='small'>Un cop connectat a l'AP, obre aquesta adreça al navegador per tornar a configurar Wi-Fi, MQTT i identitat.</div></div>";
   html += "<div class='item'><div class='label'>Quan passa?</div><div class='value'>Wi-Fi fallit / AP forçat / reset total</div><div class='small'>També el pots forçar amb el botó físic: 10 s per AP setup, 20 s per reset total + AP setup.</div></div>";
   html += "<div class='item'><div class='label'>Després de recuperar</div><div class='value'>Guardar i reiniciar</div><div class='small'>Configura el Wi-Fi correcte, guarda, reinicia i comprova que torna a sortir a la xarxa normal.</div></div>";
@@ -1595,9 +1601,9 @@ static String buildSystemPage() {
   String html = "";
   appendPageStart(html, "system", false);
 
-  static const char* labels[] = {"Resum", "Identitat", "Mode", "LEDs"};
-  static const char* anchors[] = {"sys-summary", "sys-identity", "sys-mode", "sys-leds"};
-  appendSubTabs(html, "Sistema", labels, anchors, 4);
+  static const char* labels[] = {"Resum", "Identitat", "Mode", "LEDs", "Usuaris"};
+  static const char* anchors[] = {"sys-summary", "sys-identity", "sys-mode", "sys-leds", "sys-users"};
+  appendSubTabs(html, "Sistema", labels, anchors, 5);
 
   html += "<div id='sys-summary' class='card'>";
   html += "<h2>Sistema</h2>";
@@ -1690,6 +1696,23 @@ static String buildSystemPage() {
   html += "</form>";
   html += "</div>";
 
+  html += "<div id='sys-users' class='card'>";
+  html += "<h2>Gestió d'usuaris</h2>";
+  html += "<p class='hint'>Canvia l'usuari administrador i la contrasenya d'accés a la web. La contrasenya es desa com un hash salat a Preferences, no com a text llegible.</p>";
+  html += "<div class='item'><div class='label'>Usuari actual</div><div class='value'>";
+  html += htmlEscape(webAuthUsername());
+  html += "</div><div class='small'>Només hi ha un administrador local.</div></div>";
+  html += "<form method='POST' action='/user-credentials'>";
+  html += "<div><div class='label'>Usuari nou</div><input name='new_username' type='text' minlength='3' maxlength='32' value='";
+  html += htmlEscape(webAuthUsername());
+  html += "' required></div>";
+  html += "<div><div class='label'>Contrasenya actual</div><input name='current_password' type='password' maxlength='64' required autocomplete='current-password'></div>";
+  html += "<div><div class='label'>Contrasenya nova</div><input name='new_password' type='password' minlength='8' maxlength='64' required autocomplete='new-password'></div>";
+  html += "<div><div class='label'>Repeteix la contrasenya nova</div><input name='confirm_password' type='password' minlength='8' maxlength='64' required autocomplete='new-password'></div>";
+  html += "<div class='buttons'><button type='submit'>Actualitzar credencials</button></div>";
+  html += "</form>";
+  html += "</div>";
+
 
   appendPageEnd(html);
   return html;
@@ -1758,9 +1781,156 @@ static String buildSavedPage(const String& title, const String& message, bool re
   return html;
 }
 
+static String buildAuthPage(
+  const String& title,
+  const String& message,
+  bool changeCredentials,
+  bool forcedChange
+) {
+  String html = "";
+  appendHtmlHeader(html, title, false);
+  html += "<div style='max-width:520px;margin:8vh auto 0'>";
+  html += "<div class='card'><h1>" + htmlEscape(title) + "</h1>";
+  if (message.length()) {
+    html += "<p class='";
+    html += message.startsWith("Credencials") ? "bad" : "hint";
+    html += "'>" + htmlEscape(message) + "</p>";
+  }
+
+  if (changeCredentials) {
+    if (forcedChange) {
+      html += "<p class='warn'>És el primer accés. Has de substituir admin / 1234 abans de continuar.</p>";
+    }
+    html += "<form method='POST' action='/change-password'>";
+    html += "<div><div class='label'>Usuari nou</div><input name='new_username' type='text' minlength='3' maxlength='32' value='";
+    html += htmlEscape(webAuthUsername());
+    html += "' required autocomplete='username'></div>";
+    html += "<div><div class='label'>Contrasenya actual</div><input name='current_password' type='password' maxlength='64' required autocomplete='current-password'></div>";
+    html += "<div><div class='label'>Contrasenya nova</div><input name='new_password' type='password' minlength='8' maxlength='64' required autocomplete='new-password'></div>";
+    html += "<div><div class='label'>Repeteix la contrasenya nova</div><input name='confirm_password' type='password' minlength='8' maxlength='64' required autocomplete='new-password'></div>";
+    html += "<button type='submit'>Guardar credencials noves</button></form>";
+  } else {
+    html += "<form method='POST' action='/login'>";
+    html += "<div><div class='label'>Usuari</div><input name='username' type='text' maxlength='32' required autofocus autocomplete='username'></div>";
+    html += "<div><div class='label'>Contrasenya</div><input name='password' type='password' maxlength='64' required autocomplete='current-password'></div>";
+    html += "<button type='submit'>Entrar</button></form>";
+  }
+  html += "</div></div></div></body></html>";
+  return html;
+}
+
+static void redirectTo(const String& location) {
+  server.sendHeader("Location", location, true);
+  server.send(303, "text/plain", "");
+}
+
+static bool requestHasValidSession() {
+  return isWebSessionCookieValid(server.header("Cookie"));
+}
+
+static bool requestOriginIsAllowed() {
+  String origin = server.header("Origin");
+  if (origin.length() == 0) return true;
+  return origin == "http://" + server.hostHeader() || origin == "https://" + server.hostHeader();
+}
+
+static bool authMiddleware(WebServer& currentServer, Middleware::Callback next) {
+  String uri = currentServer.uri();
+  currentServer.sendHeader("Cache-Control", "no-store");
+  currentServer.sendHeader("X-Content-Type-Options", "nosniff");
+  currentServer.sendHeader("X-Frame-Options", "DENY");
+  currentServer.sendHeader("Referrer-Policy", "no-referrer");
+
+  if (uri == "/login") return next();
+  if (uri == "/logout") return next();
+
+  if (!requestHasValidSession()) {
+    redirectTo("/login");
+    return false;
+  }
+
+  if (webAuthPasswordChangeRequired() && uri != "/change-password") {
+    redirectTo("/change-password");
+    return false;
+  }
+
+  if (currentServer.method() != HTTP_GET && !requestOriginIsAllowed()) {
+    currentServer.send(403, "text/plain", "Origen de petició no permès");
+    return false;
+  }
+
+  return next();
+}
+
+static bool protectedUploadRequest(WebServer& currentServer) {
+  return isWebSessionCookieValid(currentServer.header("Cookie")) &&
+         !webAuthPasswordChangeRequired() &&
+         requestOriginIsAllowed();
+}
+
 // ==========================
 // HANDLERS
 // ==========================
+
+static void handleLoginGet() {
+  if (requestHasValidSession()) {
+    redirectTo(webAuthPasswordChangeRequired() ? "/change-password" : "/");
+    return;
+  }
+  server.send(200, "text/html", buildAuthPage("Accés administratiu", "", false, false));
+}
+
+static void handleLoginPost() {
+  if (lastFailedLoginMillis != 0 && millis() - lastFailedLoginMillis < 1500UL) {
+    server.send(429, "text/html", buildAuthPage("Accés administratiu", "Espera un moment abans de tornar-ho a provar.", false, false));
+    return;
+  }
+
+  String username = server.arg("username");
+  String password = server.arg("password");
+  if (!authenticateWebUser(username, password)) {
+    lastFailedLoginMillis = millis();
+    delay(250);
+    server.send(401, "text/html", buildAuthPage("Accés administratiu", "Credencials incorrectes.", false, false));
+    return;
+  }
+
+  lastFailedLoginMillis = 0;
+  String token = createWebSession();
+  server.sendHeader("Set-Cookie", "boia_session=" + token + "; Path=/; HttpOnly; SameSite=Strict");
+  redirectTo(webAuthPasswordChangeRequired() ? "/change-password" : "/");
+}
+
+static void handleLogout() {
+  clearWebSession();
+  server.sendHeader("Set-Cookie", "boia_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict");
+  redirectTo("/login");
+}
+
+static void handleChangePasswordGet() {
+  server.send(200, "text/html", buildAuthPage("Canviar credencials", "", true, webAuthPasswordChangeRequired()));
+}
+
+static void handleChangePasswordPost() {
+  String newPassword = server.arg("new_password");
+  if (newPassword != server.arg("confirm_password")) {
+    server.send(400, "text/html", buildAuthPage("Canviar credencials", "Les contrasenyes noves no coincideixen.", true, webAuthPasswordChangeRequired()));
+    return;
+  }
+
+  String message;
+  if (!changeWebCredentials(server.arg("current_password"), server.arg("new_username"), newPassword, message)) {
+    server.send(400, "text/html", buildAuthPage("Canviar credencials", message, true, webAuthPasswordChangeRequired()));
+    return;
+  }
+
+  server.sendHeader("Set-Cookie", "boia_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict");
+  server.send(200, "text/html", buildAuthPage("Credencials actualitzades", "Ja pots iniciar sessió amb el nou usuari i la nova contrasenya.", false, false));
+}
+
+static void handleUserCredentialsPost() {
+  handleChangePasswordPost();
+}
 
 static void handleRoot() {
   server.send(200, "text/html", buildStatusPage());
@@ -2034,6 +2204,7 @@ static void handleConfigImportPost() {
 static void handleWifiPost() {
   String ssid = server.hasArg("ssid") ? server.arg("ssid") : "";
   String password = server.hasArg("password") ? server.arg("password") : "";
+  if (password.length() == 0) password = configWifiPassword;
   ssid.trim();
 
   if (ssid.length() == 0) {
@@ -2230,6 +2401,7 @@ static void handleHaApiPost() {
   bool enabled = server.hasArg("ha_api_enabled");
   String apiUrl = server.hasArg("ha_api_url") ? server.arg("ha_api_url") : DEFAULT_HA_API_URL;
   String apiToken = server.hasArg("ha_api_token") ? server.arg("ha_api_token") : "";
+  if (apiToken.length() == 0) apiToken = configHaApiToken;
   String entityId = server.hasArg("ha_history_entity") ? server.arg("ha_history_entity") : DEFAULT_HA_HISTORY_ENTITY_ID;
   uint16_t hours = server.hasArg("ha_history_hours") ? (uint16_t)server.arg("ha_history_hours").toInt() : DEFAULT_HA_HISTORY_HOURS;
 
@@ -2321,6 +2493,7 @@ static void handleMqttPost() {
   uint16_t port = server.hasArg("port") ? server.arg("port").toInt() : DEFAULT_MQTT_PORT;
   String user = server.hasArg("user") ? server.arg("user") : "";
   String password = server.hasArg("password") ? server.arg("password") : "";
+  if (password.length() == 0) password = configMqttPassword;
   String topicBase = server.hasArg("topic_base") ? server.arg("topic_base") : DEFAULT_MQTT_TOPIC_BASE;
   uint16_t publishInterval = server.hasArg("publish_interval") ? server.arg("publish_interval").toInt() : DEFAULT_MQTT_PUBLISH_INTERVAL_SECONDS;
 
@@ -3008,6 +3181,16 @@ static void notifyOtaProgressNow() {
 // ==========================
 
 void setupWebServer() {
+  initAuthManager();
+  static const char* collectedHeaders[] = {"Cookie", "Origin"};
+  server.collectHeaders(collectedHeaders, 2);
+  server.addMiddleware(authMiddleware);
+
+  server.on("/login", HTTP_GET, handleLoginGet);
+  server.on("/login", HTTP_POST, handleLoginPost);
+  server.on("/logout", HTTP_GET, handleLogout);
+  server.on("/change-password", HTTP_GET, handleChangePasswordGet);
+  server.on("/change-password", HTTP_POST, handleChangePasswordPost);
   server.on("/", HTTP_GET, handleRoot);
   server.on("/config", HTTP_GET, handleConfigGet);
   server.on("/config", HTTP_POST, handleConfigPost);
@@ -3029,6 +3212,7 @@ void setupWebServer() {
   server.on("/identity", HTTP_POST, handleIdentityPost);
   server.on("/device-mode", HTTP_POST, handleDeviceModePost);
   server.on("/board-leds", HTTP_POST, handleBoardLedsPost);
+  server.on("/user-credentials", HTTP_POST, handleUserCredentialsPost);
   server.on("/mqtt-publish-now", HTTP_POST, handleMqttPublishNowPost);
   server.on("/config-export", HTTP_GET, handleConfigExport);
   server.on("/config-import", HTTP_POST, handleConfigImportPost);
@@ -3036,7 +3220,7 @@ void setupWebServer() {
   server.on("/firmware", HTTP_GET, handleFirmwareGet);
   server.on("/defaults", HTTP_POST, handleDefaultsPost);
   server.on("/restart", HTTP_POST, handleRestartPost);
-  server.on("/update", HTTP_POST, handleUpdateFinished, handleUpdateUpload);
+  server.on("/update", HTTP_POST, handleUpdateFinished, handleUpdateUpload).setFilter(protectedUploadRequest);
   server.on("/github-ota-config", HTTP_POST, handleGithubOtaConfigPost);
   server.on("/internet-check", HTTP_POST, handleInternetCheckPost);
   server.on("/internet-check-run", HTTP_GET, handleInternetCheckRun);
@@ -3047,6 +3231,15 @@ void setupWebServer() {
   server.onNotFound(handleNotFound);
 
   server.begin();
+  static const char* webSocketHeaders[] = {"Cookie"};
+  webSocket.onValidateHttpHeader(
+    [](String headerName, String headerValue) {
+      return !headerName.equalsIgnoreCase("Cookie") ||
+             (isWebSessionCookieValid(headerValue) && !webAuthPasswordChangeRequired());
+    },
+    webSocketHeaders,
+    1
+  );
   webSocket.begin();
   webSocket.onEvent(handleWebSocketEvent);
 

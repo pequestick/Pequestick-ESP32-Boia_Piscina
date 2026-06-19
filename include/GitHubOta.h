@@ -22,6 +22,7 @@ struct GitHubUpdateInfo {
   String buildSha;
   String buildDate;
   String firmwareUrl;
+  String firmwareSha256;
   String notes;
   uint32_t sizeBytes = 0;
 };

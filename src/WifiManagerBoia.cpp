@@ -11,6 +11,14 @@ static bool parseIp(const String& value, IPAddress& ip) {
   return ip.fromString(value);
 }
 
+static String setupAccessPointPassword() {
+  String mac = WiFi.macAddress();
+  mac.replace(":", "");
+  mac.toLowerCase();
+  String suffix = mac.length() >= 6 ? mac.substring(mac.length() - 6) : String("setup1");
+  return "boia-" + suffix;
+}
+
 static void applyWifiIpConfiguration() {
   if (!configWifiUseStaticIp) {
     IPAddress none(0, 0, 0, 0);
@@ -113,14 +121,15 @@ static void startSetupAccessPoint() {
 
   WiFi.mode(WIFI_AP_STA);
 
-  bool ok = WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD);
+  String apPassword = setupAccessPointPassword();
+  bool ok = WiFi.softAP(WIFI_AP_SSID, apPassword.c_str());
 
   if (ok) {
     setupApActive = true;
     Serial.print("AP actiu: ");
     Serial.println(WIFI_AP_SSID);
     Serial.print("Password AP: ");
-    Serial.println(WIFI_AP_PASSWORD);
+    Serial.println(apPassword);
     Serial.print("IP AP: ");
     Serial.println(WiFi.softAPIP());
   } else {

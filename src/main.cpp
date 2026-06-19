@@ -24,7 +24,7 @@ void printHeader() {
   Serial.print("BOIA PISCINA - ");
   Serial.println(FIRMWARE_VERSION);
   Serial.println("ESP32-C6 + DS18B20 + Wi-Fi + AP + WebSocket + MQTT + HA + OTA + GitHub OTA");
-  Serial.println("v1.6 - actualitzacions automatiques des de GitHub Actions");
+  Serial.println("v1.8 - autenticacio web i OTA verificada");
   Serial.println("================================");
 
   Serial.print("GPIO sonda DS18B20: GPIO");
