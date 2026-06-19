@@ -41,9 +41,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.8.0-security-auth";
-const char* FIRMWARE_CHANGE_TITLE = "v1.8.0 seguretat i autenticacio";
-const char* FIRMWARE_CHANGE_NOTES = "Afegeix autenticacio web persistent, canvi obligatori de credencials, secrets fora del firmware i verificacio TLS i SHA-256 per OTA.";
+const char* FIRMWARE_VERSION = "1.8.1-auth-origin-fix";
+const char* FIRMWARE_CHANGE_TITLE = "v1.8.1 correccio canvi de contrasenya";
+const char* FIRMWARE_CHANGE_NOTES = "Corregeix el rebuig del formulari de canvi de credencials en navegadors que envien un Origin diferent durant el setup AP.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;

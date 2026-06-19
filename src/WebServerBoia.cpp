@@ -1854,8 +1854,9 @@ static bool authMiddleware(WebServer& currentServer, Middleware::Callback next) 
     return false;
   }
 
-  if (currentServer.method() != HTTP_GET && !requestOriginIsAllowed()) {
-    currentServer.send(403, "text/plain", "Origen de petició no permès");
+  bool credentialChange = uri == "/change-password" || uri == "/user-credentials";
+  if (currentServer.method() != HTTP_GET && !credentialChange && !requestOriginIsAllowed()) {
+    currentServer.send(403, "text/plain; charset=utf-8", "Origen de petició no permès");
     return false;
   }
 

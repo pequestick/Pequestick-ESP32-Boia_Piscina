@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.8.0-security-auth
+1.8.1-auth-origin-fix
 ```
 
 Funcionalitats principals actuals:
