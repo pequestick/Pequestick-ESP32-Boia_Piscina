@@ -1,9 +1,9 @@
 {
-  "version": "1.6.3-github-ota-ui-refresh",
-  "build_sha": "a43f4df60765642812fec3bd8ba507d72f41d6fe",
-  "build_short_sha": "a43f4df60765",
-  "build_date": "2026-06-19T10:44:35Z",
-  "size": 1392592,
+  "version": "1.6.4-release-helper",
+  "build_sha": "afe29aafe02190cfb1e88439be6b65ed51d5bb94",
+  "build_short_sha": "afe29aafe021",
+  "build_date": "2026-06-19T10:53:22Z",
+  "size": 1393056,
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Build automatica de GitHub Actions"
+  "notes": "Afegeix un script de release que llegeix el nom del canvi des del firmware i fa commit, rebase i push amb un missatge coherent."
 }
