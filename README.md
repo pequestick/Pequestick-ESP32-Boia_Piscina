@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.6.5-ota-progress-ui
+1.6.9-ota-ranged-download
 ```
 
 Funcionalitats principals actuals:
@@ -27,6 +27,7 @@ Funcionalitats principals actuals:
 - OTA des de GitHub mitjançant `firmware/manifest.json`.
 - Comprovació d'accés a Internet des de la boia.
 - Pantalla OTA millorada amb estat Internet, GitHub, versió remota i actualització disponible.
+- OTA GitHub amb descàrrega robusta per rangs HTTP de 32 KB i reconnexió automàtica.
 - Web amb menú lateral, subpàgines i estructura més professional.
 - Configuració exportable/importable.
 - Preparació per bateria, sensor intern SHT41 i futura gestió energètica.
@@ -469,12 +470,30 @@ Funcionalitats previstes:
 - Manifest amb versió automàtica llegida des d'`AppConfig.cpp`.
 
 
+### v1.6.9
+
+- Canvia la descàrrega OTA des de GitHub a blocs HTTP Range de 32 KB.
+- Si GitHub/TLS deixa d'enviar dades, la boia tanca la connexió i continua des del byte exacte on s'havia quedat.
+- Millora el log OTA amb informació de rangs i reconnexions.
+- Redueix el risc de timeout en actualitzacions grans descarregades des de `raw.githubusercontent.com`.
+
+### v1.6.8
+
+- Millora la lectura del flux TLS durant OTA des de GitHub.
+- Força HTTP/1.0 i amplia logs de descàrrega per diagnosticar talls de connexió.
+
 ### v1.6.7
 
 - La pantalla OTA comprova automàticament Internet i GitHub quan s'obre.
 - Les targetes d'Internet, GitHub i Actualització s'actualitzen a la mateixa pàgina.
 - El log OTA queda ocult mentre només es fan comprovacions; només apareix durant una actualització real o després d'un resultat OTA.
 - La comprovació de manifest ja no embruta el log OTA.
+
+### v1.6.6
+
+- Afegeix log OTA en directe per veure cada pas del procés d'actualització.
+- Mostra missatges de diagnòstic per Serial i WebSocket.
+- Afegeix timeout explícit quan no arriben dades del firmware.
 
 ### v1.6.5
 
@@ -509,10 +528,3 @@ No pujar mai al repo:
 - Credencials personals.
 
 Les credencials han de quedar guardades a la memòria de l'ESP32 mitjançant la web local, no dins del codi font.
-
-### v1.6.9-ota-ranged-download
-
-- Canvia la descàrrega OTA des de GitHub a blocs HTTP Range de 32 KB.
-- Si GitHub/TLS deixa d'enviar dades, la boia tanca la connexió i continua des del byte exacte on s'havia quedat.
-- Millora el log OTA amb informació de rangs i reconnexions.
-- Redueix el risc de timeout en actualitzacions grans descarregades des de `raw.githubusercontent.com`.
