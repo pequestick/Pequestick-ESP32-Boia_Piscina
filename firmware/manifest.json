@@ -1,8 +1,8 @@
 {
   "version": "1.6.9-ota-ranged-download",
-  "build_sha": "f89c8f969608309311472b6ba3cca37b4aa87df0",
-  "build_short_sha": "f89c8f969608",
-  "build_date": "2026-06-19T13:14:16Z",
+  "build_sha": "a0b1ec71e3d84af57d3e37797f31bd8419f4d655",
+  "build_short_sha": "a0b1ec71e3d8",
+  "build_date": "2026-06-19T13:24:06Z",
   "size": 1414112,
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
   "notes": "Canvia la OTA de GitHub a descarrega per rangs HTTP de 32 KB, amb reconnexio automatica quan GitHub o TLS deixen d'enviar dades, per evitar timeouts a mitja descarrega."
