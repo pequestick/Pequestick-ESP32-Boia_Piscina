@@ -52,6 +52,13 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn('DEFAULT_MQTT_USER = ""', source)
         self.assertIn('DEFAULT_MQTT_PASSWORD = ""', source)
 
+    def test_embedded_javascript_has_no_single_quote_cpp_escape(self):
+        source = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+        script = source.split('html += "<script>";', 1)[1].split(
+            'html += "</script>";', 1
+        )[0]
+        self.assertNotIn("\\'", script)
+
 
 if __name__ == "__main__":
     unittest.main()
