@@ -41,9 +41,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.9.1-wifi-dhcp-reset";
-const char* FIRMWARE_CHANGE_TITLE = "v1.9.1 DHCP segur en canviar de Wi-Fi";
-const char* FIRMWARE_CHANGE_NOTES = "Força DHCP quan es canvia l'SSID per evitar que la xarxa nova hereti una configuracio IP fixa incompatible.";
+const char* FIRMWARE_VERSION = "1.9.2-wifi-save-button";
+const char* FIRMWARE_CHANGE_TITLE = "v1.9.2 botons Wi-Fi separats";
+const char* FIRMWARE_CHANGE_NOTES = "Afegeix un boto de guardar sota les credencials Wi-Fi i separa la configuracio DHCP o IP fixa en un formulari independent.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;

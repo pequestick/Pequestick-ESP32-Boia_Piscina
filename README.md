@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.9.1-wifi-dhcp-reset
+1.9.2-wifi-save-button
 ```
 
 Funcionalitats principals actuals:
@@ -21,6 +21,7 @@ Funcionalitats principals actuals:
 - Wi-Fi configurable des de la web.
 - Cercador de xarxes Wi-Fi properes amb selecció d'SSID, intensitat de senyal i estat de seguretat.
 - Retorn automàtic a DHCP quan es canvia l'SSID, evitant heretar una IP fixa de la xarxa anterior.
+- Botons independents per guardar les credencials Wi-Fi i la configuració avançada de xarxa.
 - Mode AP de rescat si no pot connectar a la xarxa.
 - MQTT configurable.
 - Home Assistant Discovery.

@@ -684,12 +684,17 @@ static String buildWifiPage() {
   html += "</div>";
   html += "</div>";
 
+  html += "<div class='buttons'>";
+  html += "<button type='submit'>Guardar Wi-Fi i reconnectar</button>";
+  html += "</div>";
+  html += "</form>";
   html += "</div>";
 
   html += "<div id='wifi-network' class='card'>";
   html += "<h2>Xarxa avançada</h2>";
   html += "<p class='hint'>DHCP és l'opcio segura. IP fixa només si ho tens clar. Si la IP fixa queda malament, l'AP de rescat ha de salvar-te.</p>";
   html += "<p class='small'>Quan canvies l'SSID, la boia força DHCP per evitar heretar una IP fixa incompatible. Després de connectar-la a la xarxa nova, pots tornar aquí i activar una IP fixa expressament.</p>";
+  html += "<form method='POST' action='/wifi-network'>";
 
   html += "<div>";
   html += "<label><input id='wifi_use_static_ip' name='use_static_ip' type='checkbox' value='1' ";
@@ -722,7 +727,7 @@ static String buildWifiPage() {
   html += "</div>";
 
   html += "<div class='buttons'>";
-  html += "<button type='submit'>Guardar Wi-Fi i reiniciar connexio</button>";
+  html += "<button type='submit'>Guardar configuració de xarxa</button>";
   html += "</div>";
 
   html += "</form>";
@@ -2262,24 +2267,11 @@ static void handleWifiPost() {
   }
 
   const bool wifiNetworkChanged = ssid != configWifiSsid;
-  bool useStaticIp = !wifiNetworkChanged && server.hasArg("use_static_ip");
-  String staticIp = server.hasArg("static_ip") ? server.arg("static_ip") : DEFAULT_WIFI_STATIC_IP;
-  String gateway = server.hasArg("gateway") ? server.arg("gateway") : DEFAULT_WIFI_GATEWAY;
-  String subnet = server.hasArg("subnet") ? server.arg("subnet") : DEFAULT_WIFI_SUBNET;
-  String dns1 = server.hasArg("dns1") ? server.arg("dns1") : DEFAULT_WIFI_DNS1;
-  String dns2 = server.hasArg("dns2") ? server.arg("dns2") : DEFAULT_WIFI_DNS2;
-
-  if (useStaticIp && (!isValidIpString(staticIp) || !isValidIpString(gateway) || !isValidIpString(subnet))) {
-    server.send(
-      400,
-      "text/html",
-      buildSavedPage("IP fixa invalida", "Per activar IP fixa cal informar IP, gateway i subnet valids. No ho guardo per no deixar la boia penjada.", false)
-    );
-    return;
-  }
 
   saveWifiConfig(ssid, password);
-  saveNetworkConfig(useStaticIp, staticIp, gateway, subnet, dns1, dns2);
+  if (wifiNetworkChanged) {
+    saveNetworkConfig(false, configWifiStaticIp, configWifiGateway, configWifiSubnet, configWifiDns1, configWifiDns2);
+  }
 
   Serial.println();
   Serial.println("Configuracio Wi-Fi guardada des de la web:");
@@ -2297,6 +2289,34 @@ static void handleWifiPost() {
     200,
     "text/html",
     buildSavedPage("Wi-Fi guardat", savedMessage, false)
+  );
+
+  delay(800);
+  restartWifiWithCurrentConfig();
+}
+
+static void handleWifiNetworkPost() {
+  bool useStaticIp = server.hasArg("use_static_ip");
+  String staticIp = server.hasArg("static_ip") ? server.arg("static_ip") : DEFAULT_WIFI_STATIC_IP;
+  String gateway = server.hasArg("gateway") ? server.arg("gateway") : DEFAULT_WIFI_GATEWAY;
+  String subnet = server.hasArg("subnet") ? server.arg("subnet") : DEFAULT_WIFI_SUBNET;
+  String dns1 = server.hasArg("dns1") ? server.arg("dns1") : DEFAULT_WIFI_DNS1;
+  String dns2 = server.hasArg("dns2") ? server.arg("dns2") : DEFAULT_WIFI_DNS2;
+
+  if (useStaticIp && (!isValidIpString(staticIp) || !isValidIpString(gateway) || !isValidIpString(subnet))) {
+    server.send(
+      400,
+      "text/html",
+      buildSavedPage("IP fixa invalida", "Per activar IP fixa cal informar IP, gateway i subnet valids. No ho guardo per no deixar la boia penjada.", false)
+    );
+    return;
+  }
+
+  saveNetworkConfig(useStaticIp, staticIp, gateway, subnet, dns1, dns2);
+  server.send(
+    200,
+    "text/html",
+    buildSavedPage("Xarxa guardada", useStaticIp ? "S'ha guardat la configuracio IP fixa i es reiniciara la connexio." : "S'ha activat DHCP i es reiniciara la connexio.", false)
   );
 
   delay(800);
@@ -3247,6 +3267,7 @@ void setupWebServer() {
   server.on("/config", HTTP_POST, handleConfigPost);
   server.on("/wifi", HTTP_GET, handleWifiGet);
   server.on("/wifi", HTTP_POST, handleWifiPost);
+  server.on("/wifi-network", HTTP_POST, handleWifiNetworkPost);
   server.on("/wifi-scan", HTTP_GET, handleWifiScanGet);
   server.on("/wifi-reset", HTTP_POST, handleWifiResetPost);
   server.on("/wifi-network-reset", HTTP_POST, handleWifiNetworkResetPost);
