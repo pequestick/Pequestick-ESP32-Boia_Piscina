@@ -1,10 +1,10 @@
 {
-  "version": "1.10.0-public-sensors-sessions",
-  "build_sha": "204a79cc88c56db2f8f7c8f6503ff18885011a0d",
-  "build_short_sha": "204a79cc88c5",
-  "build_date": "2026-06-19T16:50:00Z",
-  "size": 1445072,
-  "sha256": "d2f4cf1e048a6c45c6634cf9f254839b82230a216c93d3fe3f35819075255d5a",
+  "version": "1.10.1-session-cookie-fix",
+  "build_sha": "bc473c3653a9297aebd87d26ad1c6f11394493e7",
+  "build_short_sha": "bc473c3653a9",
+  "build_date": "2026-06-19T20:29:23Z",
+  "size": 1445456,
+  "sha256": "05c603621696820bd2327eba741f75d34b3db7e5e9801001493e8cc0bd74909b",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Mostra la temperatura i sensors futurs a la pantalla d'acces, admet quatre sessions simultanies i evita tornar a demanar credencials en navegar."
+  "notes": "Canvia a una cookie v2 persistent i elimina conflictes amb cookies antigues que provocaven tornar al login en navegar pel menu."
 }
