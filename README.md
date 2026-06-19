@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.6.5-ota-progress-ui
+1.6.6-ota-diagnostics-log
 ```
 
 Funcionalitats principals actuals:
@@ -27,6 +27,7 @@ Funcionalitats principals actuals:
 - OTA des de GitHub mitjançant `firmware/manifest.json`.
 - Comprovació d'accés a Internet des de la boia.
 - Pantalla OTA millorada amb estat Internet, GitHub, versió remota i actualització disponible.
+- Log OTA en directe amb diagnòstic de descàrrega, escriptura i errors.
 - Web amb menú lateral, subpàgines i estructura més professional.
 - Configuració exportable/importable.
 - Preparació per bateria, sensor intern SHT41 i futura gestió energètica.
@@ -234,7 +235,7 @@ El manifest ha de tenir una estructura semblant a:
 
 ```json
 {
-  "version": "1.6.5-ota-progress-ui",
+  "version": "1.6.6-ota-diagnostics-log",
   "build_sha": "...",
   "build_short_sha": "...",
   "build_date": "...",
@@ -468,6 +469,13 @@ Funcionalitats previstes:
 
 - Manifest amb versió automàtica llegida des d'`AppConfig.cpp`.
 
+
+### v1.6.6
+
+- Afegeix log OTA en directe a Manteniment → OTA.
+- El procés GitHub OTA escriu passos detallats: lectura del manifest, URL del firmware, codi HTTP, mida, `Update.begin`, progrés i verificació.
+- Els missatges també surten pel monitor sèrie amb prefix `[OTA]`.
+- Si la descàrrega queda encallada sense rebre dades durant massa temps, l'OTA falla amb timeout en comptes de quedar-se bloquejada indefinidament.
 
 ### v1.6.5
 

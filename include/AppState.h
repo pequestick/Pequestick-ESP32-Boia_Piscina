@@ -30,6 +30,8 @@ struct AppState {
   bool otaInProgress = false;
   bool otaSuccess = false;
   String otaLastMessage = "OTA encara no utilitzada";
+  String otaLog = "[0s] OTA log inicialitzat. Encara no s'ha iniciat cap actualitzacio.\n";
+  uint32_t otaLogSeq = 0;
   String otaProgressSource = "cap";
   String otaProgressPhase = "espera";
   uint32_t otaProgressBytes = 0;

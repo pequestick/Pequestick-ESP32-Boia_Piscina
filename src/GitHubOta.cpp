@@ -102,6 +102,35 @@ static String bytesText(uint32_t bytes) {
   return String(bytes / (1024.0f * 1024.0f), 2) + " MB";
 }
 
+
+void otaClearLog(const String& firstLine) {
+  appState.otaLog = "";
+  appState.otaLogSeq++;
+  if (firstLine.length()) {
+    otaAppendLog(firstLine);
+  }
+}
+
+void otaAppendLog(const String& line) {
+  String entry = "[" + String(millis() / 1000UL) + "s] " + line;
+  Serial.print("[OTA] " );
+  Serial.println(line);
+
+  appState.otaLog += entry;
+  appState.otaLog += "\n";
+  appState.otaLogSeq++;
+
+  const uint16_t maxLen = 3600;
+  if (appState.otaLog.length() > maxLen) {
+    int cut = appState.otaLog.indexOf('\n', appState.otaLog.length() - maxLen);
+    if (cut > 0) {
+      appState.otaLog = appState.otaLog.substring(cut + 1);
+    } else {
+      appState.otaLog = appState.otaLog.substring(appState.otaLog.length() - maxLen);
+    }
+  }
+}
+
 static bool httpGetString(const String& url, String& body, int& code) {
   body = "";
   code = 0;
@@ -199,6 +228,7 @@ InternetCheckInfo checkInternetConnectivityNow() {
 
 GitHubUpdateInfo checkGitHubUpdateNow() {
   GitHubUpdateInfo info;
+  otaAppendLog("Comprovant manifest GitHub: " + configGithubManifestUrl);
 
   if (!configGithubOtaEnabled) {
     info.message = "GitHub OTA desactivat";
@@ -213,6 +243,7 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
   String manifest;
   int code = 0;
   if (!httpGetString(configGithubManifestUrl, manifest, code)) {
+    otaAppendLog("Manifest GitHub no accessible. HTTP " + String(code));
     info.httpCode = code;
     info.message = "Manifest no accessible";
     info.details = "HTTP " + String(code) + ". ";
@@ -224,6 +255,7 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
     return info;
   }
   info.httpCode = code;
+  otaAppendLog("Manifest GitHub llegit correctament. Mida resposta: " + String(manifest.length()) + " bytes");
 
   info.version = jsonValue(manifest, "version");
   info.buildSha = jsonValue(manifest, "build_sha");
@@ -234,6 +266,7 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
   info.sizeBytes = (uint32_t)jsonValue(manifest, "size").toInt();
 
   if (info.firmwareUrl.length() == 0) {
+    otaAppendLog("Manifest invalid: no porta firmware_url");
     info.message = "Manifest GitHub invalid";
     info.details = "El manifest s'ha llegit, però no porta firmware_url.";
     return info;
@@ -267,11 +300,14 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
 
   if (info.updateAvailable) {
     info.message = "Nova versio disponible";
+    otaAppendLog("Nova versio disponible: " + remoteVersion + " · " + remoteSha);
   } else if (info.remoteOlder) {
     info.message = "GitHub te una versio mes antiga";
+    otaAppendLog("GitHub publica una versio mes antiga: " + remoteVersion);
     info.details += ". No s'ofereix downgrade.";
   } else if (info.sameVersion) {
     info.message = "Ja tens aquesta versio";
+    otaAppendLog("La versio remota coincideix amb la local: " + remoteVersion);
   } else {
     info.message = "Firmware al dia";
   }
@@ -280,26 +316,60 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
 }
 
 bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCallback) {
+  otaClearLog("Inici GitHub OTA");
+  appState.otaInProgress = true;
+  appState.otaSuccess = false;
+  appState.otaProgressSource = "GitHub";
+  appState.otaProgressPhase = "comprovant";
+  appState.otaProgressBytes = 0;
+  appState.otaProgressTotal = 0;
+  appState.otaProgressPercent = 0;
+  appState.otaProgressMillis = millis();
+  appState.otaLastMessage = "Comprovant manifest GitHub";
+  if (progressCallback) progressCallback();
+
   GitHubUpdateInfo info = checkGitHubUpdateNow();
   if (!info.ok) {
     messageOut = info.message;
+    appState.otaInProgress = false;
+    appState.otaProgressPhase = "error";
+    appState.otaLastMessage = messageOut;
+    otaAppendLog("Aturat: " + messageOut);
+    if (progressCallback) progressCallback();
     return false;
   }
 
   if (info.remoteOlder && !configGithubAllowSameVersionUpdate) {
     messageOut = "La versio publicada a GitHub es mes antiga que la local. No faig downgrade.";
+    appState.otaInProgress = false;
+    appState.otaProgressPhase = "error";
+    appState.otaLastMessage = messageOut;
+    otaAppendLog("Aturat: downgrade bloquejat");
+    if (progressCallback) progressCallback();
     return false;
   }
 
   if (!info.updateAvailable && !configGithubAllowSameVersionUpdate) {
     messageOut = "No hi ha cap actualitzacio nova";
+    appState.otaInProgress = false;
+    appState.otaProgressPhase = "error";
+    appState.otaLastMessage = messageOut;
+    otaAppendLog("Aturat: no hi ha update aplicable");
+    if (progressCallback) progressCallback();
     return false;
   }
 
   if (WiFi.status() != WL_CONNECTED) {
     messageOut = "Wi-Fi no connectat";
+    appState.otaInProgress = false;
+    appState.otaProgressPhase = "error";
+    appState.otaLastMessage = messageOut;
+    otaAppendLog("Aturat: Wi-Fi no connectat");
+    if (progressCallback) progressCallback();
     return false;
   }
+
+  otaAppendLog("Firmware URL: " + info.firmwareUrl);
 
   WiFiClientSecure secureClient;
   WiFiClient plainClient;
@@ -310,11 +380,21 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
     secureClient.setInsecure();
     if (!http.begin(secureClient, info.firmwareUrl)) {
       messageOut = "No puc obrir URL firmware";
+      appState.otaInProgress = false;
+      appState.otaProgressPhase = "error";
+      appState.otaLastMessage = messageOut;
+      otaAppendLog("Error obrint HTTPS firmware");
+      if (progressCallback) progressCallback();
       return false;
     }
   } else {
     if (!http.begin(plainClient, info.firmwareUrl)) {
       messageOut = "No puc obrir URL firmware";
+      appState.otaInProgress = false;
+      appState.otaProgressPhase = "error";
+      appState.otaLastMessage = messageOut;
+      otaAppendLog("Error obrint HTTP firmware");
+      if (progressCallback) progressCallback();
       return false;
     }
   }
@@ -322,18 +402,30 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   http.setTimeout(30000);
   int code = http.GET();
+  otaAppendLog("HTTP firmware GET: " + String(code));
   if (code != HTTP_CODE_OK) {
     messageOut = "Error descarregant firmware. HTTP " + String(code);
+    appState.otaInProgress = false;
+    appState.otaProgressPhase = "error";
+    appState.otaLastMessage = messageOut;
+    otaAppendLog("Error HTTP descarregant firmware");
     http.end();
+    if (progressCallback) progressCallback();
     return false;
   }
 
   int contentLength = http.getSize();
   if (contentLength <= 0) {
     messageOut = "Firmware sense mida valida";
+    appState.otaInProgress = false;
+    appState.otaProgressPhase = "error";
+    appState.otaLastMessage = messageOut;
+    otaAppendLog("Content-Length invalid: " + String(contentLength));
     http.end();
+    if (progressCallback) progressCallback();
     return false;
   }
+  otaAppendLog("Mida firmware: " + String(contentLength) + " bytes");
 
   appState.otaInProgress = true;
   appState.otaSuccess = false;
@@ -349,19 +441,45 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
   if (!Update.begin((size_t)contentLength)) {
     messageOut = "No hi ha espai per OTA";
     appState.otaInProgress = false;
+    appState.otaProgressPhase = "error";
+    appState.otaLastMessage = messageOut;
+    otaAppendLog("Update.begin ha fallat. Error " + String(Update.getError()));
     http.end();
+    if (progressCallback) progressCallback();
     return false;
   }
+  otaAppendLog("Update.begin OK. Començo a escriure flash.");
 
   WiFiClient* stream = http.getStreamPtr();
   uint8_t buffer[1024];
   size_t written = 0;
   unsigned long lastProgressMillis = 0;
+  unsigned long lastDataMillis = millis();
+  unsigned long lastWaitLogMillis = 0;
+  uint8_t lastLoggedPercent = 255;
 
   while (http.connected() && written < (size_t)contentLength) {
     size_t available = stream->available();
     if (available == 0) {
-      delay(1);
+      unsigned long now = millis();
+      if (now - lastDataMillis > 20000UL) {
+        messageOut = "Timeout OTA: no arriben dades del firmware";
+        Update.abort();
+        appState.otaInProgress = false;
+        appState.otaProgressPhase = "error";
+        appState.otaLastMessage = messageOut;
+        otaAppendLog("Timeout sense dades. Bytes escrits: " + String(written) + "/" + String(contentLength));
+        http.end();
+        if (progressCallback) progressCallback();
+        return false;
+      }
+      if (now - lastWaitLogMillis > 4000UL) {
+        lastWaitLogMillis = now;
+        appState.otaLastMessage = "Esperant dades de GitHub... " + String(written) + "/" + String(contentLength) + " bytes";
+        otaAppendLog(appState.otaLastMessage);
+        if (progressCallback) progressCallback();
+      }
+      delay(10);
       continue;
     }
 
@@ -373,6 +491,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
       continue;
     }
 
+    lastDataMillis = millis();
     size_t bytesWritten = Update.write(buffer, (size_t)bytesRead);
     if (bytesWritten != (size_t)bytesRead) {
       messageOut = "Error escrivint OTA a la flash";
@@ -390,6 +509,10 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
     appState.otaProgressPercent = (uint8_t)((written * 100UL) / (size_t)contentLength);
     appState.otaProgressMillis = millis();
     appState.otaLastMessage = "GitHub OTA descarregant " + String(appState.otaProgressPercent) + "%";
+    if (lastLoggedPercent == 255 || appState.otaProgressPercent >= lastLoggedPercent + 10 || appState.otaProgressPercent == 100) {
+      lastLoggedPercent = appState.otaProgressPercent;
+      otaAppendLog("Progres descarrega: " + String(appState.otaProgressPercent) + "% · " + String(written) + "/" + String(contentLength) + " bytes");
+    }
 
     if (progressCallback && millis() - lastProgressMillis > 350) {
       lastProgressMillis = millis();
@@ -411,6 +534,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
 
   appState.otaProgressPhase = "verificant";
   appState.otaLastMessage = "Verificant firmware";
+  otaAppendLog("Descarrega completa. Verificant firmware.");
   if (progressCallback) progressCallback();
 
   if (!Update.end()) {
@@ -440,6 +564,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
   appState.otaProgressMillis = millis();
   appState.otaSuccess = true;
   appState.otaLastMessage = "GitHub OTA completada. Reiniciant...";
+  otaAppendLog("OTA completada correctament. Reiniciant boia.");
   if (progressCallback) progressCallback();
   messageOut = appState.otaLastMessage;
   return true;

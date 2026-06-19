@@ -30,5 +30,7 @@ InternetCheckInfo checkInternetConnectivityNow();
 GitHubUpdateInfo checkGitHubUpdateNow();
 typedef void (*OtaProgressCallback)();
 bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCallback = nullptr);
+void otaClearLog(const String& firstLine = "");
+void otaAppendLog(const String& line);
 String currentFirmwareBuildSha();
 String shortBuildSha(const String& sha);
