@@ -1,10 +1,10 @@
 {
-  "version": "1.9.0-wifi-scan",
-  "build_sha": "edba64a51dc0b0cd5d153eb800f217d6a5bece8b",
-  "build_short_sha": "edba64a51dc0",
-  "build_date": "2026-06-19T15:35:38Z",
-  "size": 1441600,
-  "sha256": "c8218aac5a76bbddb0a02740a7c61e38a270845a6ba8bc71911799d22f0edd57",
+  "version": "1.9.1-wifi-dhcp-reset",
+  "build_sha": "e237761c34f4f987d15182974a0a86014a034d8b",
+  "build_short_sha": "e237761c34f4",
+  "build_date": "2026-06-19T15:38:45Z",
+  "size": 1442112,
+  "sha256": "029f65575a7a1067854eb4d86e2e1b353202636b798aac3b66172df45e239a98",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Busca les xarxes Wi-Fi properes des de la boia i permet seleccionar l'SSID mostrant el senyal i si la xarxa esta protegida."
+  "notes": "Força DHCP quan es canvia l'SSID per evitar que la xarxa nova hereti una configuracio IP fixa incompatible."
 }
