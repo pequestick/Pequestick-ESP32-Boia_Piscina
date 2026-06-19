@@ -1,10 +1,10 @@
 {
   "version": "1.8.0-security-auth",
-  "build_sha": "3f35f0a5bb6bf1dc8e19dd6d396b848adee0ac35",
-  "build_short_sha": "3f35f0a5bb6b",
-  "build_date": "2026-06-19T14:56:55Z",
-  "size": 1436800,
-  "sha256": "90fd95afe9c7aabcaa74668395b0e1801ab55f088491c4931049df947ae8bf77",
+  "build_sha": "b131307592d321fd6a97c1eefd153e087773f633",
+  "build_short_sha": "b131307592d3",
+  "build_date": "2026-06-19T15:08:18Z",
+  "size": 1436848,
+  "sha256": "a112d31483196551a7717756465ac8324506db19b230ab606a2e3abd66b90564",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
   "notes": "Afegeix autenticacio web persistent, canvi obligatori de credencials, secrets fora del firmware i verificacio TLS i SHA-256 per OTA."
 }
