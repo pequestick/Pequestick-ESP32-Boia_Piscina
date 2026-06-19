@@ -1,10 +1,10 @@
 {
-  "version": "1.10.1-session-cookie-fix",
-  "build_sha": "bc473c3653a9297aebd87d26ad1c6f11394493e7",
-  "build_short_sha": "bc473c3653a9",
-  "build_date": "2026-06-19T20:29:23Z",
-  "size": 1445456,
-  "sha256": "05c603621696820bd2327eba741f75d34b3db7e5e9801001493e8cc0bd74909b",
+  "version": "1.11.0-fast-github-ota",
+  "build_sha": "cc4c76a4d7e8c254dfbf7d22ab25b8c91a995f86",
+  "build_short_sha": "cc4c76a4d7e8",
+  "build_date": "2026-06-19T20:37:06Z",
+  "size": 1445840,
+  "sha256": "f3d26b45f482154f46ab6c99ea49428181084b7ad21eabb048ffe876a129839c",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Canvia a una cookie v2 persistent i elimina conflictes amb cookies antigues que provocaven tornar al login en navegar pel menu."
+  "notes": "Descarrega el firmware amb una sola connexio HTTPS, buffer de 16 KB i represa per Range només si la connexio es talla."
 }
