@@ -1,10 +1,10 @@
 {
-  "version": "1.9.3-mobile-menu-fix",
-  "build_sha": "e961edc552a761648e623d2d49f4c75db84e40b8",
-  "build_short_sha": "e961edc552a7",
-  "build_date": "2026-06-19T15:57:58Z",
-  "size": 1442832,
-  "sha256": "96663cee69326b7cda595d048b369c395b3d437e81571502fdffd091c52beab5",
+  "version": "1.9.4-mobile-origin-fix",
+  "build_sha": "267ed74831277c02f541b61716359f7118995a15",
+  "build_short_sha": "267ed7483127",
+  "build_date": "2026-06-19T16:32:45Z",
+  "size": 1443152,
+  "sha256": "9c1b2b32eeef511379373986c6890db8cbcb72ed80ee1147e3b02bf5af5b2a2d",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Corregeix un error de sintaxi JavaScript del cercador Wi-Fi que impedia obrir els apartats del menu, especialment visible al mobil."
+  "notes": "Normalitza la validacio Origin i admet WebView mòbils amb origen opac per poder guardar Wi-Fi i altres formularis sense desactivar la sessio protegida."
 }
