@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.6.6-ota-diagnostics-log
+1.6.8-ota-stream-read-fix
 ```
 
 Funcionalitats principals actuals:
@@ -27,7 +27,6 @@ Funcionalitats principals actuals:
 - OTA des de GitHub mitjançant `firmware/manifest.json`.
 - Comprovació d'accés a Internet des de la boia.
 - Pantalla OTA millorada amb estat Internet, GitHub, versió remota i actualització disponible.
-- Log OTA en directe amb diagnòstic de descàrrega, escriptura i errors.
 - Web amb menú lateral, subpàgines i estructura més professional.
 - Configuració exportable/importable.
 - Preparació per bateria, sensor intern SHT41 i futura gestió energètica.
@@ -235,7 +234,7 @@ El manifest ha de tenir una estructura semblant a:
 
 ```json
 {
-  "version": "1.6.6-ota-diagnostics-log",
+  "version": "1.6.5-ota-progress-ui",
   "build_sha": "...",
   "build_short_sha": "...",
   "build_date": "...",
@@ -470,12 +469,20 @@ Funcionalitats previstes:
 - Manifest amb versió automàtica llegida des d'`AppConfig.cpp`.
 
 
-### v1.6.6
 
-- Afegeix log OTA en directe a Manteniment → OTA.
-- El procés GitHub OTA escriu passos detallats: lectura del manifest, URL del firmware, codi HTTP, mida, `Update.begin`, progrés i verificació.
-- Els missatges també surten pel monitor sèrie amb prefix `[OTA]`.
-- Si la descàrrega queda encallada sense rebre dades durant massa temps, l'OTA falla amb timeout en comptes de quedar-se bloquejada indefinidament.
+### v1.6.8
+
+- Millora la descàrrega OTA des de GitHub per evitar que quedi clavada després dels primers KB.
+- Força HTTP/1.0 en la descàrrega del firmware per reduir problemes de keep-alive amb GitHub raw.
+- Canvia la lectura del flux TLS perquè no depengui només de `available()`, que en alguns casos quedava a zero tot i mantenir la connexió oberta.
+- Amplia i millora el log quan hi ha timeout o escriptura parcial a flash.
+
+### v1.6.7
+
+- La pantalla OTA comprova automàticament Internet i GitHub quan s'obre.
+- Les targetes d'Internet, GitHub i Actualització s'actualitzen a la mateixa pàgina.
+- El log OTA queda ocult mentre només es fan comprovacions; només apareix durant una actualització real o després d'un resultat OTA.
+- La comprovació de manifest ja no embruta el log OTA.
 
 ### v1.6.5
 

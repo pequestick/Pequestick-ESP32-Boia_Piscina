@@ -226,9 +226,9 @@ InternetCheckInfo checkInternetConnectivityNow() {
   return info;
 }
 
-GitHubUpdateInfo checkGitHubUpdateNow() {
+GitHubUpdateInfo checkGitHubUpdateNow(bool verboseLog) {
   GitHubUpdateInfo info;
-  otaAppendLog("Comprovant manifest GitHub: " + configGithubManifestUrl);
+  if (verboseLog) otaAppendLog("Comprovant manifest GitHub: " + configGithubManifestUrl);
 
   if (!configGithubOtaEnabled) {
     info.message = "GitHub OTA desactivat";
@@ -243,7 +243,7 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
   String manifest;
   int code = 0;
   if (!httpGetString(configGithubManifestUrl, manifest, code)) {
-    otaAppendLog("Manifest GitHub no accessible. HTTP " + String(code));
+    if (verboseLog) otaAppendLog("Manifest GitHub no accessible. HTTP " + String(code));
     info.httpCode = code;
     info.message = "Manifest no accessible";
     info.details = "HTTP " + String(code) + ". ";
@@ -255,7 +255,7 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
     return info;
   }
   info.httpCode = code;
-  otaAppendLog("Manifest GitHub llegit correctament. Mida resposta: " + String(manifest.length()) + " bytes");
+  if (verboseLog) otaAppendLog("Manifest GitHub llegit correctament. Mida resposta: " + String(manifest.length()) + " bytes");
 
   info.version = jsonValue(manifest, "version");
   info.buildSha = jsonValue(manifest, "build_sha");
@@ -266,7 +266,7 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
   info.sizeBytes = (uint32_t)jsonValue(manifest, "size").toInt();
 
   if (info.firmwareUrl.length() == 0) {
-    otaAppendLog("Manifest invalid: no porta firmware_url");
+    if (verboseLog) otaAppendLog("Manifest invalid: no porta firmware_url");
     info.message = "Manifest GitHub invalid";
     info.details = "El manifest s'ha llegit, però no porta firmware_url.";
     return info;
@@ -300,14 +300,14 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
 
   if (info.updateAvailable) {
     info.message = "Nova versio disponible";
-    otaAppendLog("Nova versio disponible: " + remoteVersion + " · " + remoteSha);
+    if (verboseLog) otaAppendLog("Nova versio disponible: " + remoteVersion + " · " + remoteSha);
   } else if (info.remoteOlder) {
     info.message = "GitHub te una versio mes antiga";
-    otaAppendLog("GitHub publica una versio mes antiga: " + remoteVersion);
+    if (verboseLog) otaAppendLog("GitHub publica una versio mes antiga: " + remoteVersion);
     info.details += ". No s'ofereix downgrade.";
   } else if (info.sameVersion) {
     info.message = "Ja tens aquesta versio";
-    otaAppendLog("La versio remota coincideix amb la local: " + remoteVersion);
+    if (verboseLog) otaAppendLog("La versio remota coincideix amb la local: " + remoteVersion);
   } else {
     info.message = "Firmware al dia";
   }
@@ -328,7 +328,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
   appState.otaLastMessage = "Comprovant manifest GitHub";
   if (progressCallback) progressCallback();
 
-  GitHubUpdateInfo info = checkGitHubUpdateNow();
+  GitHubUpdateInfo info = checkGitHubUpdateNow(true);
   if (!info.ok) {
     messageOut = info.message;
     appState.otaInProgress = false;
@@ -401,6 +401,10 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
 
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   http.setTimeout(30000);
+  // GitHub raw sobre TLS pot quedar encallat en alguns cores si fem servir
+  // keep-alive i només mirem available(). HTTP/1.0 força tancament al final
+  // de la resposta i fa la descàrrega OTA més previsible.
+  http.useHTTP10(true);
   int code = http.GET();
   otaAppendLog("HTTP firmware GET: " + String(code));
   if (code != HTTP_CODE_OK) {
@@ -458,11 +462,21 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
   unsigned long lastWaitLogMillis = 0;
   uint8_t lastLoggedPercent = 255;
 
-  while (http.connected() && written < (size_t)contentLength) {
-    size_t available = stream->available();
-    if (available == 0) {
+  while (written < (size_t)contentLength) {
+    size_t remaining = (size_t)contentLength - written;
+    size_t toRead = remaining;
+    if (toRead > sizeof(buffer)) toRead = sizeof(buffer);
+
+    // No ens refiem només de stream->available() amb WiFiClientSecure: en alguns
+    // casos només arriba el primer registre TLS (~16 KB) i després available()
+    // queda a zero tot i que la connexió encara pot entregar dades. readBytes()
+    // bloqueja fins que arriben dades o fins al timeout del Stream.
+    stream->setTimeout(6000);
+    int bytesRead = stream->readBytes(buffer, toRead);
+
+    if (bytesRead <= 0) {
       unsigned long now = millis();
-      if (now - lastDataMillis > 20000UL) {
+      if (now - lastDataMillis > 45000UL) {
         messageOut = "Timeout OTA: no arriben dades del firmware";
         Update.abort();
         appState.otaInProgress = false;
@@ -473,21 +487,13 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
         if (progressCallback) progressCallback();
         return false;
       }
-      if (now - lastWaitLogMillis > 4000UL) {
+      if (now - lastWaitLogMillis > 5000UL) {
         lastWaitLogMillis = now;
         appState.otaLastMessage = "Esperant dades de GitHub... " + String(written) + "/" + String(contentLength) + " bytes";
         otaAppendLog(appState.otaLastMessage);
         if (progressCallback) progressCallback();
       }
-      delay(10);
-      continue;
-    }
-
-    size_t toRead = available;
-    if (toRead > sizeof(buffer)) toRead = sizeof(buffer);
-    int bytesRead = stream->readBytes(buffer, toRead);
-    if (bytesRead <= 0) {
-      delay(1);
+      delay(25);
       continue;
     }
 
@@ -499,6 +505,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
       appState.otaInProgress = false;
       appState.otaProgressPhase = "error";
       appState.otaLastMessage = messageOut;
+      otaAppendLog("Update.write parcial. Llegits " + String(bytesRead) + " bytes, escrits " + String(bytesWritten));
       http.end();
       if (progressCallback) progressCallback();
       return false;
@@ -509,7 +516,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
     appState.otaProgressPercent = (uint8_t)((written * 100UL) / (size_t)contentLength);
     appState.otaProgressMillis = millis();
     appState.otaLastMessage = "GitHub OTA descarregant " + String(appState.otaProgressPercent) + "%";
-    if (lastLoggedPercent == 255 || appState.otaProgressPercent >= lastLoggedPercent + 10 || appState.otaProgressPercent == 100) {
+    if (lastLoggedPercent == 255 || appState.otaProgressPercent >= lastLoggedPercent + 5 || appState.otaProgressPercent == 100) {
       lastLoggedPercent = appState.otaProgressPercent;
       otaAppendLog("Progres descarrega: " + String(appState.otaProgressPercent) + "% · " + String(written) + "/" + String(contentLength) + " bytes");
     }

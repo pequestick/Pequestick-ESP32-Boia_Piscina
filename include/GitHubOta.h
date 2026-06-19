@@ -27,7 +27,7 @@ struct GitHubUpdateInfo {
 };
 
 InternetCheckInfo checkInternetConnectivityNow();
-GitHubUpdateInfo checkGitHubUpdateNow();
+GitHubUpdateInfo checkGitHubUpdateNow(bool verboseLog = false);
 typedef void (*OtaProgressCallback)();
 bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCallback = nullptr);
 void otaClearLog(const String& firstLine = "");
