@@ -1,10 +1,10 @@
 {
-  "version": "1.8.1-auth-origin-fix",
-  "build_sha": "433b50c892d9dc48ec0a90cece018ad299ce9f53",
-  "build_short_sha": "433b50c892d9",
-  "build_date": "2026-06-19T15:25:35Z",
-  "size": 1436912,
-  "sha256": "9b027490d804721074e0ebe57fa849aeff8b45b9f4646c505bcb47d140f0c791",
+  "version": "1.8.2-auth-session-fix",
+  "build_sha": "ddfa0f8468b8ffc79484ca0e0eadaa912b2c81f2",
+  "build_short_sha": "ddfa0f8468b8",
+  "build_date": "2026-06-19T15:30:51Z",
+  "size": 1436896,
+  "sha256": "99bfc502041c4e3728a4cbd5372b642afc087a96e37411590dd8957c25b8365a",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Corregeix el rebuig del formulari de canvi de credencials en navegadors que envien un Origin diferent durant el setup AP."
+  "notes": "Recupera l'acces web inicial sense esborrar la xarxa, normalitza l'usuari i mante la sessio oberta després de canviar les credencials."
 }
