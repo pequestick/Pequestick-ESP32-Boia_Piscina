@@ -2,6 +2,14 @@
 
 #include <Arduino.h>
 
+struct InternetCheckInfo {
+  bool ok = false;
+  String message;
+  String details;
+  int httpCode = 0;
+  String resolvedIp;
+};
+
 struct GitHubUpdateInfo {
   bool ok = false;
   bool updateAvailable = false;
@@ -14,6 +22,7 @@ struct GitHubUpdateInfo {
   uint32_t sizeBytes = 0;
 };
 
+InternetCheckInfo checkInternetConnectivityNow();
 GitHubUpdateInfo checkGitHubUpdateNow();
 bool performGitHubOtaUpdate(String& messageOut);
 String currentFirmwareBuildSha();

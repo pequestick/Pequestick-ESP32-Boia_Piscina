@@ -39,6 +39,11 @@ struct AppState {
   String githubUpdateDate = "";
   String githubFirmwareUrl = "";
 
+  bool internetCheckDone = false;
+  bool internetCheckOk = false;
+  String internetCheckMessage = "Encara no comprovat";
+  String internetCheckDetails = "";
+
   bool hardwareReady = false;
   bool buttonPressed = false;
   unsigned long buttonPressDurationMs = 0;

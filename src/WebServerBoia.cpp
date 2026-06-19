@@ -981,6 +981,9 @@ static String buildConfigExportJson(bool includePasswords) {
   json += "  \"github_ota_enabled\": "; json += (configGithubOtaEnabled ? "true" : "false"); json += ",\n";
   json += "  \"github_manifest_url\": \"" + jsonEscape(configGithubManifestUrl) + "\",\n";
   json += "  \"github_allow_same_version_update\": "; json += (configGithubAllowSameVersionUpdate ? "true" : "false"); json += ",\n";
+  json += "  \"internet_check_done\": "; json += (appState.internetCheckDone ? "true" : "false"); json += ",\n";
+  json += "  \"internet_check_ok\": "; json += (appState.internetCheckOk ? "true" : "false"); json += ",\n";
+  json += "  \"internet_check_message\": \"" + jsonEscape(appState.internetCheckMessage) + "\",\n";
   json += "  \"read_interval_seconds\": " + String(configReadIntervalSeconds) + ",\n";
   json += "  \"temperature_decimals\": " + String(configTemperatureDecimals) + ",\n";
   json += "  \"temperature_offset_c\": " + floatText(configTemperatureOffsetC, 2) + ",\n";
@@ -1167,7 +1170,7 @@ static void appendFirmwareSection(String& html) {
 
   html += "<div class='card'>";
   html += "<h2>Actualitzacions</h2>";
-  html += "<div class='item'><div class='label'>v1.6.0-github-ota</div><div class='value'>Actualitzacions automatiques des de GitHub</div><div class='small'>GitHub Actions pot compilar el firmware en cada push, publicar firmware.bin i manifest.json, i la boia pot detectar una build nova i instal·lar-la per Wi-Fi des de la pestanya Manteniment / OTA.</div></div><div class='item'><div class='label'>v1.5.3-ha-history-hourly</div><div class='value'>Històric HA configurable i reduït per hores</div><div class='small'>El gràfic permet triar les últimes hores a mostrar i el proxy de la boia retorna mostres horàries compactes per evitar carregar massa l'ESP32 amb tot l'històric cru de Home Assistant.</div></div><div class='item'><div class='label'>v1.5.2-ha-token-fix</div><div class='value'>Correcció token Home Assistant</div><div class='small'>La configuració de l'API de Home Assistant ara neteja espais, cometes i el prefix Bearer si s'ha enganxat per error. També mostra un missatge més clar quan Home Assistant respon 401.</div></div><div class='item'><div class='label'>v1.5.0-ha-history-ui</div><div class='value'>Històric de temperatura des de Home Assistant</div><div class='small'>La fitxa de temperatura pot dibuixar un gràfic de fons amb l'històric de l'última setmana llegit des de l'API local de Home Assistant. La configuració d'URL, token i entity_id queda dins MQTT / HA.</div></div><div class='item'><div class='label'>v1.4.9-menu-align</div><div class='value'>Alineació visual del menú</div><div class='small'>El menú lateral queda alineat amb la targeta de contingut principal, mantenint el format acordió compacte sota la capçalera.</div></div><div class='item'><div class='label'>v1.4.8-accordion-menu</div><div class='value'>Menú lateral compacte desplegable</div><div class='small'>El menú lateral passa a funcionar com un acordió: les seccions generals despleguen les subopcions només quan cal. També s'alinea el menú just sota la capçalera principal i es redueix l'efecte de scroll lateral.</div></div><div class='item'><div class='label'>v1.4.7-help-center-menu</div><div class='value'>Centre d'ajuda i menú lateral refinat</div><div class='small'>Firmware, Hardware, Futur i ajuda de rescat passen al Centre d'ajuda. Sistema i Manteniment queden més nets. El menú lateral incorpora subdirectoris i s'arregla el fons quan el contingut és curt.</div></div><div class='item'><div class='label'>v1.4.6-left-menu-subpages</div><div class='value'>Menú lateral i subpàgines</div><div class='small'>La navegació principal passa a l'esquerra i les seccions grans funcionen com a subpàgines amb URL pròpia per secció, sense ancoratges.</div></div><div class='item'><div class='label'>v1.4.5-subtabs</div><div class='value'>Subpestanyes internes</div><div class='small'>Les pàgines grans queden ordenades amb subpestanyes: Sistema, Manteniment, Wi-Fi, MQTT i Temperatura tenen navegació interna per seccions.</div></div><div class='item'><div class='label'>v1.4.4-board-leds</div><div class='value'>Control LED intern de placa</div><div class='small'>Opció per activar/desactivar el LED intern de l'ESP32-C6 i usar-lo com a mirall del LED d'estat extern o com a heartbeat local.</div></div><div class='item'><div class='label'>v1.4.3-future-sensors-prep</div><div class='value'>Preparació sensors interns i energia</div><div class='small'>Documentació i reserves per temperatura interna, humitat interna, bateria, placa solar i GPIO d'expansió. Encara no activa sensors nous fins triar hardware concret.</div></div><div class='item'><div class='label'>v1.4.2-tabs-consolidated</div><div class='value'>Pestanyes consolidades</div><div class='small'>Firmware i Hardware passen dins de Sistema. Diagnòstic passa dins de Manteniment. La navegació queda més curta i menys carregada.</div></div>";
+  html += "<div class='item'><div class='label'>v1.6.1-internet-check</div><div class='value'>Actualitzacions automatiques des de GitHub</div><div class='small'>GitHub Actions pot compilar el firmware en cada push, publicar firmware.bin i manifest.json, i la boia pot detectar una build nova i instal·lar-la per Wi-Fi des de la pestanya Manteniment / OTA.</div></div><div class='item'><div class='label'>v1.5.3-ha-history-hourly</div><div class='value'>Històric HA configurable i reduït per hores</div><div class='small'>El gràfic permet triar les últimes hores a mostrar i el proxy de la boia retorna mostres horàries compactes per evitar carregar massa l'ESP32 amb tot l'històric cru de Home Assistant.</div></div><div class='item'><div class='label'>v1.5.2-ha-token-fix</div><div class='value'>Correcció token Home Assistant</div><div class='small'>La configuració de l'API de Home Assistant ara neteja espais, cometes i el prefix Bearer si s'ha enganxat per error. També mostra un missatge més clar quan Home Assistant respon 401.</div></div><div class='item'><div class='label'>v1.5.0-ha-history-ui</div><div class='value'>Històric de temperatura des de Home Assistant</div><div class='small'>La fitxa de temperatura pot dibuixar un gràfic de fons amb l'històric de l'última setmana llegit des de l'API local de Home Assistant. La configuració d'URL, token i entity_id queda dins MQTT / HA.</div></div><div class='item'><div class='label'>v1.4.9-menu-align</div><div class='value'>Alineació visual del menú</div><div class='small'>El menú lateral queda alineat amb la targeta de contingut principal, mantenint el format acordió compacte sota la capçalera.</div></div><div class='item'><div class='label'>v1.4.8-accordion-menu</div><div class='value'>Menú lateral compacte desplegable</div><div class='small'>El menú lateral passa a funcionar com un acordió: les seccions generals despleguen les subopcions només quan cal. També s'alinea el menú just sota la capçalera principal i es redueix l'efecte de scroll lateral.</div></div><div class='item'><div class='label'>v1.4.7-help-center-menu</div><div class='value'>Centre d'ajuda i menú lateral refinat</div><div class='small'>Firmware, Hardware, Futur i ajuda de rescat passen al Centre d'ajuda. Sistema i Manteniment queden més nets. El menú lateral incorpora subdirectoris i s'arregla el fons quan el contingut és curt.</div></div><div class='item'><div class='label'>v1.4.6-left-menu-subpages</div><div class='value'>Menú lateral i subpàgines</div><div class='small'>La navegació principal passa a l'esquerra i les seccions grans funcionen com a subpàgines amb URL pròpia per secció, sense ancoratges.</div></div><div class='item'><div class='label'>v1.4.5-subtabs</div><div class='value'>Subpestanyes internes</div><div class='small'>Les pàgines grans queden ordenades amb subpestanyes: Sistema, Manteniment, Wi-Fi, MQTT i Temperatura tenen navegació interna per seccions.</div></div><div class='item'><div class='label'>v1.4.4-board-leds</div><div class='value'>Control LED intern de placa</div><div class='small'>Opció per activar/desactivar el LED intern de l'ESP32-C6 i usar-lo com a mirall del LED d'estat extern o com a heartbeat local.</div></div><div class='item'><div class='label'>v1.4.3-future-sensors-prep</div><div class='value'>Preparació sensors interns i energia</div><div class='small'>Documentació i reserves per temperatura interna, humitat interna, bateria, placa solar i GPIO d'expansió. Encara no activa sensors nous fins triar hardware concret.</div></div><div class='item'><div class='label'>v1.4.2-tabs-consolidated</div><div class='value'>Pestanyes consolidades</div><div class='small'>Firmware i Hardware passen dins de Sistema. Diagnòstic passa dins de Manteniment. La navegació queda més curta i menys carregada.</div></div>";
   html += "<div class='item'><div class='label'>v1.4.1-recovery-help</div><div class='value'>Ajuda de rescat</div><div class='small'>Documentació visible a la web sobre què fer després d'un reset total: Wi-Fi AP de rescat, IP per defecte i passos de recuperació.</div></div>";
   html += "<div class='item'><div class='label'>v1.4-maintenance-polish</div><div class='value'>Manteniment i poliment</div><div class='small'>Pestanya Manteniment, Hardware separat, export/import de configuració, confirmacions, salut general, qualitat RSSI i publicació manual de telemetria.</div></div>";
   html += "<div class='item'><div class='label'>v1.3-web-facelift</div><div class='value'>Rentat de cara web</div><div class='small'>Nova capçalera professional, pestanyes reals, footer amb versió, estat en directe via WebSocket, nom/hostname configurable, apartat firmware i capacitats ESP32-C6 documentades.</div></div>";
@@ -1399,6 +1402,13 @@ static String buildMaintenancePage() {
   html += " · SHA: ";
   html += htmlEscape(appState.githubUpdateSha.length() ? shortBuildSha(appState.githubUpdateSha) : String("--"));
   html += "</div></div>";
+  html += "<div class='item'><div class='label'>Accés a Internet</div><div class='value ";
+  html += appState.internetCheckDone ? (appState.internetCheckOk ? "ok" : "warn") : "";
+  html += "'>";
+  html += htmlEscape(appState.internetCheckMessage);
+  html += "</div><div class='small'>";
+  html += htmlEscape(appState.internetCheckDetails.length() ? appState.internetCheckDetails : String("Comprova si la boia pot resoldre DNS i sortir a Internet."));
+  html += "</div></div>";
   html += "</div>";
 
   html += "<form method='POST' action='/github-ota-config'>";
@@ -1409,6 +1419,7 @@ static String buildMaintenancePage() {
   html += "<input type='url' name='github_manifest_url' value='";
   html += htmlEscape(configGithubManifestUrl);
   html += "'>";
+  html += "<div class='small'>Ha de ser una URL raw, per exemple: https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json</div>";
   html += "<label><input type='checkbox' name='github_allow_same' value='1' ";
   html += configGithubAllowSameVersionUpdate ? "checked" : "";
   html += "> Permetre reinstal·lar la mateixa build</label>";
@@ -1416,6 +1427,7 @@ static String buildMaintenancePage() {
   html += "</form>";
 
   html += "<div class='buttons'>";
+  html += "<form method='POST' action='/internet-check'><button class='secondary' type='submit'>Comprovar Internet</button></form>";
   html += "<form method='POST' action='/github-check-update'><button class='secondary' type='submit'>Comprovar actualitzacio</button></form>";
   html += "<form method='POST' action='/github-update' data-confirm='Descarregar i instal·lar firmware des de GitHub? No tallis alimentació.'><button type='submit'>Instal·lar actualitzacio GitHub</button></form>";
   html += "</div>";
@@ -2311,6 +2323,21 @@ static void handleGithubOtaConfigPost() {
   );
 }
 
+
+static void handleInternetCheckPost() {
+  InternetCheckInfo info = checkInternetConnectivityNow();
+  appState.internetCheckDone = true;
+  appState.internetCheckOk = info.ok;
+  appState.internetCheckMessage = info.message;
+  appState.internetCheckDetails = info.details;
+
+  server.send(
+    info.ok ? 200 : 500,
+    "text/html",
+    buildSavedPage(info.ok ? "Internet OK" : "Internet no confirmat", info.message + "<br><br>" + info.details, false)
+  );
+}
+
 static void handleGithubCheckUpdatePost() {
   GitHubUpdateInfo info = checkGitHubUpdateNow();
   appState.githubUpdateChecked = true;
@@ -2745,6 +2772,7 @@ void setupWebServer() {
   server.on("/restart", HTTP_POST, handleRestartPost);
   server.on("/update", HTTP_POST, handleUpdateFinished, handleUpdateUpload);
   server.on("/github-ota-config", HTTP_POST, handleGithubOtaConfigPost);
+  server.on("/internet-check", HTTP_POST, handleInternetCheckPost);
   server.on("/github-check-update", HTTP_POST, handleGithubCheckUpdatePost);
   server.on("/github-update", HTTP_POST, handleGithubUpdatePost);
   server.on("/status", HTTP_GET, handleStatusJson);

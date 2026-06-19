@@ -104,6 +104,53 @@ String shortBuildSha(const String& sha) {
   return sha.substring(0, 12);
 }
 
+
+InternetCheckInfo checkInternetConnectivityNow() {
+  InternetCheckInfo info;
+
+  if (WiFi.status() != WL_CONNECTED) {
+    info.message = "Wi-Fi no connectat";
+    info.details = "La boia no pot provar Internet perquè no està connectada en mode STA.";
+    return info;
+  }
+
+  IPAddress ip;
+  if (WiFi.hostByName("raw.githubusercontent.com", ip)) {
+    info.resolvedIp = ip.toString();
+  } else {
+    info.message = "DNS no resol raw.githubusercontent.com";
+    info.details = "Hi ha Wi-Fi, però el DNS no pot resoldre GitHub raw. Revisa DNS/gateway de la xarxa IoT.";
+    return info;
+  }
+
+  WiFiClient plainClient;
+  HTTPClient http;
+  String testUrl = "http://connectivitycheck.gstatic.com/generate_204";
+  if (!http.begin(plainClient, testUrl)) {
+    info.message = "No puc iniciar prova HTTP";
+    info.details = "HTTPClient no ha pogut obrir la prova de connectivitat.";
+    info.httpCode = -2;
+    return info;
+  }
+
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+  http.setTimeout(8000);
+  int code = http.GET();
+  http.end();
+
+  info.httpCode = code;
+  if (code == 204 || code == 200) {
+    info.ok = true;
+    info.message = "Internet accessible";
+    info.details = "DNS GitHub OK (" + info.resolvedIp + ") · prova HTTP OK " + String(code);
+    return info;
+  }
+
+  info.message = "Internet no confirmat. HTTP " + String(code);
+  info.details = "DNS GitHub OK (" + info.resolvedIp + "), però la prova HTTP externa no ha respost bé. Pot ser tall d'Internet, firewall o portal captiu.";
+  return info;
+}
+
 GitHubUpdateInfo checkGitHubUpdateNow() {
   GitHubUpdateInfo info;
 
@@ -121,6 +168,9 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
   int code = 0;
   if (!httpGetString(configGithubManifestUrl, manifest, code)) {
     info.message = "No puc llegir manifest GitHub. HTTP " + String(code);
+    if (code == 404) {
+      info.message += ". Revisa que sigui raw.githubusercontent.com i no github.com/blob ni raw.githubuser.com";
+    }
     return info;
   }
 

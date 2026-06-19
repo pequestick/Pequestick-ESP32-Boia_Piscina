@@ -40,7 +40,7 @@ const uint16_t MAX_HA_HISTORY_HOURS = 168;
 const char* DEVICE_ID = "boia_piscina";
 const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
-const char* FIRMWARE_VERSION = "1.6.0-github-ota";
+const char* FIRMWARE_VERSION = "1.6.1-internet-check";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
@@ -283,6 +283,19 @@ String normalizedHaEntityId(const String& entityId) {
 
 String normalizedGithubManifestUrl(const String& manifestUrl) {
   String clean = trimCopy(manifestUrl);
+
+  // Correccions habituals quan es copia la URL des del navegador.
+  // GitHub /blob/... és una pàgina HTML; l'ESP32 necessita la URL raw.
+  clean.replace("https://github.com/", "https://raw.githubusercontent.com/");
+  clean.replace("http://github.com/", "http://raw.githubusercontent.com/");
+  clean.replace("/blob/main/", "/main/");
+  clean.replace("/blob/master/", "/master/");
+
+  // Error tipic escrit a ma: raw.githubuser... en comptes de raw.githubusercontent...
+  clean.replace("raw.githubuser.com", "raw.githubusercontent.com");
+  clean.replace("raw.githubusercontents.com", "raw.githubusercontent.com");
+  clean.replace("raw.githubuserusercontent.com", "raw.githubusercontent.com");
+
   if (clean.length() == 0) {
     clean = DEFAULT_GITHUB_MANIFEST_URL;
   }
