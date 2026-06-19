@@ -1,9 +1,9 @@
 {
-  "version": "1.6.8-ota-stream-read-fix",
-  "build_sha": "769852e0492ea6d66b89311d6e3c4e23d3bd8844",
-  "build_short_sha": "769852e0492e",
-  "build_date": "2026-06-19T12:57:55Z",
-  "size": 1412960,
+  "version": "1.6.9-ota-ranged-download",
+  "build_sha": "f89c8f969608309311472b6ba3cca37b4aa87df0",
+  "build_short_sha": "f89c8f969608",
+  "build_date": "2026-06-19T13:14:16Z",
+  "size": 1414112,
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Millora la descarrega OTA des de GitHub llegint el flux TLS de forma bloquejant, afegeix HTTP/1.0 i evita que la descarrega quedi clavada despres dels primers KB."
+  "notes": "Canvia la OTA de GitHub a descarrega per rangs HTTP de 32 KB, amb reconnexio automatica quan GitHub o TLS deixen d'enviar dades, per evitar timeouts a mitja descarrega."
 }
