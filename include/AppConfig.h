@@ -37,6 +37,8 @@ extern const char* DEVICE_ID;
 extern const char* DEVICE_NAME;
 extern const char* DEFAULT_DEVICE_HOSTNAME;
 extern const char* FIRMWARE_VERSION;
+extern const char* FIRMWARE_CHANGE_TITLE;
+extern const char* FIRMWARE_CHANGE_NOTES;
 extern const char* DEFAULT_GITHUB_MANIFEST_URL;
 extern const bool DEFAULT_GITHUB_OTA_ENABLED;
 extern const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE;

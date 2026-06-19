@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.6.3-github-ota-ui-refresh
+1.6.4-release-helper
 ```
 
 Funcionalitats principals actuals:
@@ -234,7 +234,7 @@ El manifest ha de tenir una estructura semblant a:
 
 ```json
 {
-  "version": "1.6.3-github-ota-ui-refresh",
+  "version": "1.6.4-release-helper",
   "build_sha": "...",
   "build_short_sha": "...",
   "build_date": "...",
@@ -467,6 +467,13 @@ Funcionalitats previstes:
 ### v1.6.2
 
 - Manifest amb versió automàtica llegida des d'`AppConfig.cpp`.
+
+
+### v1.6.4
+
+- Afegides constants `FIRMWARE_CHANGE_TITLE` i `FIRMWARE_CHANGE_NOTES` a `AppConfig.cpp`.
+- Afegit `tools/release.ps1` per fer commit, rebase i push llegint el missatge de release directament del firmware.
+- GitHub Actions publica `notes` al manifest OTA a partir de `FIRMWARE_CHANGE_NOTES`.
 
 ### v1.6.3
 

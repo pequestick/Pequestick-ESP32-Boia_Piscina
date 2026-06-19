@@ -20,16 +20,27 @@ jobs:
       - name: Set build date
         run: echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
 
-      - name: Read firmware version
+      - name: Read firmware metadata
         shell: bash
         run: |
           VERSION=$(grep -oE 'FIRMWARE_VERSION[[:space:]]*=[[:space:]]*"[^"]+"' src/AppConfig.cpp | sed -E 's/.*"([^"]+)".*/\1/')
+          CHANGE_TITLE=$(grep -oE 'FIRMWARE_CHANGE_TITLE[[:space:]]*=[[:space:]]*"[^"]+"' src/AppConfig.cpp | sed -E 's/.*"([^"]+)".*/\1/')
+          CHANGE_NOTES=$(grep -oE 'FIRMWARE_CHANGE_NOTES[[:space:]]*=[[:space:]]*"[^"]+"' src/AppConfig.cpp | sed -E 's/.*"([^"]+)".*/\1/')
           if [ -z "$VERSION" ]; then
             echo "No s'ha pogut llegir FIRMWARE_VERSION de src/AppConfig.cpp"
             exit 1
           fi
+          if [ -z "$CHANGE_TITLE" ]; then
+            CHANGE_TITLE="$VERSION"
+          fi
+          if [ -z "$CHANGE_NOTES" ]; then
+            CHANGE_NOTES="Build automatica de GitHub Actions"
+          fi
           echo "FIRMWARE_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "FIRMWARE_CHANGE_TITLE=$CHANGE_TITLE" >> "$GITHUB_ENV"
+          echo "FIRMWARE_CHANGE_NOTES=$CHANGE_NOTES" >> "$GITHUB_ENV"
           echo "Firmware version: $VERSION"
+          echo "Change title: $CHANGE_TITLE"
 
       - name: Cache PlatformIO
         uses: actions/cache@v4
@@ -62,7 +73,7 @@ jobs:
             "build_date": "${BUILD_DATE}",
             "size": ${SIZE},
             "firmware_url": "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/firmware/firmware.bin",
-            "notes": "Build automatica de GitHub Actions"
+            "notes": "${FIRMWARE_CHANGE_NOTES}"
           }
           JSON
 
@@ -74,6 +85,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No firmware changes to commit"
           else
-            git commit -m "Update firmware artifacts [skip ci]"
+            git commit -m "Update firmware artifacts for ${FIRMWARE_VERSION} [skip ci]"
             git push
           fi
