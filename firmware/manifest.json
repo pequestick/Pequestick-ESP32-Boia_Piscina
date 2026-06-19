@@ -1,10 +1,10 @@
 {
-  "version": "1.9.1-wifi-dhcp-reset",
-  "build_sha": "e237761c34f4f987d15182974a0a86014a034d8b",
-  "build_short_sha": "e237761c34f4",
-  "build_date": "2026-06-19T15:38:45Z",
-  "size": 1442112,
-  "sha256": "029f65575a7a1067854eb4d86e2e1b353202636b798aac3b66172df45e239a98",
+  "version": "1.9.2-wifi-save-button",
+  "build_sha": "e7e12d1fc8b345bcd824c152218043e77c8f3f63",
+  "build_short_sha": "e7e12d1fc8b3",
+  "build_date": "2026-06-19T15:41:57Z",
+  "size": 1442816,
+  "sha256": "56302b3d44c528deba96c8a30b3a1818652e7bd3cce76f9897d298ccad636e5c",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Força DHCP quan es canvia l'SSID per evitar que la xarxa nova hereti una configuracio IP fixa incompatible."
+  "notes": "Afegeix un boto de guardar sota les credencials Wi-Fi i separa la configuracio DHCP o IP fixa en un formulari independent."
 }
