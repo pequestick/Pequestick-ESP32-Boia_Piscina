@@ -446,7 +446,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
     return false;
   }
 
-  if (info.remoteOlder && !configGithubAllowSameVersionUpdate) {
+  if (info.remoteOlder) {
     messageOut = "La versio publicada a GitHub es mes antiga que la local. No faig downgrade.";
     appState.otaInProgress = false;
     appState.otaProgressPhase = "error";
@@ -456,7 +456,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
     return false;
   }
 
-  if (!info.updateAvailable && !configGithubAllowSameVersionUpdate) {
+  if (!info.updateAvailable && !(info.sameVersion && configGithubAllowSameVersionUpdate)) {
     messageOut = "No hi ha cap actualitzacio nova";
     appState.otaInProgress = false;
     appState.otaProgressPhase = "error";
