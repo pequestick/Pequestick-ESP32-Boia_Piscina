@@ -40,7 +40,9 @@ const uint16_t MAX_HA_HISTORY_HOURS = 168;
 const char* DEVICE_ID = "boia_piscina";
 const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
-const char* FIRMWARE_VERSION = "1.6.1-internet-check";
+// Versio mestra del firmware. GitHub Actions llegeix aquesta constant
+// automaticament per generar firmware/manifest.json.
+const char* FIRMWARE_VERSION = "1.6.2-auto-version-manifest";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
