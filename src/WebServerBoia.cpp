@@ -1888,6 +1888,7 @@ static void handleLoginPost() {
   }
 
   String username = server.arg("username");
+  username.trim();
   String password = server.arg("password");
   if (!authenticateWebUser(username, password)) {
     lastFailedLoginMillis = millis();
@@ -1925,8 +1926,9 @@ static void handleChangePasswordPost() {
     return;
   }
 
-  server.sendHeader("Set-Cookie", "boia_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict");
-  server.send(200, "text/html", buildAuthPage("Credencials actualitzades", "Ja pots iniciar sessió amb el nou usuari i la nova contrasenya.", false, false));
+  String token = createWebSession();
+  server.sendHeader("Set-Cookie", "boia_session=" + token + "; Path=/; HttpOnly; SameSite=Strict");
+  redirectTo("/");
 }
 
 static void handleUserCredentialsPost() {

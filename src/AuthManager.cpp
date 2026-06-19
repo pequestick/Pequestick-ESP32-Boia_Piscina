@@ -9,6 +9,7 @@ namespace {
 const char* AUTH_NAMESPACE = "boia_auth";
 const char* INITIAL_USERNAME = "admin";
 const char* INITIAL_PASSWORD = "1234";
+const uint8_t AUTH_SCHEMA_VERSION = 2;
 const unsigned long SESSION_TIMEOUT_MS = 60UL * 60UL * 1000UL;
 
 Preferences authPreferences;
@@ -85,11 +86,13 @@ String cookieValue(const String& cookieHeader, const String& name) {
 
 void initAuthManager() {
   authPreferences.begin(AUTH_NAMESPACE, false);
+  uint8_t storedSchema = authPreferences.getUChar("schema", 0);
   authUsername = authPreferences.getString("username", "");
   authSalt = authPreferences.getString("salt", "");
   authPasswordHash = authPreferences.getString("pass_hash", "");
 
-  if (authUsername.length() == 0 || authSalt.length() == 0 || authPasswordHash.length() == 0) {
+  if (storedSchema < AUTH_SCHEMA_VERSION || authUsername.length() == 0 || authSalt.length() == 0 || authPasswordHash.length() == 0) {
+    authPreferences.clear();
     authUsername = INITIAL_USERNAME;
     authSalt = randomHex(16);
     authPasswordHash = passwordHash(authSalt, INITIAL_PASSWORD);
@@ -98,6 +101,7 @@ void initAuthManager() {
     authPreferences.putString("salt", authSalt);
     authPreferences.putString("pass_hash", authPasswordHash);
     authPreferences.putBool("must_change", true);
+    authPreferences.putUChar("schema", AUTH_SCHEMA_VERSION);
   } else {
     passwordChangeRequired = authPreferences.getBool("must_change", true);
   }
@@ -149,6 +153,7 @@ bool changeWebCredentials(
   authPreferences.putString("salt", authSalt);
   authPreferences.putString("pass_hash", authPasswordHash);
   authPreferences.putBool("must_change", false);
+  authPreferences.putUChar("schema", AUTH_SCHEMA_VERSION);
   authPreferences.end();
 
   clearWebSession();
