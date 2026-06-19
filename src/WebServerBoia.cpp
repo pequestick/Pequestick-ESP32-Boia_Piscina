@@ -1853,7 +1853,7 @@ static void redirectTo(const String& location) {
 }
 
 static String webSessionCookie(const String& token) {
-  return "boia_session=" + token + "; Path=/; Max-Age=604800; HttpOnly; SameSite=Lax";
+  return "boia_session_v2=" + token + "; Path=/; Max-Age=604800; HttpOnly; SameSite=Lax";
 }
 
 static bool requestHasValidSession() {
@@ -1900,6 +1900,11 @@ static bool authMiddleware(WebServer& currentServer, Middleware::Callback next) 
   if (uri == "/logout") return next();
 
   if (!requestHasValidSession()) {
+    String cookieHeader = currentServer.header("Cookie");
+    Serial.print("Sessio web no valida a ");
+    Serial.print(uri);
+    Serial.print(" · cookie v2 rebuda: ");
+    Serial.println(cookieHeader.indexOf("boia_session_v2=") >= 0 ? "si" : "no");
     redirectTo("/login");
     return false;
   }
@@ -1964,7 +1969,8 @@ static void handleLoginPost() {
 
 static void handleLogout() {
   clearWebSession();
-  server.sendHeader("Set-Cookie", "boia_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict");
+  server.sendHeader("Set-Cookie", "boia_session_v2=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+  server.sendHeader("Set-Cookie", "boia_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
   redirectTo("/login");
 }
 

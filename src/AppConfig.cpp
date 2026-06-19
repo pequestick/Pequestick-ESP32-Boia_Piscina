@@ -41,9 +41,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.10.0-public-sensors-sessions";
-const char* FIRMWARE_CHANGE_TITLE = "v1.10.0 lectures publiques i sessions estables";
-const char* FIRMWARE_CHANGE_NOTES = "Mostra la temperatura i sensors futurs a la pantalla d'acces, admet quatre sessions simultanies i evita tornar a demanar credencials en navegar.";
+const char* FIRMWARE_VERSION = "1.10.1-session-cookie-fix";
+const char* FIRMWARE_CHANGE_TITLE = "v1.10.1 cookie de sessio persistent";
+const char* FIRMWARE_CHANGE_NOTES = "Canvia a una cookie v2 persistent i elimina conflictes amb cookies antigues que provocaven tornar al login en navegar pel menu.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;

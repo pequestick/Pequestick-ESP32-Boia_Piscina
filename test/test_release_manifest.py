@@ -64,10 +64,12 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn('if (origin == "null") return true;', source)
         self.assertIn("originAuthority.equalsIgnoreCase(requestAuthority)", source)
 
-    def test_web_sessions_are_persistent_and_support_multiple_clients(self):
+    def test_web_session_uses_a_persistent_versioned_cookie(self):
         auth_source = Path("src/AuthManager.cpp").read_text(encoding="utf-8")
         web_source = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
-        self.assertIn("MAX_WEB_SESSIONS = 4", auth_source)
+        self.assertIn('getString("session_v2"', auth_source)
+        self.assertIn('cookieValue(cookieHeader, "boia_session_v2")', auth_source)
+        self.assertIn("boia_session_v2=", web_source)
         self.assertIn("Max-Age=604800", web_source)
         self.assertIn("Lectures públiques", web_source)
 

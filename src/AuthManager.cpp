@@ -10,20 +10,13 @@ const char* AUTH_NAMESPACE = "boia_auth";
 const char* INITIAL_USERNAME = "admin";
 const char* INITIAL_PASSWORD = "1234";
 const uint8_t AUTH_SCHEMA_VERSION = 2;
-const uint8_t MAX_WEB_SESSIONS = 4;
-const unsigned long SESSION_TIMEOUT_MS = 12UL * 60UL * 60UL * 1000UL;
-
-struct WebSession {
-  String token;
-  unsigned long lastSeenMillis = 0;
-};
 
 Preferences authPreferences;
 String authUsername;
 String authSalt;
 String authPasswordHash;
 bool passwordChangeRequired = true;
-WebSession sessions[MAX_WEB_SESSIONS];
+String persistentSessionToken;
 
 String bytesToHex(const uint8_t* bytes, size_t length) {
   static const char* HEX_CHARS = "0123456789abcdef";
@@ -110,6 +103,12 @@ void initAuthManager() {
   } else {
     passwordChangeRequired = authPreferences.getBool("must_change", true);
   }
+
+  persistentSessionToken = authPreferences.getString("session_v2", "");
+  if (persistentSessionToken.length() != 64) {
+    persistentSessionToken = randomHex(32);
+    authPreferences.putString("session_v2", persistentSessionToken);
+  }
   authPreferences.end();
 }
 
@@ -175,49 +174,25 @@ bool webAuthPasswordChangeRequired() {
 }
 
 String createWebSession() {
-  unsigned long now = millis();
-  uint8_t selected = 0;
-  unsigned long oldestAge = 0;
-  for (uint8_t i = 0; i < MAX_WEB_SESSIONS; ++i) {
-    if (sessions[i].token.length() == 0) {
-      selected = i;
-      break;
-    }
-    unsigned long age = now - sessions[i].lastSeenMillis;
-    if (age >= oldestAge) {
-      oldestAge = age;
-      selected = i;
-    }
+  if (persistentSessionToken.length() != 64) {
+    persistentSessionToken = randomHex(32);
+    authPreferences.begin(AUTH_NAMESPACE, false);
+    authPreferences.putString("session_v2", persistentSessionToken);
+    authPreferences.end();
   }
-
-  sessions[selected].token = randomHex(32);
-  sessions[selected].lastSeenMillis = now;
-  return sessions[selected].token;
+  return persistentSessionToken;
 }
 
 bool isWebSessionCookieValid(const String& cookieHeader) {
-  String suppliedToken = cookieValue(cookieHeader, "boia_session");
-  if (suppliedToken.length() == 0) return false;
-
-  unsigned long now = millis();
-  for (uint8_t i = 0; i < MAX_WEB_SESSIONS; ++i) {
-    if (sessions[i].token.length() == 0) continue;
-    if (now - sessions[i].lastSeenMillis > SESSION_TIMEOUT_MS) {
-      sessions[i].token = "";
-      sessions[i].lastSeenMillis = 0;
-      continue;
-    }
-    if (constantTimeEquals(suppliedToken, sessions[i].token)) {
-      sessions[i].lastSeenMillis = now;
-      return true;
-    }
-  }
-  return false;
+  String suppliedToken = cookieValue(cookieHeader, "boia_session_v2");
+  return suppliedToken.length() == 64 &&
+         persistentSessionToken.length() == 64 &&
+         constantTimeEquals(suppliedToken, persistentSessionToken);
 }
 
 void clearWebSession() {
-  for (uint8_t i = 0; i < MAX_WEB_SESSIONS; ++i) {
-    sessions[i].token = "";
-    sessions[i].lastSeenMillis = 0;
-  }
+  persistentSessionToken = randomHex(32);
+  authPreferences.begin(AUTH_NAMESPACE, false);
+  authPreferences.putString("session_v2", persistentSessionToken);
+  authPreferences.end();
 }
