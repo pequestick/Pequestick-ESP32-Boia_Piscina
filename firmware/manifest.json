@@ -1,10 +1,10 @@
 {
-  "version": "1.11.0-fast-github-ota",
-  "build_sha": "cc4c76a4d7e8c254dfbf7d22ab25b8c91a995f86",
-  "build_short_sha": "cc4c76a4d7e8",
-  "build_date": "2026-06-19T20:37:06Z",
-  "size": 1445840,
-  "sha256": "f3d26b45f482154f46ab6c99ea49428181084b7ad21eabb048ffe876a129839c",
+  "version": "1.11.1-fast-github-ota-tls",
+  "build_sha": "85be5899e8e0fc6df8a951d562e5a6b006d6f191",
+  "build_short_sha": "85be5899e8e0",
+  "build_date": "2026-06-19T20:44:59Z",
+  "size": 1445920,
+  "sha256": "3fbbd84a742b72f7b551cf7f0e10eaea5a164398eb11b655d1783f12b40a4d94",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Descarrega el firmware amb una sola connexio HTTPS, buffer de 16 KB i represa per Range només si la connexio es talla."
+  "notes": "Força lectures TLS de 16 KB en una connexio continua, desactiva temporalment l'estalvi Wi-Fi i repren per Range si el flux es talla."
 }
