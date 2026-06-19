@@ -1,10 +1,10 @@
 {
-  "version": "1.9.2-wifi-save-button",
-  "build_sha": "e7e12d1fc8b345bcd824c152218043e77c8f3f63",
-  "build_short_sha": "e7e12d1fc8b3",
-  "build_date": "2026-06-19T15:41:57Z",
-  "size": 1442816,
-  "sha256": "56302b3d44c528deba96c8a30b3a1818652e7bd3cce76f9897d298ccad636e5c",
+  "version": "1.9.3-mobile-menu-fix",
+  "build_sha": "e961edc552a761648e623d2d49f4c75db84e40b8",
+  "build_short_sha": "e961edc552a7",
+  "build_date": "2026-06-19T15:57:58Z",
+  "size": 1442832,
+  "sha256": "96663cee69326b7cda595d048b369c395b3d437e81571502fdffd091c52beab5",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Afegeix un boto de guardar sota les credencials Wi-Fi i separa la configuracio DHCP o IP fixa en un formulari independent."
+  "notes": "Corregeix un error de sintaxi JavaScript del cercador Wi-Fi que impedia obrir els apartats del menu, especialment visible al mobil."
 }
