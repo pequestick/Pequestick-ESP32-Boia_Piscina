@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.6.8-ota-stream-read-fix
+1.6.5-ota-progress-ui
 ```
 
 Funcionalitats principals actuals:
@@ -469,14 +469,6 @@ Funcionalitats previstes:
 - Manifest amb versió automàtica llegida des d'`AppConfig.cpp`.
 
 
-
-### v1.6.8
-
-- Millora la descàrrega OTA des de GitHub per evitar que quedi clavada després dels primers KB.
-- Força HTTP/1.0 en la descàrrega del firmware per reduir problemes de keep-alive amb GitHub raw.
-- Canvia la lectura del flux TLS perquè no depengui només de `available()`, que en alguns casos quedava a zero tot i mantenir la connexió oberta.
-- Amplia i millora el log quan hi ha timeout o escriptura parcial a flash.
-
 ### v1.6.7
 
 - La pantalla OTA comprova automàticament Internet i GitHub quan s'obre.
@@ -517,3 +509,10 @@ No pujar mai al repo:
 - Credencials personals.
 
 Les credencials han de quedar guardades a la memòria de l'ESP32 mitjançant la web local, no dins del codi font.
+
+### v1.6.9-ota-ranged-download
+
+- Canvia la descàrrega OTA des de GitHub a blocs HTTP Range de 32 KB.
+- Si GitHub/TLS deixa d'enviar dades, la boia tanca la connexió i continua des del byte exacte on s'havia quedat.
+- Millora el log OTA amb informació de rangs i reconnexions.
+- Redueix el risc de timeout en actualitzacions grans descarregades des de `raw.githubusercontent.com`.
