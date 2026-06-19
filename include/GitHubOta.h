@@ -13,7 +13,11 @@ struct InternetCheckInfo {
 struct GitHubUpdateInfo {
   bool ok = false;
   bool updateAvailable = false;
+  bool remoteOlder = false;
+  bool sameVersion = false;
+  int httpCode = 0;
   String message;
+  String details;
   String version;
   String buildSha;
   String buildDate;

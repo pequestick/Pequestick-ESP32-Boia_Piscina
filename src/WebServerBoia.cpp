@@ -30,6 +30,41 @@ static const unsigned long WEBSOCKET_BROADCAST_INTERVAL_MS = 1000;
 // HTML HELPERS
 // ==========================
 
+
+static String elapsedText(unsigned long whenMillis) {
+  if (whenMillis == 0) return "mai";
+  unsigned long ageSec = (millis() - whenMillis) / 1000UL;
+  if (ageSec < 5) return "ara mateix";
+  if (ageSec < 60) return "fa " + String(ageSec) + " s";
+  unsigned long ageMin = ageSec / 60UL;
+  if (ageMin < 60) return "fa " + String(ageMin) + " min";
+  unsigned long ageHour = ageMin / 60UL;
+  return "fa " + String(ageHour) + " h";
+}
+
+static void redirectToMaintenanceOta() {
+  server.sendHeader("Location", "/maintenance?section=mnt-ota", true);
+  server.send(303, "text/plain", "");
+}
+
+static String otaUpdateClass() {
+  if (!appState.githubUpdateChecked) return "info";
+  if (!appState.githubUpdateOk) return "bad";
+  if (appState.githubUpdateAvailable) return "warn";
+  if (appState.githubRemoteOlder) return "bad";
+  return "ok";
+}
+
+static String internetClass() {
+  if (!appState.internetCheckDone) return "info";
+  return appState.internetCheckOk ? "ok" : "bad";
+}
+
+static String githubClass() {
+  if (!appState.githubUpdateChecked) return "info";
+  return appState.githubUpdateOk ? "ok" : "bad";
+}
+
 static String statusClass(bool ok);
 
 static void appendHtmlHeader(String& html, const String& title, bool autoRefresh) {
@@ -98,13 +133,24 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "hr{border:0;border-top:1px solid #263449;margin:20px 0;}";
   html += ".footer{color:#94a3b8;font-size:12px;text-align:center;padding:16px 0 4px;margin-top:auto;}";
   html += ".tag{display:inline-flex;align-items:center;border:1px solid #334155;border-radius:999px;padding:5px 9px;background:#0b1220;color:#cbd5e1;font-size:12px;font-weight:750;margin:3px 4px 3px 0;}";
+  html += ".ota-hero{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0;}";
+  html += ".ota-tile{position:relative;background:linear-gradient(180deg,#182235,#111827);border:1px solid rgba(148,163,184,.15);border-radius:16px;padding:15px;min-height:122px;overflow:hidden;}";
+  html += ".ota-tile:before{content:'';position:absolute;inset:0 0 auto 0;height:3px;background:#334155;}";
+  html += ".ota-tile.ok:before{background:#22c55e}.ota-tile.warn:before{background:#facc15}.ota-tile.bad:before{background:#ef4444}.ota-tile.info:before{background:#38bdf8}";
+  html += ".ota-title{font-size:11px;color:#94a3b8;font-weight:950;letter-spacing:.08em;text-transform:uppercase;margin-bottom:9px;}";
+  html += ".ota-main{font-size:20px;font-weight:950;line-height:1.15;margin-bottom:8px;}";
+  html += ".ota-main.ok{color:#86efac}.ota-main.warn{color:#fef08a}.ota-main.bad{color:#fca5a5}.ota-main.info{color:#bae6fd}";
+  html += ".ota-meta{font-size:12px;color:#94a3b8;line-height:1.45;word-break:break-word;}";
+  html += ".ota-badges{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}.ota-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #334155;border-radius:999px;padding:6px 9px;background:#0b1220;color:#cbd5e1;font-size:12px;font-weight:850}.ota-badge.ok{border-color:rgba(34,197,94,.45);color:#bbf7d0;background:rgba(34,197,94,.10)}.ota-badge.warn{border-color:rgba(250,204,21,.45);color:#fef08a;background:rgba(250,204,21,.10)}.ota-badge.bad{border-color:rgba(239,68,68,.50);color:#fecaca;background:rgba(239,68,68,.10)}";
+  html += ".ota-config{margin-top:14px;padding-top:14px;border-top:1px solid rgba(148,163,184,.14)}";
+  html += "button:disabled{opacity:.45;cursor:not-allowed;background:#334155;}";
   html += "pre{white-space:pre-wrap;word-break:break-word;background:#050b14;border:1px solid #334155;border-radius:14px;padding:14px;color:#dbeafe;}";
   html += ".temp-card{position:relative;overflow:hidden;min-height:188px;}";
   html += ".temp-card canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.26;pointer-events:none;}";
   html += ".temp-card .temp-content{position:relative;z-index:1;}";
   html += ".chart-note{position:absolute;right:18px;bottom:12px;color:#94a3b8;font-size:11px;z-index:1;}";
   html += ".history-controls{position:relative;z-index:2;display:flex;justify-content:flex-end;margin-bottom:10px}.history-controls form{display:flex;gap:8px;align-items:center;background:rgba(15,23,42,.78);border:1px solid #263449;border-radius:999px;padding:7px 9px;backdrop-filter:blur(8px)}.history-controls input{width:78px;padding:6px 8px;border-radius:999px;font-size:13px}.history-controls button{padding:7px 10px;border-radius:999px;font-size:12px}.history-controls .label-inline{color:#bfdbfe;font-size:12px;font-weight:800;white-space:nowrap}";
-  html += "@media(max-width:920px){.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}}";
+  html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}}";
   html += "</style>";
 
   html += "<script>";
@@ -1170,7 +1216,7 @@ static void appendFirmwareSection(String& html) {
 
   html += "<div class='card'>";
   html += "<h2>Actualitzacions</h2>";
-  html += "<div class='item'><div class='label'>v1.6.1-internet-check</div><div class='value'>Actualitzacions automatiques des de GitHub</div><div class='small'>GitHub Actions pot compilar el firmware en cada push, publicar firmware.bin i manifest.json, i la boia pot detectar una build nova i instal·lar-la per Wi-Fi des de la pestanya Manteniment / OTA.</div></div><div class='item'><div class='label'>v1.5.3-ha-history-hourly</div><div class='value'>Històric HA configurable i reduït per hores</div><div class='small'>El gràfic permet triar les últimes hores a mostrar i el proxy de la boia retorna mostres horàries compactes per evitar carregar massa l'ESP32 amb tot l'històric cru de Home Assistant.</div></div><div class='item'><div class='label'>v1.5.2-ha-token-fix</div><div class='value'>Correcció token Home Assistant</div><div class='small'>La configuració de l'API de Home Assistant ara neteja espais, cometes i el prefix Bearer si s'ha enganxat per error. També mostra un missatge més clar quan Home Assistant respon 401.</div></div><div class='item'><div class='label'>v1.5.0-ha-history-ui</div><div class='value'>Històric de temperatura des de Home Assistant</div><div class='small'>La fitxa de temperatura pot dibuixar un gràfic de fons amb l'històric de l'última setmana llegit des de l'API local de Home Assistant. La configuració d'URL, token i entity_id queda dins MQTT / HA.</div></div><div class='item'><div class='label'>v1.4.9-menu-align</div><div class='value'>Alineació visual del menú</div><div class='small'>El menú lateral queda alineat amb la targeta de contingut principal, mantenint el format acordió compacte sota la capçalera.</div></div><div class='item'><div class='label'>v1.4.8-accordion-menu</div><div class='value'>Menú lateral compacte desplegable</div><div class='small'>El menú lateral passa a funcionar com un acordió: les seccions generals despleguen les subopcions només quan cal. També s'alinea el menú just sota la capçalera principal i es redueix l'efecte de scroll lateral.</div></div><div class='item'><div class='label'>v1.4.7-help-center-menu</div><div class='value'>Centre d'ajuda i menú lateral refinat</div><div class='small'>Firmware, Hardware, Futur i ajuda de rescat passen al Centre d'ajuda. Sistema i Manteniment queden més nets. El menú lateral incorpora subdirectoris i s'arregla el fons quan el contingut és curt.</div></div><div class='item'><div class='label'>v1.4.6-left-menu-subpages</div><div class='value'>Menú lateral i subpàgines</div><div class='small'>La navegació principal passa a l'esquerra i les seccions grans funcionen com a subpàgines amb URL pròpia per secció, sense ancoratges.</div></div><div class='item'><div class='label'>v1.4.5-subtabs</div><div class='value'>Subpestanyes internes</div><div class='small'>Les pàgines grans queden ordenades amb subpestanyes: Sistema, Manteniment, Wi-Fi, MQTT i Temperatura tenen navegació interna per seccions.</div></div><div class='item'><div class='label'>v1.4.4-board-leds</div><div class='value'>Control LED intern de placa</div><div class='small'>Opció per activar/desactivar el LED intern de l'ESP32-C6 i usar-lo com a mirall del LED d'estat extern o com a heartbeat local.</div></div><div class='item'><div class='label'>v1.4.3-future-sensors-prep</div><div class='value'>Preparació sensors interns i energia</div><div class='small'>Documentació i reserves per temperatura interna, humitat interna, bateria, placa solar i GPIO d'expansió. Encara no activa sensors nous fins triar hardware concret.</div></div><div class='item'><div class='label'>v1.4.2-tabs-consolidated</div><div class='value'>Pestanyes consolidades</div><div class='small'>Firmware i Hardware passen dins de Sistema. Diagnòstic passa dins de Manteniment. La navegació queda més curta i menys carregada.</div></div>";
+  html += "<div class='item'><div class='label'>v1.6.3-github-ota-ui-refresh</div><div class='value'>Pantalla GitHub OTA professional</div><div class='small'>La pantalla d'OTA mostra Internet, GitHub, manifest i actualització en targetes clares, guarda el resultat de les comprovacions i evita oferir downgrades quan GitHub publica una versió més antiga.</div></div><div class='item'><div class='label'>v1.6.2-auto-version-manifest</div><div class='value'>Manifest amb versió automàtica</div><div class='small'>GitHub Actions llegeix FIRMWARE_VERSION des d'AppConfig.cpp i genera manifest.json amb la mateixa versió, sense hardcodejar-la al workflow.</div></div><div class='item'><div class='label'>v1.6.1-internet-check</div><div class='value'>Actualitzacions automatiques des de GitHub</div><div class='small'>GitHub Actions pot compilar el firmware en cada push, publicar firmware.bin i manifest.json, i la boia pot detectar una build nova i instal·lar-la per Wi-Fi des de la pestanya Manteniment / OTA.</div></div><div class='item'><div class='label'>v1.5.3-ha-history-hourly</div><div class='value'>Històric HA configurable i reduït per hores</div><div class='small'>El gràfic permet triar les últimes hores a mostrar i el proxy de la boia retorna mostres horàries compactes per evitar carregar massa l'ESP32 amb tot l'històric cru de Home Assistant.</div></div><div class='item'><div class='label'>v1.5.2-ha-token-fix</div><div class='value'>Correcció token Home Assistant</div><div class='small'>La configuració de l'API de Home Assistant ara neteja espais, cometes i el prefix Bearer si s'ha enganxat per error. També mostra un missatge més clar quan Home Assistant respon 401.</div></div><div class='item'><div class='label'>v1.5.0-ha-history-ui</div><div class='value'>Històric de temperatura des de Home Assistant</div><div class='small'>La fitxa de temperatura pot dibuixar un gràfic de fons amb l'històric de l'última setmana llegit des de l'API local de Home Assistant. La configuració d'URL, token i entity_id queda dins MQTT / HA.</div></div><div class='item'><div class='label'>v1.4.9-menu-align</div><div class='value'>Alineació visual del menú</div><div class='small'>El menú lateral queda alineat amb la targeta de contingut principal, mantenint el format acordió compacte sota la capçalera.</div></div><div class='item'><div class='label'>v1.4.8-accordion-menu</div><div class='value'>Menú lateral compacte desplegable</div><div class='small'>El menú lateral passa a funcionar com un acordió: les seccions generals despleguen les subopcions només quan cal. També s'alinea el menú just sota la capçalera principal i es redueix l'efecte de scroll lateral.</div></div><div class='item'><div class='label'>v1.4.7-help-center-menu</div><div class='value'>Centre d'ajuda i menú lateral refinat</div><div class='small'>Firmware, Hardware, Futur i ajuda de rescat passen al Centre d'ajuda. Sistema i Manteniment queden més nets. El menú lateral incorpora subdirectoris i s'arregla el fons quan el contingut és curt.</div></div><div class='item'><div class='label'>v1.4.6-left-menu-subpages</div><div class='value'>Menú lateral i subpàgines</div><div class='small'>La navegació principal passa a l'esquerra i les seccions grans funcionen com a subpàgines amb URL pròpia per secció, sense ancoratges.</div></div><div class='item'><div class='label'>v1.4.5-subtabs</div><div class='value'>Subpestanyes internes</div><div class='small'>Les pàgines grans queden ordenades amb subpestanyes: Sistema, Manteniment, Wi-Fi, MQTT i Temperatura tenen navegació interna per seccions.</div></div><div class='item'><div class='label'>v1.4.4-board-leds</div><div class='value'>Control LED intern de placa</div><div class='small'>Opció per activar/desactivar el LED intern de l'ESP32-C6 i usar-lo com a mirall del LED d'estat extern o com a heartbeat local.</div></div><div class='item'><div class='label'>v1.4.3-future-sensors-prep</div><div class='value'>Preparació sensors interns i energia</div><div class='small'>Documentació i reserves per temperatura interna, humitat interna, bateria, placa solar i GPIO d'expansió. Encara no activa sensors nous fins triar hardware concret.</div></div><div class='item'><div class='label'>v1.4.2-tabs-consolidated</div><div class='value'>Pestanyes consolidades</div><div class='small'>Firmware i Hardware passen dins de Sistema. Diagnòstic passa dins de Manteniment. La navegació queda més curta i menys carregada.</div></div>";
   html += "<div class='item'><div class='label'>v1.4.1-recovery-help</div><div class='value'>Ajuda de rescat</div><div class='small'>Documentació visible a la web sobre què fer després d'un reset total: Wi-Fi AP de rescat, IP per defecte i passos de recuperació.</div></div>";
   html += "<div class='item'><div class='label'>v1.4-maintenance-polish</div><div class='value'>Manteniment i poliment</div><div class='small'>Pestanya Manteniment, Hardware separat, export/import de configuració, confirmacions, salut general, qualitat RSSI i publicació manual de telemetria.</div></div>";
   html += "<div class='item'><div class='label'>v1.3-web-facelift</div><div class='value'>Rentat de cara web</div><div class='small'>Nova capçalera professional, pestanyes reals, footer amb versió, estat en directe via WebSocket, nom/hostname configurable, apartat firmware i capacitats ESP32-C6 documentades.</div></div>";
@@ -1386,31 +1432,63 @@ static String buildMaintenancePage() {
 
   html += "<hr>";
   html += "<h3>Actualitzacio des de GitHub</h3>";
-  html += "<p class='hint'>La boia pot comprovar un manifest publicat a GitHub Actions. Si hi ha una build nova, la pots descarregar i instal·lar directament per Wi-Fi.</p>";
-  html += "<div class='grid'>";
-  html += "<div class='item'><div class='label'>Build actual</div><div class='value'>";
-  html += htmlEscape(shortBuildSha(currentFirmwareBuildSha()));
-  html += "</div><div class='small'>Versio: ";
+  html += "<p class='hint'>Comprova si GitHub Actions ha publicat una build nova i instal·la-la per Wi-Fi. Ideal per actualitzar la boia flotant sense obrir-la.</p>";
+
+  html += "<div class='ota-badges'>";
+  html += "<span class='ota-badge "; html += internetClass(); html += "'>🌍 Internet: "; html += htmlEscape(appState.internetCheckDone ? appState.internetCheckMessage : String("pendent")); html += "</span>";
+  html += "<span class='ota-badge "; html += githubClass(); html += "'>🐙 GitHub: "; html += htmlEscape(appState.githubUpdateChecked ? (appState.githubUpdateOk ? String("connectat") : String("error")) : String("pendent")); html += "</span>";
+  html += "<span class='ota-badge "; html += otaUpdateClass(); html += "'>⬆️ "; html += htmlEscape(appState.githubUpdateMessage); html += "</span>";
+  html += "</div>";
+
+  html += "<div class='ota-hero'>";
+  html += "<div class='ota-tile info'><div class='ota-title'>Build actual</div><div class='ota-main info'>";
   html += htmlEscape(String(FIRMWARE_VERSION));
+  html += "</div><div class='ota-meta'>SHA local: ";
+  html += htmlEscape(shortBuildSha(currentFirmwareBuildSha()));
+  html += "<br>Compilat: ";
+#ifdef FIRMWARE_BUILD_DATE
+  html += htmlEscape(String(FIRMWARE_BUILD_DATE));
+#else
+  html += "local";
+#endif
   html += "</div></div>";
-  html += "<div class='item'><div class='label'>Estat GitHub</div><div class='value ";
-  html += appState.githubUpdateAvailable ? "warn" : (appState.githubUpdateChecked ? "ok" : "");
-  html += "'>";
-  html += htmlEscape(appState.githubUpdateMessage);
-  html += "</div><div class='small'>Remota: ";
-  html += htmlEscape(appState.githubUpdateVersion.length() ? appState.githubUpdateVersion : String("--"));
-  html += " · SHA: ";
-  html += htmlEscape(appState.githubUpdateSha.length() ? shortBuildSha(appState.githubUpdateSha) : String("--"));
-  html += "</div></div>";
-  html += "<div class='item'><div class='label'>Accés a Internet</div><div class='value ";
-  html += appState.internetCheckDone ? (appState.internetCheckOk ? "ok" : "warn") : "";
-  html += "'>";
+
+  html += "<div class='ota-tile "; html += internetClass(); html += "'><div class='ota-title'>Accés a Internet</div><div class='ota-main "; html += internetClass(); html += "'>";
   html += htmlEscape(appState.internetCheckMessage);
-  html += "</div><div class='small'>";
-  html += htmlEscape(appState.internetCheckDetails.length() ? appState.internetCheckDetails : String("Comprova si la boia pot resoldre DNS i sortir a Internet."));
+  html += "</div><div class='ota-meta'>";
+  html += htmlEscape(appState.internetCheckDetails.length() ? appState.internetCheckDetails : String("Prem Comprovar Internet per validar DNS i sortida HTTP."));
+  if (appState.internetResolvedIp.length()) { html += "<br>DNS GitHub: "; html += htmlEscape(appState.internetResolvedIp); }
+  if (appState.internetCheckDone) { html += "<br>Última prova: "; html += elapsedText(appState.internetLastCheckMillis); }
+  html += "</div></div>";
+
+  html += "<div class='ota-tile "; html += githubClass(); html += "'><div class='ota-title'>GitHub / manifest</div><div class='ota-main "; html += githubClass(); html += "'>";
+  html += htmlEscape(appState.githubUpdateChecked ? (appState.githubUpdateOk ? String("Manifest llegit") : String("Manifest fallit")) : String("Pendent"));
+  html += "</div><div class='ota-meta'>Remota: ";
+  html += htmlEscape(appState.githubUpdateVersion.length() ? appState.githubUpdateVersion : String("--"));
+  html += "<br>SHA: ";
+  html += htmlEscape(appState.githubUpdateSha.length() ? shortBuildSha(appState.githubUpdateSha) : String("--"));
+  if (appState.githubUpdateDate.length()) { html += "<br>Build remota: "; html += htmlEscape(appState.githubUpdateDate); }
+  if (appState.githubUpdateChecked) { html += "<br>Última prova: "; html += elapsedText(appState.githubLastCheckMillis); }
+  html += "</div></div>";
+
+  html += "<div class='ota-tile "; html += otaUpdateClass(); html += "'><div class='ota-title'>Actualització</div><div class='ota-main "; html += otaUpdateClass(); html += "'>";
+  html += htmlEscape(appState.githubUpdateMessage);
+  html += "</div><div class='ota-meta'>";
+  html += htmlEscape(appState.githubUpdateDetails.length() ? appState.githubUpdateDetails : String("Encara no hi ha resultat guardat."));
+  if (appState.githubRemoteOlder) html += "<br>No faré downgrade excepte si ho permets explícitament.";
   html += "</div></div>";
   html += "</div>";
 
+  html += "<div class='buttons'>";
+  html += "<form method='POST' action='/internet-check'><button class='secondary' type='submit'>🌍 Comprovar Internet</button></form>";
+  html += "<form method='POST' action='/github-check-update'><button class='secondary' type='submit'>🐙 Comprovar GitHub</button></form>";
+  html += "<form method='POST' action='/github-update' data-confirm='Descarregar i instal·lar firmware des de GitHub? No tallis alimentació.'><button type='submit' ";
+  if (!appState.githubUpdateAvailable && !configGithubAllowSameVersionUpdate) html += "disabled";
+  html += ">⬆️ Instal·lar actualització</button></form>";
+  html += "</div>";
+
+  html += "<div class='ota-config'>";
+  html += "<h3>Configuracio GitHub OTA</h3>";
   html += "<form method='POST' action='/github-ota-config'>";
   html += "<label><input type='checkbox' name='github_ota_enabled' value='1' ";
   html += configGithubOtaEnabled ? "checked" : "";
@@ -1419,18 +1497,14 @@ static String buildMaintenancePage() {
   html += "<input type='url' name='github_manifest_url' value='";
   html += htmlEscape(configGithubManifestUrl);
   html += "'>";
-  html += "<div class='small'>Ha de ser una URL raw, per exemple: https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json</div>";
+  html += "<div class='small'>Ha de ser una URL raw. Exemple: https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json</div>";
   html += "<label><input type='checkbox' name='github_allow_same' value='1' ";
   html += configGithubAllowSameVersionUpdate ? "checked" : "";
-  html += "> Permetre reinstal·lar la mateixa build</label>";
+  html += "> Permetre reinstal·lar la mateixa build o forçar una versió antiga</label>";
   html += "<button type='submit'>Guardar GitHub OTA</button>";
   html += "</form>";
-
-  html += "<div class='buttons'>";
-  html += "<form method='POST' action='/internet-check'><button class='secondary' type='submit'>Comprovar Internet</button></form>";
-  html += "<form method='POST' action='/github-check-update'><button class='secondary' type='submit'>Comprovar actualitzacio</button></form>";
-  html += "<form method='POST' action='/github-update' data-confirm='Descarregar i instal·lar firmware des de GitHub? No tallis alimentació.'><button type='submit'>Instal·lar actualitzacio GitHub</button></form>";
   html += "</div>";
+
   html += "</div>";
 
   html += "<div id='mnt-backup' class='card'>";
@@ -2316,11 +2390,14 @@ static void handleGithubOtaConfigPost() {
   bool allowSame = server.hasArg("github_allow_same");
   saveGithubOtaConfig(enabled, manifestUrl, allowSame);
 
-  server.send(
-    200,
-    "text/html",
-    buildSavedPage("GitHub OTA guardat", "La configuracio d'actualitzacions via GitHub s'ha guardat.", false)
-  );
+  appState.githubUpdateChecked = false;
+  appState.githubUpdateOk = false;
+  appState.githubUpdateAvailable = false;
+  appState.githubRemoteOlder = false;
+  appState.githubRemoteSameVersion = false;
+  appState.githubUpdateMessage = "Configuracio guardada. Torna a comprovar GitHub.";
+  appState.githubUpdateDetails = "S'ha guardat la URL del manifest i les opcions OTA.";
+  redirectToMaintenanceOta();
 }
 
 
@@ -2330,39 +2407,46 @@ static void handleInternetCheckPost() {
   appState.internetCheckOk = info.ok;
   appState.internetCheckMessage = info.message;
   appState.internetCheckDetails = info.details;
+  appState.internetHttpCode = info.httpCode;
+  appState.internetResolvedIp = info.resolvedIp;
+  appState.internetLastCheckMillis = millis();
 
-  server.send(
-    info.ok ? 200 : 500,
-    "text/html",
-    buildSavedPage(info.ok ? "Internet OK" : "Internet no confirmat", info.message + "<br><br>" + info.details, false)
-  );
+  redirectToMaintenanceOta();
 }
 
 static void handleGithubCheckUpdatePost() {
   GitHubUpdateInfo info = checkGitHubUpdateNow();
   appState.githubUpdateChecked = true;
+  appState.githubUpdateOk = info.ok;
   appState.githubUpdateAvailable = info.updateAvailable;
+  appState.githubRemoteOlder = info.remoteOlder;
+  appState.githubRemoteSameVersion = info.sameVersion;
+  appState.githubLastHttpCode = info.httpCode;
+  appState.githubLastCheckMillis = millis();
   appState.githubUpdateMessage = info.message;
   appState.githubUpdateVersion = info.version;
   appState.githubUpdateSha = info.buildSha;
   appState.githubUpdateDate = info.buildDate;
   appState.githubFirmwareUrl = info.firmwareUrl;
+  appState.githubUpdateDetails = info.details;
 
-  server.send(
-    info.ok ? 200 : 500,
-    "text/html",
-    buildSavedPage(info.updateAvailable ? "Nova actualitzacio disponible" : "Comprovacio GitHub OTA", info.message, false)
-  );
+  redirectToMaintenanceOta();
 }
 
 static void handleGithubUpdatePost() {
   String message;
   bool ok = performGitHubOtaUpdate(message);
 
+  appState.otaLastMessage = message;
+  if (!ok) {
+    redirectToMaintenanceOta();
+    return;
+  }
+
   server.send(
-    ok ? 200 : 500,
+    200,
     "text/html",
-    buildSavedPage(ok ? "Actualitzant des de GitHub" : "GitHub OTA fallida", message, ok)
+    buildSavedPage("Actualitzant des de GitHub", message, true)
   );
 
   if (ok) {

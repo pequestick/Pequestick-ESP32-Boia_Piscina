@@ -32,17 +32,26 @@ struct AppState {
   String otaLastMessage = "OTA encara no utilitzada";
 
   bool githubUpdateChecked = false;
+  bool githubUpdateOk = false;
   bool githubUpdateAvailable = false;
+  bool githubRemoteOlder = false;
+  bool githubRemoteSameVersion = false;
+  int githubLastHttpCode = 0;
+  unsigned long githubLastCheckMillis = 0;
   String githubUpdateMessage = "Encara no comprovat";
   String githubUpdateVersion = "";
   String githubUpdateSha = "";
   String githubUpdateDate = "";
   String githubFirmwareUrl = "";
+  String githubUpdateDetails = "Prem Comprovar actualitzacio per llegir el manifest publicat a GitHub.";
 
   bool internetCheckDone = false;
   bool internetCheckOk = false;
+  int internetHttpCode = 0;
+  unsigned long internetLastCheckMillis = 0;
   String internetCheckMessage = "Encara no comprovat";
   String internetCheckDetails = "";
+  String internetResolvedIp = "";
 
   bool hardwareReady = false;
   bool buttonPressed = false;

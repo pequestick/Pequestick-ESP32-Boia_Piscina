@@ -56,6 +56,52 @@ static String jsonValue(const String& json, const String& key) {
   return out;
 }
 
+
+static void parseVersionTriple(const String& version, int out[3]) {
+  out[0] = 0;
+  out[1] = 0;
+  out[2] = 0;
+  int idx = 0;
+  String number;
+  bool started = false;
+  for (int i = 0; i < (int)version.length() && idx < 3; i++) {
+    char c = version[i];
+    if (isDigit((unsigned char)c)) {
+      number += c;
+      started = true;
+    } else if (started) {
+      out[idx++] = number.toInt();
+      number = "";
+      started = false;
+      if (c != '.') {
+        // Continue scanning because versions like "v1.6.3-name" are valid.
+      }
+    }
+  }
+  if (idx < 3 && number.length()) {
+    out[idx++] = number.toInt();
+  }
+}
+
+static int compareFirmwareVersionStrings(const String& remoteVersion, const String& currentVersion) {
+  int r[3];
+  int c[3];
+  parseVersionTriple(remoteVersion, r);
+  parseVersionTriple(currentVersion, c);
+  for (int i = 0; i < 3; i++) {
+    if (r[i] > c[i]) return 1;
+    if (r[i] < c[i]) return -1;
+  }
+  return 0;
+}
+
+static String bytesText(uint32_t bytes) {
+  if (bytes == 0) return "mida no informada";
+  if (bytes < 1024) return String(bytes) + " B";
+  if (bytes < 1024UL * 1024UL) return String(bytes / 1024.0f, 1) + " KB";
+  return String(bytes / (1024.0f * 1024.0f), 2) + " MB";
+}
+
 static bool httpGetString(const String& url, String& body, int& code) {
   body = "";
   code = 0;
@@ -167,12 +213,17 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
   String manifest;
   int code = 0;
   if (!httpGetString(configGithubManifestUrl, manifest, code)) {
-    info.message = "No puc llegir manifest GitHub. HTTP " + String(code);
+    info.httpCode = code;
+    info.message = "Manifest no accessible";
+    info.details = "HTTP " + String(code) + ". ";
     if (code == 404) {
-      info.message += ". Revisa que sigui raw.githubusercontent.com i no github.com/blob ni raw.githubuser.com";
+      info.details += "Revisa que sigui una URL raw.githubusercontent.com i que existeixi firmware/manifest.json.";
+    } else {
+      info.details += "Revisa Internet, DNS, GitHub o el manifest configurat.";
     }
     return info;
   }
+  info.httpCode = code;
 
   info.version = jsonValue(manifest, "version");
   info.buildSha = jsonValue(manifest, "build_sha");
@@ -183,16 +234,44 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
   info.sizeBytes = (uint32_t)jsonValue(manifest, "size").toInt();
 
   if (info.firmwareUrl.length() == 0) {
-    info.message = "Manifest GitHub sense firmware_url";
+    info.message = "Manifest GitHub invalid";
+    info.details = "El manifest s'ha llegit, però no porta firmware_url.";
     return info;
   }
 
+  String currentVersion = String(FIRMWARE_VERSION);
   String currentSha = currentFirmwareBuildSha();
-  info.updateAvailable = info.buildSha.length() > 0 && info.buildSha != currentSha;
+  int versionCmp = 0;
+  if (info.version.length() > 0) {
+    versionCmp = compareFirmwareVersionStrings(info.version, currentVersion);
+  }
+
+  info.sameVersion = info.version.length() > 0 && versionCmp == 0;
+  info.remoteOlder = info.version.length() > 0 && versionCmp < 0;
+
+  if (info.version.length() == 0) {
+    // Manifest antic o incomplet: només podem comparar SHA.
+    info.updateAvailable = info.buildSha.length() > 0 && info.buildSha != currentSha;
+  } else {
+    info.updateAvailable = versionCmp > 0;
+  }
+
   info.ok = true;
 
+  String remoteVersion = info.version.length() ? info.version : String("sense versio");
+  String remoteSha = info.buildSha.length() ? shortBuildSha(info.buildSha) : String("sense SHA");
+  info.details = "Remota " + remoteVersion + " · SHA " + remoteSha + " · " + bytesText(info.sizeBytes);
+  if (info.buildDate.length()) {
+    info.details += " · " + info.buildDate;
+  }
+
   if (info.updateAvailable) {
-    info.message = "Nova actualitzacio disponible: " + (info.version.length() ? info.version : String("sense versio"));
+    info.message = "Nova versio disponible";
+  } else if (info.remoteOlder) {
+    info.message = "GitHub te una versio mes antiga";
+    info.details += ". No s'ofereix downgrade.";
+  } else if (info.sameVersion) {
+    info.message = "Ja tens aquesta versio";
   } else {
     info.message = "Firmware al dia";
   }
@@ -204,6 +283,11 @@ bool performGitHubOtaUpdate(String& messageOut) {
   GitHubUpdateInfo info = checkGitHubUpdateNow();
   if (!info.ok) {
     messageOut = info.message;
+    return false;
+  }
+
+  if (info.remoteOlder && !configGithubAllowSameVersionUpdate) {
+    messageOut = "La versio publicada a GitHub es mes antiga que la local. No faig downgrade.";
     return false;
   }
 
