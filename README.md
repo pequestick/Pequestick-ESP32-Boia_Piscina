@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.11.0-fast-github-ota
+1.11.1-fast-github-ota-tls
 ```
 
 Funcionalitats principals actuals:

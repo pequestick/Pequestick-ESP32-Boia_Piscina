@@ -104,6 +104,20 @@ private:
   mbedtls_sha256_context context;
 };
 
+class WifiPerformanceMode {
+public:
+  WifiPerformanceMode() : previousMode(WiFi.getSleep()) {
+    WiFi.setSleep(false);
+  }
+
+  ~WifiPerformanceMode() {
+    WiFi.setSleep(previousMode);
+  }
+
+private:
+  wifi_ps_type_t previousMode;
+};
+
 uint8_t otaDownloadBuffer[16384];
 }
 
@@ -515,6 +529,8 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
   }
   otaAppendLog("Update.begin OK. Començo a escriure flash per blocs.");
   Sha256Accumulator firmwareHash;
+  WifiPerformanceMode wifiPerformanceMode;
+  otaAppendLog("Mode rendiment Wi-Fi actiu durant la descarrega");
 
   size_t written = 0;
   uint8_t lastLoggedPercent = 255;
@@ -596,43 +612,19 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
     WiFiClient* stream = http.getStreamPtr();
     stream->setTimeout(12000);
     size_t receivedThisRequest = 0;
-    unsigned long lastDataMillis = millis();
     bool requestHadProgress = false;
 
     while (receivedThisRequest < expectedThisRequest && written < (size_t)totalSize) {
       size_t remainingInRequest = expectedThisRequest - receivedThisRequest;
-      int available = stream->available();
-      if (available <= 0) {
-        unsigned long now = millis();
-        if (!http.connected()) {
-          otaAppendLog("Connexio GitHub tancada. Reprendré des del byte " + String(written));
-          break;
-        }
-        if (now - lastDataMillis > 15000UL) {
-          otaAppendLog("Flux sense dades durant 15 s. Reprendré des del byte " + String(written));
-          break;
-        }
-        if (now - lastWaitLogMillis > 8000UL) {
-          lastWaitLogMillis = now;
-          appState.otaLastMessage = "Esperant dades GitHub... " + String(written) + "/" + String(totalSize) + " bytes";
-          otaAppendLog(appState.otaLastMessage);
-          if (progressCallback) progressCallback();
-        }
-        delay(10);
-        continue;
-      }
-
-      size_t toRead = (size_t)available;
-      if (toRead > remainingInRequest) toRead = remainingInRequest;
+      size_t toRead = remainingInRequest;
       if (toRead > sizeof(otaDownloadBuffer)) toRead = sizeof(otaDownloadBuffer);
 
-      int bytesRead = stream->read(otaDownloadBuffer, toRead);
+      int bytesRead = stream->readBytes(otaDownloadBuffer, toRead);
       if (bytesRead <= 0) {
-        delay(5);
-        continue;
+        otaAppendLog("Flux TLS sense dades. Reprendré des del byte " + String(written));
+        break;
       }
 
-      lastDataMillis = millis();
       size_t bytesWritten = Update.write(otaDownloadBuffer, (size_t)bytesRead);
       if (bytesWritten != (size_t)bytesRead) {
         messageOut = "Error escrivint OTA a la flash";
