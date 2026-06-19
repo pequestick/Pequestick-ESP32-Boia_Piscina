@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.6.9-ota-ranged-download
+1.7.0-ota-speed-eta
 ```
 
 Funcionalitats principals actuals:
