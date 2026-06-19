@@ -1,9 +1,10 @@
 {
-  "version": "1.6.9-ota-ranged-download",
-  "build_sha": "a0b1ec71e3d84af57d3e37797f31bd8419f4d655",
-  "build_short_sha": "a0b1ec71e3d8",
-  "build_date": "2026-06-19T13:24:06Z",
-  "size": 1414112,
+  "version": "1.8.0-security-auth",
+  "build_sha": "3f35f0a5bb6bf1dc8e19dd6d396b848adee0ac35",
+  "build_short_sha": "3f35f0a5bb6b",
+  "build_date": "2026-06-19T14:56:55Z",
+  "size": 1436800,
+  "sha256": "90fd95afe9c7aabcaa74668395b0e1801ab55f088491c4931049df947ae8bf77",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Optimitza la OTA de GitHub amb blocs Range mes grans, estimacio de velocitat, ETA i log menys sorollos durant la descarrega."
+  "notes": "Afegeix autenticacio web persistent, canvi obligatori de credencials, secrets fora del firmware i verificacio TLS i SHA-256 per OTA."
 }
