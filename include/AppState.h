@@ -30,6 +30,12 @@ struct AppState {
   bool otaInProgress = false;
   bool otaSuccess = false;
   String otaLastMessage = "OTA encara no utilitzada";
+  String otaProgressSource = "cap";
+  String otaProgressPhase = "espera";
+  uint32_t otaProgressBytes = 0;
+  uint32_t otaProgressTotal = 0;
+  uint8_t otaProgressPercent = 0;
+  unsigned long otaProgressMillis = 0;
 
   bool githubUpdateChecked = false;
   bool githubUpdateOk = false;

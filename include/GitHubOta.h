@@ -28,6 +28,7 @@ struct GitHubUpdateInfo {
 
 InternetCheckInfo checkInternetConnectivityNow();
 GitHubUpdateInfo checkGitHubUpdateNow();
-bool performGitHubOtaUpdate(String& messageOut);
+typedef void (*OtaProgressCallback)();
+bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCallback = nullptr);
 String currentFirmwareBuildSha();
 String shortBuildSha(const String& sha);

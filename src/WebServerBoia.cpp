@@ -25,6 +25,7 @@ static WebServer server(WEB_SERVER_PORT);
 static WebSocketsServer webSocket(81);
 static unsigned long lastWebSocketBroadcastMillis = 0;
 static const unsigned long WEBSOCKET_BROADCAST_INTERVAL_MS = 1000;
+static void notifyOtaProgressNow();
 
 // ==========================
 // HTML HELPERS
@@ -143,6 +144,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += ".ota-meta{font-size:12px;color:#94a3b8;line-height:1.45;word-break:break-word;}";
   html += ".ota-badges{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}.ota-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #334155;border-radius:999px;padding:6px 9px;background:#0b1220;color:#cbd5e1;font-size:12px;font-weight:850}.ota-badge.ok{border-color:rgba(34,197,94,.45);color:#bbf7d0;background:rgba(34,197,94,.10)}.ota-badge.warn{border-color:rgba(250,204,21,.45);color:#fef08a;background:rgba(250,204,21,.10)}.ota-badge.bad{border-color:rgba(239,68,68,.50);color:#fecaca;background:rgba(239,68,68,.10)}";
   html += ".ota-config{margin-top:14px;padding-top:14px;border-top:1px solid rgba(148,163,184,.14)}";
+  html += ".ota-progress-card{margin:14px 0;padding:14px;border:1px solid rgba(56,189,248,.25);background:linear-gradient(180deg,rgba(14,165,233,.10),rgba(15,23,42,.40));border-radius:16px}.ota-progress-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}.ota-progress-title{font-weight:950;color:#e0f2fe}.ota-progress-text{font-size:12px;color:#94a3b8;line-height:1.45}.progress-track{height:15px;background:#020617;border:1px solid #263449;border-radius:999px;overflow:hidden;position:relative}.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#38bdf8,#22c55e);border-radius:999px;transition:width .25s ease}.progress-fill.indeterminate{width:38%;position:absolute;animation:indeterminate 1.2s infinite ease-in-out}.ota-progress-card.done .progress-fill{background:linear-gradient(90deg,#16a34a,#86efac)}.ota-progress-card.error .progress-fill{background:linear-gradient(90deg,#dc2626,#fca5a5)}@keyframes indeterminate{0%{left:-40%}100%{left:105%}}";
   html += "button:disabled{opacity:.45;cursor:not-allowed;background:#334155;}";
   html += "pre{white-space:pre-wrap;word-break:break-word;background:#050b14;border:1px solid #334155;border-radius:14px;padding:14px;color:#dbeafe;}";
   html += ".temp-card{position:relative;overflow:hidden;min-height:188px;}";
@@ -158,15 +160,19 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "function txt(id,v){var e=document.getElementById(id);if(e)e.textContent=(v===null||v===undefined)?'--':v;}";
   html += "function cls(id,c){var e=document.getElementById(id);if(e){e.classList.remove('ok','warn','bad');e.classList.add(c);}}";
   html += "function service(id,on,bad,text){var e=document.getElementById(id);if(!e)return;e.classList.remove('ok','warn','bad');e.classList.add(on?'ok':(bad?'bad':'warn'));if(text!==undefined){var sp=e.querySelector('span:last-child');if(sp)sp.textContent=text;}}";
-  html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',d.uptime_seconds+' s');txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');}";
+  html += "function bytesHuman(n){n=parseInt(n||0,10);if(!n)return '--';if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(1)+' KB';return (n/1048576).toFixed(2)+' MB';}";
+  html += "function updateOtaProgress(d){var card=document.getElementById('ota-progress-card');if(!card)return;var pct=parseInt(d.ota_progress_percent||0,10);var inProg=!!d.ota_in_progress;var phase=d.ota_progress_phase||'espera';var fill=document.getElementById('ota-progress-fill');var pctEl=document.getElementById('ota-progress-percent');var phaseEl=document.getElementById('ota-progress-phase');var msgEl=document.getElementById('ota-progress-message');var bytesEl=document.getElementById('ota-progress-bytes');card.classList.remove('done','error');if(phase==='error')card.classList.add('error');if(phase==='completada')card.classList.add('done');if(fill){fill.classList.remove('indeterminate');if(inProg&&(!pct||pct<1)){fill.classList.add('indeterminate');fill.style.width='38%';}else{fill.style.width=Math.max(0,Math.min(100,pct))+'%';}}if(pctEl)pctEl.textContent=(pct?pct:0)+'%';if(phaseEl)phaseEl.textContent=(d.ota_progress_source||'OTA')+' · '+phase;if(msgEl)msgEl.textContent=d.ota_last_message||'Esperant accio OTA';if(bytesEl)bytesEl.textContent=bytesHuman(d.ota_progress_bytes)+' / '+bytesHuman(d.ota_progress_total);}";
+  html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',d.uptime_seconds+' s');txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateOtaProgress(d);}";
   html += "function startWS(){try{var ws=new WebSocket('ws://'+location.hostname+':81/');ws.onmessage=function(ev){try{applyStatus(JSON.parse(ev.data));}catch(e){}};ws.onclose=function(){setTimeout(startWS,3000);};ws.onerror=function(){try{ws.close();}catch(e){}};}catch(e){}}";
-  html += "function bindConfirms(){document.querySelectorAll('form[data-confirm]').forEach(function(f){f.addEventListener('submit',function(e){if(!confirm(f.getAttribute('data-confirm'))){e.preventDefault();}});});}";
+  html += "function bindConfirms(){document.querySelectorAll('form[data-confirm]').forEach(function(f){if(f.id==='ota-local-form'||f.id==='github-install-form')return;f.addEventListener('submit',function(e){if(!confirm(f.getAttribute('data-confirm'))){e.preventDefault();}});});}";
   html += "function bindAccordion(){document.querySelectorAll('.menu-toggle').forEach(function(btn){btn.addEventListener('click',function(){var g=btn.closest('.menu-group');if(!g)return;var isOpen=g.classList.contains('open');document.querySelectorAll('.menu-group.has-sub').forEach(function(x){x.classList.remove('open');});if(!isOpen)g.classList.add('open');});});}";
   html += "function applySubpage(){var links=[].slice.call(document.querySelectorAll('.subtab'));if(!links.length)return;var params=new URLSearchParams(location.search);var selected=params.get('section');var ids=[];links.forEach(function(a){var u=new URL(a.href,location.href);var id=u.searchParams.get('section');if(id){ids.push(id);}});if(!selected||ids.indexOf(selected)<0)selected=ids[0];ids.forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=(id===selected)?'':'none';});document.querySelectorAll('.subpage-extra').forEach(function(el){el.style.display=(el.getAttribute('data-parent')===selected)?'':'none';});links.forEach(function(a){var u=new URL(a.href,location.href);a.classList.toggle('active',u.searchParams.get('section')===selected);});}";
   html += "function extractHaPoints(raw){var out=[];try{if(raw&&Array.isArray(raw.points)){raw.points.forEach(function(x){var v=parseFloat(x.v);var tm=x.t;if(isFinite(v)&&tm){out.push({t:new Date(tm).getTime(),v:v});}});return out;}var arr=raw;if(Array.isArray(arr)&&Array.isArray(arr[0]))arr=arr[0];if(!Array.isArray(arr))return out;arr.forEach(function(x){var st=(x.state!==undefined)?x.state:x.s;var tm=x.last_changed||x.last_updated||x.lc||x.lu;var v=parseFloat(st);if(isFinite(v)&&tm){out.push({t:new Date(tm).getTime(),v:v});}});}catch(e){}return out;}";
   html += "function drawTempHistory(points,hours){var c=document.getElementById('temp-history-chart');if(!c)return;var ctx=c.getContext('2d');var r=c.getBoundingClientRect();var w=Math.max(1,Math.floor(r.width*devicePixelRatio));var h=Math.max(1,Math.floor(r.height*devicePixelRatio));if(c.width!==w)c.width=w;if(c.height!==h)c.height=h;ctx.clearRect(0,0,w,h);if(!points||points.length<2){txt('temp-history-note','Històric HA no disponible');return;}var vals=points.map(function(p){return p.v;});var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);if(mx-mn<0.2){mx+=0.1;mn-=0.1;}var t0=points[0].t,t1=points[points.length-1].t;if(t1<=t0)t1=t0+1;ctx.globalAlpha=1;ctx.lineWidth=Math.max(2,2*devicePixelRatio);ctx.strokeStyle='rgba(125,211,252,.95)';ctx.fillStyle='rgba(37,99,235,.22)';ctx.beginPath();points.forEach(function(p,i){var x=(p.t-t0)/(t1-t0)*w;var y=h-((p.v-mn)/(mx-mn)*h*.72+h*.14);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.fill();txt('temp-history-note','Últimes '+hours+' h · mostres horàries · '+points.length+' punts · '+mn.toFixed(1)+'-'+mx.toFixed(1)+' °C');}";
   html += "function loadTempHistory(){var c=document.getElementById('temp-history-chart');if(!c)return;var inp=document.getElementById('ha-history-hours-inline');var hours=inp?parseInt(inp.value||'24',10):24;if(!isFinite(hours)||hours<1)hours=24;if(hours>168)hours=168;var start=new Date(Date.now()-hours*60*60*1000).toISOString();fetch('/ha-history?hours='+encodeURIComponent(hours)+'&start='+encodeURIComponent(start)).then(function(r){return r.json();}).then(function(j){if(j.error){txt('temp-history-note',j.error);return;}drawTempHistory(extractHaPoints(j),hours);}).catch(function(){txt('temp-history-note','No puc llegir historial HA. Prova menys hores o revisa token/URL.');});}";
-  html += "window.addEventListener('load',function(){bindConfirms();bindAccordion();applySubpage();startWS();loadTempHistory();});";
+  html += "function showOtaProgress(source,msg){var card=document.getElementById('ota-progress-card');if(!card)return;card.classList.remove('done','error');txt('ota-progress-phase',source+' · iniciant');txt('ota-progress-message',msg||'Preparant actualitzacio');txt('ota-progress-percent','0%');txt('ota-progress-bytes','-- / --');var fill=document.getElementById('ota-progress-fill');if(fill){fill.classList.remove('indeterminate');fill.style.width='0%';}}";
+  html += "function bindOtaForms(){var local=document.getElementById('ota-local-form');if(local){local.addEventListener('submit',function(e){e.preventDefault();if(local.getAttribute('data-confirm')&&!confirm(local.getAttribute('data-confirm')))return;var file=document.getElementById('ota-local-file');if(!file||!file.files||!file.files.length){alert('Tria primer un firmware.bin');return;}showOtaProgress('OTA local','Pujant firmware local');var xhr=new XMLHttpRequest();xhr.open('POST','/update');xhr.upload.onprogress=function(ev){if(ev.lengthComputable){var pct=Math.round(ev.loaded*100/ev.total);var fill=document.getElementById('ota-progress-fill');if(fill)fill.style.width=pct+'%';txt('ota-progress-percent',pct+'%');txt('ota-progress-phase','OTA local · pujant');txt('ota-progress-bytes',bytesHuman(ev.loaded)+' / '+bytesHuman(ev.total));}};xhr.onload=function(){txt('ota-progress-message',xhr.status>=200&&xhr.status<300?'Firmware rebut. La boia es reiniciara si tot ha anat be.':'OTA local fallida. HTTP '+xhr.status);if(xhr.status>=200&&xhr.status<300){var card=document.getElementById('ota-progress-card');if(card)card.classList.add('done');setTimeout(function(){location.href='/maintenance?section=mnt-ota';},8000);}};xhr.onerror=function(){txt('ota-progress-message','Error de xarxa pujant firmware');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('error');};xhr.send(new FormData(local));});}var gh=document.getElementById('github-install-form');if(gh){gh.addEventListener('submit',function(e){e.preventDefault();if(gh.getAttribute('data-confirm')&&!confirm(gh.getAttribute('data-confirm')))return;showOtaProgress('GitHub OTA','Demanant descarrega del firmware a la boia');var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.add('indeterminate');fetch('/github-update',{method:'POST'}).then(function(r){return r.text().then(function(t){return {ok:r.ok,txt:t,status:r.status};});}).then(function(res){txt('ota-progress-message',res.ok?'Actualitzacio enviada. Si ha anat be, la boia es reiniciara.':'GitHub OTA fallida. HTTP '+res.status);if(!res.ok){var card=document.getElementById('ota-progress-card');if(card)card.classList.add('error');}}).catch(function(){txt('ota-progress-message','Connexio tallada. Si la boia reinicia, pot ser normal durant OTA.');});});}}";
+  html += "window.addEventListener('load',function(){bindConfirms();bindAccordion();applySubpage();startWS();loadTempHistory();bindOtaForms();});";
   html += "</script>";
 
   html += "</head>";
@@ -1216,7 +1222,7 @@ static void appendFirmwareSection(String& html) {
 
   html += "<div class='card'>";
   html += "<h2>Actualitzacions</h2>";
-  html += "<div class='item'><div class='label'>v1.6.4-release-helper</div><div class='value'>Release helper</div><div class='small'>S'afegeixen FIRMWARE_CHANGE_TITLE i FIRMWARE_CHANGE_NOTES a AppConfig.cpp i un script PowerShell per fer commit, rebase i push llegint el missatge directament del firmware.</div></div><div class='item'><div class='label'>v1.6.3-github-ota-ui-refresh</div><div class='value'>Pantalla GitHub OTA professional</div><div class='small'>La pantalla d'OTA mostra Internet, GitHub, manifest i actualització en targetes clares, guarda el resultat de les comprovacions i evita oferir downgrades quan GitHub publica una versió més antiga.</div></div><div class='item'><div class='label'>v1.6.2-auto-version-manifest</div><div class='value'>Manifest amb versió automàtica</div><div class='small'>GitHub Actions llegeix FIRMWARE_VERSION des d'AppConfig.cpp i genera manifest.json amb la mateixa versió, sense hardcodejar-la al workflow.</div></div><div class='item'><div class='label'>v1.6.1-internet-check</div><div class='value'>Actualitzacions automatiques des de GitHub</div><div class='small'>GitHub Actions pot compilar el firmware en cada push, publicar firmware.bin i manifest.json, i la boia pot detectar una build nova i instal·lar-la per Wi-Fi des de la pestanya Manteniment / OTA.</div></div><div class='item'><div class='label'>v1.5.3-ha-history-hourly</div><div class='value'>Històric HA configurable i reduït per hores</div><div class='small'>El gràfic permet triar les últimes hores a mostrar i el proxy de la boia retorna mostres horàries compactes per evitar carregar massa l'ESP32 amb tot l'històric cru de Home Assistant.</div></div><div class='item'><div class='label'>v1.5.2-ha-token-fix</div><div class='value'>Correcció token Home Assistant</div><div class='small'>La configuració de l'API de Home Assistant ara neteja espais, cometes i el prefix Bearer si s'ha enganxat per error. També mostra un missatge més clar quan Home Assistant respon 401.</div></div><div class='item'><div class='label'>v1.5.0-ha-history-ui</div><div class='value'>Històric de temperatura des de Home Assistant</div><div class='small'>La fitxa de temperatura pot dibuixar un gràfic de fons amb l'històric de l'última setmana llegit des de l'API local de Home Assistant. La configuració d'URL, token i entity_id queda dins MQTT / HA.</div></div><div class='item'><div class='label'>v1.4.9-menu-align</div><div class='value'>Alineació visual del menú</div><div class='small'>El menú lateral queda alineat amb la targeta de contingut principal, mantenint el format acordió compacte sota la capçalera.</div></div><div class='item'><div class='label'>v1.4.8-accordion-menu</div><div class='value'>Menú lateral compacte desplegable</div><div class='small'>El menú lateral passa a funcionar com un acordió: les seccions generals despleguen les subopcions només quan cal. També s'alinea el menú just sota la capçalera principal i es redueix l'efecte de scroll lateral.</div></div><div class='item'><div class='label'>v1.4.7-help-center-menu</div><div class='value'>Centre d'ajuda i menú lateral refinat</div><div class='small'>Firmware, Hardware, Futur i ajuda de rescat passen al Centre d'ajuda. Sistema i Manteniment queden més nets. El menú lateral incorpora subdirectoris i s'arregla el fons quan el contingut és curt.</div></div><div class='item'><div class='label'>v1.4.6-left-menu-subpages</div><div class='value'>Menú lateral i subpàgines</div><div class='small'>La navegació principal passa a l'esquerra i les seccions grans funcionen com a subpàgines amb URL pròpia per secció, sense ancoratges.</div></div><div class='item'><div class='label'>v1.4.5-subtabs</div><div class='value'>Subpestanyes internes</div><div class='small'>Les pàgines grans queden ordenades amb subpestanyes: Sistema, Manteniment, Wi-Fi, MQTT i Temperatura tenen navegació interna per seccions.</div></div><div class='item'><div class='label'>v1.4.4-board-leds</div><div class='value'>Control LED intern de placa</div><div class='small'>Opció per activar/desactivar el LED intern de l'ESP32-C6 i usar-lo com a mirall del LED d'estat extern o com a heartbeat local.</div></div><div class='item'><div class='label'>v1.4.3-future-sensors-prep</div><div class='value'>Preparació sensors interns i energia</div><div class='small'>Documentació i reserves per temperatura interna, humitat interna, bateria, placa solar i GPIO d'expansió. Encara no activa sensors nous fins triar hardware concret.</div></div><div class='item'><div class='label'>v1.4.2-tabs-consolidated</div><div class='value'>Pestanyes consolidades</div><div class='small'>Firmware i Hardware passen dins de Sistema. Diagnòstic passa dins de Manteniment. La navegació queda més curta i menys carregada.</div></div>";
+  html += "<div class='item'><div class='label'>v1.6.5-ota-progress-ui</div><div class='value'>Barra de progrés OTA</div><div class='small'>Les actualitzacions OTA locals i des de GitHub mostren barra de progrés, fase, percentatge i bytes perquè es vegi clarament que la boia està treballant.</div></div><div class='item'><div class='label'>v1.6.4-release-helper</div><div class='value'>Release helper</div><div class='small'>Afegeix un script de release que llegeix el nom del canvi des del firmware i fa commit, rebase i push amb un missatge coherent.</div></div><div class='item'><div class='label'>v1.6.3-github-ota-ui-refresh</div><div class='value'>Pantalla GitHub OTA professional</div><div class='small'>La pantalla d'OTA mostra Internet, GitHub, manifest i actualització en targetes clares, guarda el resultat de les comprovacions i evita oferir downgrades quan GitHub publica una versió més antiga.</div></div><div class='item'><div class='label'>v1.6.2-auto-version-manifest</div><div class='value'>Manifest amb versió automàtica</div><div class='small'>GitHub Actions llegeix FIRMWARE_VERSION des d'AppConfig.cpp i genera manifest.json amb la mateixa versió, sense hardcodejar-la al workflow.</div></div><div class='item'><div class='label'>v1.6.1-internet-check</div><div class='value'>Actualitzacions automatiques des de GitHub</div><div class='small'>GitHub Actions pot compilar el firmware en cada push, publicar firmware.bin i manifest.json, i la boia pot detectar una build nova i instal·lar-la per Wi-Fi des de la pestanya Manteniment / OTA.</div></div><div class='item'><div class='label'>v1.5.3-ha-history-hourly</div><div class='value'>Històric HA configurable i reduït per hores</div><div class='small'>El gràfic permet triar les últimes hores a mostrar i el proxy de la boia retorna mostres horàries compactes per evitar carregar massa l'ESP32 amb tot l'històric cru de Home Assistant.</div></div><div class='item'><div class='label'>v1.5.2-ha-token-fix</div><div class='value'>Correcció token Home Assistant</div><div class='small'>La configuració de l'API de Home Assistant ara neteja espais, cometes i el prefix Bearer si s'ha enganxat per error. També mostra un missatge més clar quan Home Assistant respon 401.</div></div><div class='item'><div class='label'>v1.5.0-ha-history-ui</div><div class='value'>Històric de temperatura des de Home Assistant</div><div class='small'>La fitxa de temperatura pot dibuixar un gràfic de fons amb l'històric de l'última setmana llegit des de l'API local de Home Assistant. La configuració d'URL, token i entity_id queda dins MQTT / HA.</div></div><div class='item'><div class='label'>v1.4.9-menu-align</div><div class='value'>Alineació visual del menú</div><div class='small'>El menú lateral queda alineat amb la targeta de contingut principal, mantenint el format acordió compacte sota la capçalera.</div></div><div class='item'><div class='label'>v1.4.8-accordion-menu</div><div class='value'>Menú lateral compacte desplegable</div><div class='small'>El menú lateral passa a funcionar com un acordió: les seccions generals despleguen les subopcions només quan cal. També s'alinea el menú just sota la capçalera principal i es redueix l'efecte de scroll lateral.</div></div><div class='item'><div class='label'>v1.4.7-help-center-menu</div><div class='value'>Centre d'ajuda i menú lateral refinat</div><div class='small'>Firmware, Hardware, Futur i ajuda de rescat passen al Centre d'ajuda. Sistema i Manteniment queden més nets. El menú lateral incorpora subdirectoris i s'arregla el fons quan el contingut és curt.</div></div><div class='item'><div class='label'>v1.4.6-left-menu-subpages</div><div class='value'>Menú lateral i subpàgines</div><div class='small'>La navegació principal passa a l'esquerra i les seccions grans funcionen com a subpàgines amb URL pròpia per secció, sense ancoratges.</div></div><div class='item'><div class='label'>v1.4.5-subtabs</div><div class='value'>Subpestanyes internes</div><div class='small'>Les pàgines grans queden ordenades amb subpestanyes: Sistema, Manteniment, Wi-Fi, MQTT i Temperatura tenen navegació interna per seccions.</div></div><div class='item'><div class='label'>v1.4.4-board-leds</div><div class='value'>Control LED intern de placa</div><div class='small'>Opció per activar/desactivar el LED intern de l'ESP32-C6 i usar-lo com a mirall del LED d'estat extern o com a heartbeat local.</div></div><div class='item'><div class='label'>v1.4.3-future-sensors-prep</div><div class='value'>Preparació sensors interns i energia</div><div class='small'>Documentació i reserves per temperatura interna, humitat interna, bateria, placa solar i GPIO d'expansió. Encara no activa sensors nous fins triar hardware concret.</div></div><div class='item'><div class='label'>v1.4.2-tabs-consolidated</div><div class='value'>Pestanyes consolidades</div><div class='small'>Firmware i Hardware passen dins de Sistema. Diagnòstic passa dins de Manteniment. La navegació queda més curta i menys carregada.</div></div>";
   html += "<div class='item'><div class='label'>v1.4.1-recovery-help</div><div class='value'>Ajuda de rescat</div><div class='small'>Documentació visible a la web sobre què fer després d'un reset total: Wi-Fi AP de rescat, IP per defecte i passos de recuperació.</div></div>";
   html += "<div class='item'><div class='label'>v1.4-maintenance-polish</div><div class='value'>Manteniment i poliment</div><div class='small'>Pestanya Manteniment, Hardware separat, export/import de configuració, confirmacions, salut general, qualitat RSSI i publicació manual de telemetria.</div></div>";
   html += "<div class='item'><div class='label'>v1.3-web-facelift</div><div class='value'>Rentat de cara web</div><div class='small'>Nova capçalera professional, pestanyes reals, footer amb versió, estat en directe via WebSocket, nom/hostname configurable, apartat firmware i capacitats ESP32-C6 documentades.</div></div>";
@@ -1425,8 +1431,8 @@ static String buildMaintenancePage() {
   html += "'>";
   html += htmlEscape(appState.otaLastMessage);
   html += "</div></div>";
-  html += "<form method='POST' action='/update' enctype='multipart/form-data' data-confirm='Pujar firmware nou? Si el fitxer és incorrecte pots deixar la boia malament.'>";
-  html += "<input type='file' name='firmware' accept='.bin'>";
+  html += "<form id='ota-local-form' method='POST' action='/update' enctype='multipart/form-data' data-confirm='Pujar firmware nou? Si el fitxer és incorrecte pots deixar la boia malament.'>";
+  html += "<input id='ota-local-file' type='file' name='firmware' accept='.bin'>";
   html += "<button type='submit'>Actualitzar firmware</button>";
   html += "</form>";
 
@@ -1479,10 +1485,30 @@ static String buildMaintenancePage() {
   html += "</div></div>";
   html += "</div>";
 
+  html += "<div id='ota-progress-card' class='ota-progress-card'>";
+  html += "<div class='ota-progress-head'><div><div class='ota-progress-title'>Progrés d'actualització</div><div id='ota-progress-message' class='ota-progress-text'>";
+  html += htmlEscape(appState.otaLastMessage);
+  html += "</div></div><div class='ota-progress-text'><b id='ota-progress-percent'>";
+  html += String(appState.otaProgressPercent);
+  html += "%</b><br><span id='ota-progress-bytes'>";
+  html += String(appState.otaProgressBytes);
+  html += " / ";
+  html += String(appState.otaProgressTotal);
+  html += " bytes</span></div></div>";
+  html += "<div class='progress-track'><div id='ota-progress-fill' class='progress-fill";
+  if (appState.otaInProgress && appState.otaProgressPercent == 0) html += " indeterminate";
+  html += "' style='width:";
+  html += String(appState.otaProgressPercent);
+  html += "%'></div></div>";
+  html += "<div class='ota-progress-text' style='margin-top:8px'>Fase: <span id='ota-progress-phase'>";
+  html += htmlEscape(appState.otaProgressSource + " · " + appState.otaProgressPhase);
+  html += "</span></div>";
+  html += "</div>";
+
   html += "<div class='buttons'>";
   html += "<form method='POST' action='/internet-check'><button class='secondary' type='submit'>🌍 Comprovar Internet</button></form>";
   html += "<form method='POST' action='/github-check-update'><button class='secondary' type='submit'>🐙 Comprovar GitHub</button></form>";
-  html += "<form method='POST' action='/github-update' data-confirm='Descarregar i instal·lar firmware des de GitHub? No tallis alimentació.'><button type='submit' ";
+  html += "<form id='github-install-form' method='POST' action='/github-update' data-confirm='Descarregar i instal·lar firmware des de GitHub? No tallis alimentació.'><button type='submit' ";
   if (!appState.githubUpdateAvailable && !configGithubAllowSameVersionUpdate) html += "disabled";
   html += ">⬆️ Instal·lar actualització</button></form>";
   html += "</div>";
@@ -2435,7 +2461,7 @@ static void handleGithubCheckUpdatePost() {
 
 static void handleGithubUpdatePost() {
   String message;
-  bool ok = performGitHubOtaUpdate(message);
+  bool ok = performGitHubOtaUpdate(message, notifyOtaProgressNow);
 
   appState.otaLastMessage = message;
   if (!ok) {
@@ -2523,33 +2549,60 @@ static void handleUpdateUpload() {
 
     appState.otaInProgress = true;
     appState.otaSuccess = false;
-    appState.otaLastMessage = "OTA en curs";
+    appState.otaProgressSource = "Local";
+    appState.otaProgressPhase = "pujant";
+    appState.otaProgressBytes = 0;
+    appState.otaProgressTotal = 0;
+    appState.otaProgressPercent = 0;
+    appState.otaProgressMillis = millis();
+    appState.otaLastMessage = "OTA local en curs";
+    notifyOtaProgressNow();
 
     if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
       appState.otaLastMessage = "ERROR iniciant OTA";
       Update.printError(Serial);
     }
   } else if (upload.status == UPLOAD_FILE_WRITE) {
+    appState.otaProgressBytes = upload.totalSize;
+    appState.otaProgressTotal = 0;
+    appState.otaProgressPercent = 0;
+    appState.otaProgressPhase = "escrivint";
+    appState.otaProgressMillis = millis();
+    appState.otaLastMessage = "OTA local rebuda: " + String(upload.totalSize) + " bytes";
+    notifyOtaProgressNow();
+
     if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+      appState.otaProgressPhase = "error";
       appState.otaLastMessage = "ERROR escrivint firmware OTA";
       Update.printError(Serial);
+      notifyOtaProgressNow();
     }
   } else if (upload.status == UPLOAD_FILE_END) {
     if (Update.end(true)) {
       Serial.print("OTA completada. Bytes: ");
       Serial.println(upload.totalSize);
+      appState.otaProgressPhase = "completada";
+      appState.otaProgressPercent = 100;
+      appState.otaProgressTotal = upload.totalSize;
+      appState.otaProgressBytes = upload.totalSize;
+      appState.otaProgressMillis = millis();
       appState.otaLastMessage = "OTA completada";
       appState.otaSuccess = true;
+      notifyOtaProgressNow();
     } else {
+      appState.otaProgressPhase = "error";
       appState.otaLastMessage = "ERROR finalitzant OTA";
       Update.printError(Serial);
+      notifyOtaProgressNow();
     }
 
     appState.otaInProgress = false;
+    notifyOtaProgressNow();
   } else if (upload.status == UPLOAD_FILE_ABORTED) {
     Update.end();
     appState.otaInProgress = false;
     appState.otaSuccess = false;
+    appState.otaProgressPhase = "error";
     appState.otaLastMessage = "OTA avortada";
     Serial.println("OTA avortada.");
   }
@@ -2666,6 +2719,34 @@ static String buildStatusJsonPayload() {
 
   json += "\"ota_in_progress\":";
   json += appState.otaInProgress ? "true" : "false";
+  json += ",";
+
+  json += "\"ota_success\":";
+  json += appState.otaSuccess ? "true" : "false";
+  json += ",";
+
+  json += "\"ota_last_message\":\"";
+  json += jsonEscape(appState.otaLastMessage);
+  json += "\",";
+
+  json += "\"ota_progress_source\":\"";
+  json += jsonEscape(appState.otaProgressSource);
+  json += "\",";
+
+  json += "\"ota_progress_phase\":\"";
+  json += jsonEscape(appState.otaProgressPhase);
+  json += "\",";
+
+  json += "\"ota_progress_bytes\":";
+  json += String(appState.otaProgressBytes);
+  json += ",";
+
+  json += "\"ota_progress_total\":";
+  json += String(appState.otaProgressTotal);
+  json += ",";
+
+  json += "\"ota_progress_percent\":";
+  json += String(appState.otaProgressPercent);
   json += ",";
 
   json += "\"hardware_ready\":";
@@ -2819,6 +2900,13 @@ static void broadcastWebSocketStatus(bool force) {
   lastWebSocketBroadcastMillis = now;
   String payload = buildStatusJsonPayload();
   webSocket.broadcastTXT(payload);
+}
+
+static void notifyOtaProgressNow() {
+  lastWebSocketBroadcastMillis = millis();
+  String payload = buildStatusJsonPayload();
+  webSocket.broadcastTXT(payload);
+  webSocket.loop();
 }
 
 // ==========================

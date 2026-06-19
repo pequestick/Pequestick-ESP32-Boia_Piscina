@@ -279,7 +279,7 @@ GitHubUpdateInfo checkGitHubUpdateNow() {
   return info;
 }
 
-bool performGitHubOtaUpdate(String& messageOut) {
+bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCallback) {
   GitHubUpdateInfo info = checkGitHubUpdateNow();
   if (!info.ok) {
     messageOut = info.message;
@@ -336,7 +336,15 @@ bool performGitHubOtaUpdate(String& messageOut) {
   }
 
   appState.otaInProgress = true;
-  appState.otaLastMessage = "GitHub OTA descarregant";
+  appState.otaSuccess = false;
+  appState.otaProgressSource = "GitHub";
+  appState.otaProgressPhase = "descarregant";
+  appState.otaProgressBytes = 0;
+  appState.otaProgressTotal = (uint32_t)contentLength;
+  appState.otaProgressPercent = 0;
+  appState.otaProgressMillis = millis();
+  appState.otaLastMessage = "GitHub OTA descarregant firmware";
+  if (progressCallback) progressCallback();
 
   if (!Update.begin((size_t)contentLength)) {
     messageOut = "No hi ha espai per OTA";
@@ -346,18 +354,71 @@ bool performGitHubOtaUpdate(String& messageOut) {
   }
 
   WiFiClient* stream = http.getStreamPtr();
-  size_t written = Update.writeStream(*stream);
+  uint8_t buffer[1024];
+  size_t written = 0;
+  unsigned long lastProgressMillis = 0;
+
+  while (http.connected() && written < (size_t)contentLength) {
+    size_t available = stream->available();
+    if (available == 0) {
+      delay(1);
+      continue;
+    }
+
+    size_t toRead = available;
+    if (toRead > sizeof(buffer)) toRead = sizeof(buffer);
+    int bytesRead = stream->readBytes(buffer, toRead);
+    if (bytesRead <= 0) {
+      delay(1);
+      continue;
+    }
+
+    size_t bytesWritten = Update.write(buffer, (size_t)bytesRead);
+    if (bytesWritten != (size_t)bytesRead) {
+      messageOut = "Error escrivint OTA a la flash";
+      Update.abort();
+      appState.otaInProgress = false;
+      appState.otaProgressPhase = "error";
+      appState.otaLastMessage = messageOut;
+      http.end();
+      if (progressCallback) progressCallback();
+      return false;
+    }
+
+    written += bytesWritten;
+    appState.otaProgressBytes = (uint32_t)written;
+    appState.otaProgressPercent = (uint8_t)((written * 100UL) / (size_t)contentLength);
+    appState.otaProgressMillis = millis();
+    appState.otaLastMessage = "GitHub OTA descarregant " + String(appState.otaProgressPercent) + "%";
+
+    if (progressCallback && millis() - lastProgressMillis > 350) {
+      lastProgressMillis = millis();
+      progressCallback();
+    }
+    delay(0);
+  }
+
   if (written != (size_t)contentLength) {
     messageOut = "OTA incompleta: " + String(written) + "/" + String(contentLength);
     Update.abort();
     appState.otaInProgress = false;
+    appState.otaProgressPhase = "error";
+    appState.otaLastMessage = messageOut;
     http.end();
+    if (progressCallback) progressCallback();
     return false;
   }
+
+  appState.otaProgressPhase = "verificant";
+  appState.otaLastMessage = "Verificant firmware";
+  if (progressCallback) progressCallback();
 
   if (!Update.end()) {
     messageOut = "Error finalitzant OTA: " + String(Update.getError());
     appState.otaInProgress = false;
+    appState.otaProgressPhase = "error";
+    appState.otaLastMessage = messageOut;
+    if (progressCallback) progressCallback();
     http.end();
     return false;
   }
@@ -365,13 +426,21 @@ bool performGitHubOtaUpdate(String& messageOut) {
   if (!Update.isFinished()) {
     messageOut = "OTA no finalitzada";
     appState.otaInProgress = false;
+    appState.otaProgressPhase = "error";
+    appState.otaLastMessage = messageOut;
+    if (progressCallback) progressCallback();
     http.end();
     return false;
   }
 
   http.end();
+  appState.otaProgressPhase = "completada";
+  appState.otaProgressPercent = 100;
+  appState.otaProgressBytes = appState.otaProgressTotal;
+  appState.otaProgressMillis = millis();
   appState.otaSuccess = true;
   appState.otaLastMessage = "GitHub OTA completada. Reiniciant...";
+  if (progressCallback) progressCallback();
   messageOut = appState.otaLastMessage;
   return true;
 }

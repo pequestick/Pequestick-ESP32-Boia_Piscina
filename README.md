@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.6.4-release-helper
+1.6.5-ota-progress-ui
 ```
 
 Funcionalitats principals actuals:
@@ -234,7 +234,7 @@ El manifest ha de tenir una estructura semblant a:
 
 ```json
 {
-  "version": "1.6.4-release-helper",
+  "version": "1.6.5-ota-progress-ui",
   "build_sha": "...",
   "build_short_sha": "...",
   "build_date": "...",
@@ -468,6 +468,13 @@ Funcionalitats previstes:
 
 - Manifest amb versió automàtica llegida des d'`AppConfig.cpp`.
 
+
+### v1.6.5
+
+- Afegeix una barra de progrés a Manteniment → OTA.
+- L'OTA local mostra el progrés de pujada del `firmware.bin` des del navegador.
+- L'OTA des de GitHub mostra fase, percentatge, bytes descarregats i estat en directe via WebSocket mentre la boia descarrega i escriu el firmware.
+- El formulari d'instal·lació GitHub ja no deixa la pantalla muda: mostra que està descarregant, verificant i reiniciant.
 
 ### v1.6.4
 
