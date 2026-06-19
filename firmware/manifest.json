@@ -1,10 +1,10 @@
 {
-  "version": "1.9.4-mobile-origin-fix",
-  "build_sha": "267ed74831277c02f541b61716359f7118995a15",
-  "build_short_sha": "267ed7483127",
-  "build_date": "2026-06-19T16:32:45Z",
-  "size": 1443152,
-  "sha256": "9c1b2b32eeef511379373986c6890db8cbcb72ed80ee1147e3b02bf5af5b2a2d",
+  "version": "1.10.0-public-sensors-sessions",
+  "build_sha": "204a79cc88c56db2f8f7c8f6503ff18885011a0d",
+  "build_short_sha": "204a79cc88c5",
+  "build_date": "2026-06-19T16:50:00Z",
+  "size": 1445072,
+  "sha256": "d2f4cf1e048a6c45c6634cf9f254839b82230a216c93d3fe3f35819075255d5a",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Normalitza la validacio Origin i admet WebView mòbils amb origen opac per poder guardar Wi-Fi i altres formularis sense desactivar la sessio protegida."
+  "notes": "Mostra la temperatura i sensors futurs a la pantalla d'acces, admet quatre sessions simultanies i evita tornar a demanar credencials en navegar."
 }
