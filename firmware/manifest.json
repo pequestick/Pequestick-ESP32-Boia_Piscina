@@ -1,10 +1,10 @@
 {
-  "version": "1.8.2-auth-session-fix",
-  "build_sha": "ddfa0f8468b8ffc79484ca0e0eadaa912b2c81f2",
-  "build_short_sha": "ddfa0f8468b8",
-  "build_date": "2026-06-19T15:30:51Z",
-  "size": 1436896,
-  "sha256": "99bfc502041c4e3728a4cbd5372b642afc087a96e37411590dd8957c25b8365a",
+  "version": "1.9.0-wifi-scan",
+  "build_sha": "edba64a51dc0b0cd5d153eb800f217d6a5bece8b",
+  "build_short_sha": "edba64a51dc0",
+  "build_date": "2026-06-19T15:35:38Z",
+  "size": 1441600,
+  "sha256": "c8218aac5a76bbddb0a02740a7c61e38a270845a6ba8bc71911799d22f0edd57",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Recupera l'acces web inicial sense esborrar la xarxa, normalitza l'usuari i mante la sessio oberta després de canviar les credencials."
+  "notes": "Busca les xarxes Wi-Fi properes des de la boia i permet seleccionar l'SSID mostrant el senyal i si la xarxa esta protegida."
 }
