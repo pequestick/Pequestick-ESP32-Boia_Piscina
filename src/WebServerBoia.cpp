@@ -162,7 +162,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
 
   html += "<script>";
   html += "function togglePassword(id,btn){var input=document.getElementById(id);if(!input)return;if(input.type==='password'){input.type='text';btn.textContent='🙈';btn.setAttribute('aria-label','Ocultar password');}else{input.type='password';btn.textContent='👁️';btn.setAttribute('aria-label','Mostrar password');}}";
-  html += "function scanWifiNetworks(){var button=document.getElementById('wifi-scan-button');var status=document.getElementById('wifi-scan-status');var list=document.getElementById('wifi-scan-list');if(!button||!status||!list)return;button.disabled=true;status.textContent='Buscant xarxes properes...';list.replaceChildren();fetch('/wifi-scan',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){if(data.error)throw new Error(data.error);var networks=Array.isArray(data.networks)?data.networks:[];status.textContent=networks.length?networks.length+' xarxes trobades. Toca una xarxa per seleccionar-la.':'No s\'ha trobat cap xarxa visible.';networks.forEach(function(network){var item=document.createElement('button');item.type='button';item.className='wifi-network';var name=document.createElement('span');name.className='wifi-network-name';name.textContent=network.ssid;var meta=document.createElement('span');meta.className='wifi-network-meta';meta.textContent=(network.secure?'🔒 ':'🔓 ')+network.rssi+' dBm';item.appendChild(name);item.appendChild(meta);item.addEventListener('click',function(){var ssid=document.getElementById('wifi_ssid');if(ssid){ssid.value=network.ssid;}var password=document.getElementById('wifi_password');if(password)password.focus();status.textContent='Xarxa seleccionada: '+network.ssid;});list.appendChild(item);});}).catch(function(error){status.textContent='No s\'ha pogut escanejar: '+error.message;}).then(function(){button.disabled=false;});}";
+  html += "function scanWifiNetworks(){var button=document.getElementById('wifi-scan-button');var status=document.getElementById('wifi-scan-status');var list=document.getElementById('wifi-scan-list');if(!button||!status||!list)return;button.disabled=true;status.textContent='Buscant xarxes properes...';list.replaceChildren();fetch('/wifi-scan',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){if(data.error)throw new Error(data.error);var networks=Array.isArray(data.networks)?data.networks:[];status.textContent=networks.length?networks.length+' xarxes trobades. Toca una xarxa per seleccionar-la.':'No s\'ha trobat cap xarxa visible.';networks.forEach(function(network){var item=document.createElement('button');item.type='button';item.className='wifi-network';var name=document.createElement('span');name.className='wifi-network-name';name.textContent=network.ssid;var meta=document.createElement('span');meta.className='wifi-network-meta';meta.textContent=(network.secure?'🔒 ':'🔓 ')+network.rssi+' dBm';item.appendChild(name);item.appendChild(meta);item.addEventListener('click',function(){var ssid=document.getElementById('wifi_ssid');if(ssid){ssid.value=network.ssid;}var staticIp=document.getElementById('wifi_use_static_ip');if(staticIp)staticIp.checked=false;var password=document.getElementById('wifi_password');if(password)password.focus();status.textContent='Xarxa seleccionada: '+network.ssid+' · s\'aplicara DHCP';});list.appendChild(item);});}).catch(function(error){status.textContent='No s\'ha pogut escanejar: '+error.message;}).then(function(){button.disabled=false;});}";
   html += "function txt(id,v){var e=document.getElementById(id);if(e)e.textContent=(v===null||v===undefined)?'--':v;}";
   html += "function cls(id,c){var e=document.getElementById(id);if(e){e.classList.remove('ok','warn','bad');e.classList.add(c);}}";
   html += "function service(id,on,bad,text){var e=document.getElementById(id);if(!e)return;e.classList.remove('ok','warn','bad');e.classList.add(on?'ok':(bad?'bad':'warn'));if(text!==undefined){var sp=e.querySelector('span:last-child');if(sp)sp.textContent=text;}}";
@@ -689,9 +689,10 @@ static String buildWifiPage() {
   html += "<div id='wifi-network' class='card'>";
   html += "<h2>Xarxa avançada</h2>";
   html += "<p class='hint'>DHCP és l'opcio segura. IP fixa només si ho tens clar. Si la IP fixa queda malament, l'AP de rescat ha de salvar-te.</p>";
+  html += "<p class='small'>Quan canvies l'SSID, la boia força DHCP per evitar heretar una IP fixa incompatible. Després de connectar-la a la xarxa nova, pots tornar aquí i activar una IP fixa expressament.</p>";
 
   html += "<div>";
-  html += "<label><input name='use_static_ip' type='checkbox' value='1' ";
+  html += "<label><input id='wifi_use_static_ip' name='use_static_ip' type='checkbox' value='1' ";
   html += configWifiUseStaticIp ? "checked" : "";
   html += ">Fer servir IP fixa</label>";
   html += "</div>";
@@ -2260,7 +2261,8 @@ static void handleWifiPost() {
     return;
   }
 
-  bool useStaticIp = server.hasArg("use_static_ip");
+  const bool wifiNetworkChanged = ssid != configWifiSsid;
+  bool useStaticIp = !wifiNetworkChanged && server.hasArg("use_static_ip");
   String staticIp = server.hasArg("static_ip") ? server.arg("static_ip") : DEFAULT_WIFI_STATIC_IP;
   String gateway = server.hasArg("gateway") ? server.arg("gateway") : DEFAULT_WIFI_GATEWAY;
   String subnet = server.hasArg("subnet") ? server.arg("subnet") : DEFAULT_WIFI_SUBNET;
@@ -2286,10 +2288,15 @@ static void handleWifiPost() {
   Serial.print("Tipus IP: ");
   Serial.println(configWifiUseStaticIp ? "Fixa" : "DHCP");
 
+  String savedMessage = "La boia reiniciara la connexio Wi-Fi. Si no connecta, obrira l'AP de rescat.";
+  if (wifiNetworkChanged) {
+    savedMessage = "La xarxa Wi-Fi ha canviat i s'ha activat DHCP per seguretat. Si no connecta, la boia obrira l'AP de rescat.";
+  }
+
   server.send(
     200,
     "text/html",
-    buildSavedPage("Wi-Fi guardat", "La boia reiniciara la connexio Wi-Fi. Si no connecta, obrira l'AP de rescat.", false)
+    buildSavedPage("Wi-Fi guardat", savedMessage, false)
   );
 
   delay(800);
