@@ -133,6 +133,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "input:focus,select:focus,textarea:focus{border-color:#38bdf8;box-shadow:0 0 0 3px rgba(56,189,248,.12);}";
   html += "input[type=checkbox]{width:auto;transform:scale(1.2);margin-right:8px;}input[type=file]{padding:9px;}";
   html += ".password-wrap{position:relative;}.password-wrap input{padding-right:52px;}.eye-button{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:#1e293b;color:#e5e7eb;border:1px solid #475569;border-radius:9px;padding:7px 10px;font-size:15px;line-height:1;cursor:pointer;}";
+  html += ".wifi-scan-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}.wifi-scan-list{display:grid;gap:7px;margin-top:10px}.wifi-network{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;background:#0b1220;border:1px solid #334155;padding:10px 12px}.wifi-network:hover{border-color:#38bdf8;background:rgba(56,189,248,.10)}.wifi-network-name{font-weight:850;overflow-wrap:anywhere}.wifi-network-meta{color:#94a3b8;font-size:12px;white-space:nowrap}";
   html += "button{background:linear-gradient(180deg,#2563eb,#1d4ed8);color:white;border:0;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:850;cursor:pointer;}button.secondary{background:#475569;}button.danger{background:#b91c1c;}.buttons{display:flex;gap:10px;flex-wrap:wrap;}";
   html += "hr{border:0;border-top:1px solid #263449;margin:20px 0;}";
   html += ".footer{color:#94a3b8;font-size:12px;text-align:center;padding:16px 0 4px;margin-top:auto;}";
@@ -161,6 +162,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
 
   html += "<script>";
   html += "function togglePassword(id,btn){var input=document.getElementById(id);if(!input)return;if(input.type==='password'){input.type='text';btn.textContent='🙈';btn.setAttribute('aria-label','Ocultar password');}else{input.type='password';btn.textContent='👁️';btn.setAttribute('aria-label','Mostrar password');}}";
+  html += "function scanWifiNetworks(){var button=document.getElementById('wifi-scan-button');var status=document.getElementById('wifi-scan-status');var list=document.getElementById('wifi-scan-list');if(!button||!status||!list)return;button.disabled=true;status.textContent='Buscant xarxes properes...';list.replaceChildren();fetch('/wifi-scan',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){if(data.error)throw new Error(data.error);var networks=Array.isArray(data.networks)?data.networks:[];status.textContent=networks.length?networks.length+' xarxes trobades. Toca una xarxa per seleccionar-la.':'No s\'ha trobat cap xarxa visible.';networks.forEach(function(network){var item=document.createElement('button');item.type='button';item.className='wifi-network';var name=document.createElement('span');name.className='wifi-network-name';name.textContent=network.ssid;var meta=document.createElement('span');meta.className='wifi-network-meta';meta.textContent=(network.secure?'🔒 ':'🔓 ')+network.rssi+' dBm';item.appendChild(name);item.appendChild(meta);item.addEventListener('click',function(){var ssid=document.getElementById('wifi_ssid');if(ssid){ssid.value=network.ssid;}var password=document.getElementById('wifi_password');if(password)password.focus();status.textContent='Xarxa seleccionada: '+network.ssid;});list.appendChild(item);});}).catch(function(error){status.textContent='No s\'ha pogut escanejar: '+error.message;}).then(function(){button.disabled=false;});}";
   html += "function txt(id,v){var e=document.getElementById(id);if(e)e.textContent=(v===null||v===undefined)?'--':v;}";
   html += "function cls(id,c){var e=document.getElementById(id);if(e){e.classList.remove('ok','warn','bad');e.classList.add(c);}}";
   html += "function service(id,on,bad,text){var e=document.getElementById(id);if(!e)return;e.classList.remove('ok','warn','bad');e.classList.add(on?'ok':(bad?'bad':'warn'));if(text!==undefined){var sp=e.querySelector('span:last-child');if(sp)sp.textContent=text;}}";
@@ -659,14 +661,17 @@ static String buildWifiPage() {
   html += "<p class='hint'>Si guardes un Wi-Fi incorrecte, la boia obrira automaticament l'AP de rescat <b>";
   html += htmlEscape(String(WIFI_AP_SSID));
   html += "</b>. Des d'aquest AP, entra a <b>http://192.168.4.1</b> i corregeix la configuracio.</p>";
+  html += "<p class='small'>Per privacitat, Android, iOS i el navegador no permeten que aquesta web llegeixi les xarxes desades al mobil. La boia sí que pot buscar les xarxes que té a prop.</p>";
 
   html += "<form method='POST' action='/wifi'>";
 
   html += "<div>";
   html += "<div class='label'>SSID</div>";
-  html += "<input name='ssid' type='text' maxlength='64' value='";
+  html += "<input id='wifi_ssid' name='ssid' type='text' maxlength='64' value='";
   html += htmlEscape(configWifiSsid);
   html += "'>";
+  html += "<div class='wifi-scan-actions'><button id='wifi-scan-button' class='secondary' type='button' onclick='scanWifiNetworks()'>Buscar xarxes Wi-Fi</button><span id='wifi-scan-status' class='small'>L'escaneig pot trigar uns segons.</span></div>";
+  html += "<div id='wifi-scan-list' class='wifi-scan-list' aria-live='polite'></div>";
   html += "</div>";
 
   html += "<div>";
@@ -1947,6 +1952,42 @@ static void handleWifiGet() {
   server.send(200, "text/html", buildWifiPage());
 }
 
+static void handleWifiScanGet() {
+  int16_t count = WiFi.scanNetworks(false, true);
+  if (count < 0) {
+    WiFi.scanDelete();
+    server.send(500, "application/json", "{\"error\":\"Error intern escanejant xarxes Wi-Fi\"}");
+    return;
+  }
+
+  String json = "{\"networks\":[";
+  bool first = true;
+  for (int16_t i = 0; i < count; ++i) {
+    String ssid = WiFi.SSID(i);
+    if (ssid.isEmpty()) continue;
+
+    bool duplicate = false;
+    for (int16_t j = 0; j < i; ++j) {
+      if (WiFi.SSID(j) == ssid) {
+        duplicate = true;
+        break;
+      }
+    }
+    if (duplicate) continue;
+
+    if (!first) json += ',';
+    first = false;
+    json += "{\"ssid\":\"" + jsonEscape(ssid) + "\",";
+    json += "\"rssi\":" + String(WiFi.RSSI(i)) + ',';
+    json += "\"secure\":";
+    json += WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "false" : "true";
+    json += '}';
+  }
+  json += "]}";
+  WiFi.scanDelete();
+  server.send(200, "application/json", json);
+}
+
 static void handleMqttGet() {
   server.send(200, "text/html", buildMqttPage());
 }
@@ -3199,6 +3240,7 @@ void setupWebServer() {
   server.on("/config", HTTP_POST, handleConfigPost);
   server.on("/wifi", HTTP_GET, handleWifiGet);
   server.on("/wifi", HTTP_POST, handleWifiPost);
+  server.on("/wifi-scan", HTTP_GET, handleWifiScanGet);
   server.on("/wifi-reset", HTTP_POST, handleWifiResetPost);
   server.on("/wifi-network-reset", HTTP_POST, handleWifiNetworkResetPost);
   server.on("/mqtt", HTTP_GET, handleMqttGet);

@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.8.2-auth-session-fix
+1.9.0-wifi-scan
 ```
 
 Funcionalitats principals actuals:
@@ -19,6 +19,7 @@ Funcionalitats principals actuals:
 - ESP32-C6 amb web de configuració local.
 - Lectura de temperatura d'aigua amb DS18B20.
 - Wi-Fi configurable des de la web.
+- Cercador de xarxes Wi-Fi properes amb selecció d'SSID, intensitat de senyal i estat de seguretat.
 - Mode AP de rescat si no pot connectar a la xarxa.
 - MQTT configurable.
 - Home Assistant Discovery.
