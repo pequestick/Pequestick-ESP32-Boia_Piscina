@@ -171,7 +171,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "function updateOtaProgress(d){var card=document.getElementById('ota-progress-card');if(!card)return;var pct=parseInt(d.ota_progress_percent||0,10);var inProg=!!d.ota_in_progress;var phase=d.ota_progress_phase||'espera';var source=d.ota_progress_source||'cap';var active=(source!=='cap'&&phase!=='espera')||inProg;if(active)card.classList.remove('hidden');else card.classList.add('hidden');var fill=document.getElementById('ota-progress-fill');var pctEl=document.getElementById('ota-progress-percent');var phaseEl=document.getElementById('ota-progress-phase');var msgEl=document.getElementById('ota-progress-message');var bytesEl=document.getElementById('ota-progress-bytes');card.classList.remove('done','error');if(phase==='error')card.classList.add('error');if(phase==='completada')card.classList.add('done');if(fill){fill.classList.remove('indeterminate');if(inProg&&(!pct||pct<1)){fill.classList.add('indeterminate');fill.style.width='38%';}else{fill.style.width=Math.max(0,Math.min(100,pct))+'%';}}if(pctEl)pctEl.textContent=(pct?pct:0)+'%';if(phaseEl)phaseEl.textContent=(source||'OTA')+' · '+phase;if(msgEl)msgEl.textContent=d.ota_last_message||'Esperant accio OTA';if(bytesEl)bytesEl.textContent=bytesHuman(d.ota_progress_bytes)+' / '+bytesHuman(d.ota_progress_total);var log=document.getElementById('ota-log');if(log&&d.ota_log!==undefined){var atBottom=(log.scrollTop+log.clientHeight+24)>=log.scrollHeight;log.textContent=d.ota_log||'Sense log OTA';if(atBottom)log.scrollTop=log.scrollHeight;}}";
   html += "function runOtaAutoChecks(){if(location.pathname!=='/maintenance'||location.search.indexOf('section=mnt-ota')<0)return;txt('ota-internet-main','Comprovant...');txt('ota-github-main','Comprovant...');fetch('/internet-check-run',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){applyStatus(d);return fetch('/github-check-update-run',{cache:'no-store'});}).then(function(r){return r.json();}).then(function(d){applyStatus(d);}).catch(function(){txt('ota-update-main','No puc actualitzar estat OTA');txt('ota-update-details','La comprovació automàtica ha fallat. Prova els botons manuals.');});}";
   html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',d.uptime_seconds+' s');txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateGithubOtaStatus(d);updateOtaProgress(d);}";
-  html += "function startWS(){try{var ws=new WebSocket('ws://'+location.hostname+':81/');ws.onmessage=function(ev){try{applyStatus(JSON.parse(ev.data));}catch(e){}};ws.onclose=function(){setTimeout(startWS,3000);};ws.onerror=function(){try{ws.close();}catch(e){}};}catch(e){}}";
+  html += "function startWS(){if(location.pathname==='/login'||location.pathname==='/change-password')return;try{var ws=new WebSocket('ws://'+location.hostname+':81/');ws.onmessage=function(ev){try{applyStatus(JSON.parse(ev.data));}catch(e){}};ws.onclose=function(){setTimeout(startWS,3000);};ws.onerror=function(){try{ws.close();}catch(e){}};}catch(e){}}";
   html += "function bindConfirms(){document.querySelectorAll('form[data-confirm]').forEach(function(f){if(f.id==='ota-local-form'||f.id==='github-install-form')return;f.addEventListener('submit',function(e){if(!confirm(f.getAttribute('data-confirm'))){e.preventDefault();}});});}";
   html += "function bindAccordion(){document.querySelectorAll('.menu-toggle').forEach(function(btn){btn.addEventListener('click',function(){var g=btn.closest('.menu-group');if(!g)return;var isOpen=g.classList.contains('open');document.querySelectorAll('.menu-group.has-sub').forEach(function(x){x.classList.remove('open');});if(!isOpen)g.classList.add('open');});});}";
   html += "function applySubpage(){var links=[].slice.call(document.querySelectorAll('.subtab'));if(!links.length)return;var params=new URLSearchParams(location.search);var selected=params.get('section');var ids=[];links.forEach(function(a){var u=new URL(a.href,location.href);var id=u.searchParams.get('section');if(id){ids.push(id);}});if(!selected||ids.indexOf(selected)<0)selected=ids[0];ids.forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=(id===selected)?'':'none';});document.querySelectorAll('.subpage-extra').forEach(function(el){el.style.display=(el.getAttribute('data-parent')===selected)?'':'none';});links.forEach(function(a){var u=new URL(a.href,location.href);a.classList.toggle('active',u.searchParams.get('section')===selected);});}";
@@ -1826,13 +1826,34 @@ static String buildAuthPage(
     html += "<div><div class='label'>Contrasenya</div><input name='password' type='password' maxlength='64' required autocomplete='current-password'></div>";
     html += "<button type='submit'>Entrar</button></form>";
   }
-  html += "</div></div></div></body></html>";
+  html += "</div>";
+
+  html += "<div class='card'>";
+  html += "<h2>Lectures públiques</h2>";
+  html += "<p class='small'>Consulta ràpida sense iniciar sessió. La configuració i els controls continuen protegits.</p>";
+  html += "<div class='grid'>";
+  html += "<div class='item'><div class='label'>Temperatura de l'aigua</div><div class='value'>";
+  html += isnan(appState.lastValidTemperatureC) ? "Sense dades" : formatTemperature(appState.lastValidTemperatureC, configTemperatureDecimals) + " °C";
+  html += "</div><div class='small'>Última lectura: ";
+  html += htmlEscape(elapsedText(appState.lastReadMillis));
+  html += "</div></div>";
+  html += "<div class='item'><div class='label'>Sonda d'aigua</div><div class='value ";
+  html += appState.sensorStatus == "OK" ? "ok" : (appState.sensorStatus == "ERROR" ? "bad" : "warn");
+  html += "'>" + htmlEscape(appState.sensorStatus) + "</div><div class='small'>DS18B20</div></div>";
+  html += "<div class='item'><div class='label'>Ambient interior</div><div class='value'>Properament</div><div class='small'>Temperatura i humitat interna</div></div>";
+  html += "<div class='item'><div class='label'>Energia</div><div class='value'>Properament</div><div class='small'>Bateria i càrrega solar</div></div>";
+  html += "</div></div>";
+  html += "</div></div></body></html>";
   return html;
 }
 
 static void redirectTo(const String& location) {
   server.sendHeader("Location", location, true);
   server.send(303, "text/plain", "");
+}
+
+static String webSessionCookie(const String& token) {
+  return "boia_session=" + token + "; Path=/; Max-Age=604800; HttpOnly; SameSite=Lax";
 }
 
 static bool requestHasValidSession() {
@@ -1845,7 +1866,7 @@ static bool requestOriginIsAllowed() {
   if (origin.length() == 0) return true;
 
   // Alguns WebView i portals captius mòbils envien un origen opac. La cookie
-  // de sessió SameSite=Strict continua sent obligatòria abans d'arribar aquí.
+  // de sessió vàlida continua sent obligatòria abans d'arribar aquí.
   if (origin == "null") return true;
 
   bool https = origin.startsWith("https://");
@@ -1937,7 +1958,7 @@ static void handleLoginPost() {
 
   lastFailedLoginMillis = 0;
   String token = createWebSession();
-  server.sendHeader("Set-Cookie", "boia_session=" + token + "; Path=/; HttpOnly; SameSite=Strict");
+  server.sendHeader("Set-Cookie", webSessionCookie(token));
   redirectTo(webAuthPasswordChangeRequired() ? "/change-password" : "/");
 }
 
@@ -1965,7 +1986,7 @@ static void handleChangePasswordPost() {
   }
 
   String token = createWebSession();
-  server.sendHeader("Set-Cookie", "boia_session=" + token + "; Path=/; HttpOnly; SameSite=Strict");
+  server.sendHeader("Set-Cookie", webSessionCookie(token));
   redirectTo("/");
 }
 

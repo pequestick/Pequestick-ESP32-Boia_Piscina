@@ -10,15 +10,20 @@ const char* AUTH_NAMESPACE = "boia_auth";
 const char* INITIAL_USERNAME = "admin";
 const char* INITIAL_PASSWORD = "1234";
 const uint8_t AUTH_SCHEMA_VERSION = 2;
-const unsigned long SESSION_TIMEOUT_MS = 60UL * 60UL * 1000UL;
+const uint8_t MAX_WEB_SESSIONS = 4;
+const unsigned long SESSION_TIMEOUT_MS = 12UL * 60UL * 60UL * 1000UL;
+
+struct WebSession {
+  String token;
+  unsigned long lastSeenMillis = 0;
+};
 
 Preferences authPreferences;
 String authUsername;
 String authSalt;
 String authPasswordHash;
 bool passwordChangeRequired = true;
-String sessionToken;
-unsigned long sessionLastSeenMillis = 0;
+WebSession sessions[MAX_WEB_SESSIONS];
 
 String bytesToHex(const uint8_t* bytes, size_t length) {
   static const char* HEX_CHARS = "0123456789abcdef";
@@ -170,24 +175,49 @@ bool webAuthPasswordChangeRequired() {
 }
 
 String createWebSession() {
-  sessionToken = randomHex(32);
-  sessionLastSeenMillis = millis();
-  return sessionToken;
+  unsigned long now = millis();
+  uint8_t selected = 0;
+  unsigned long oldestAge = 0;
+  for (uint8_t i = 0; i < MAX_WEB_SESSIONS; ++i) {
+    if (sessions[i].token.length() == 0) {
+      selected = i;
+      break;
+    }
+    unsigned long age = now - sessions[i].lastSeenMillis;
+    if (age >= oldestAge) {
+      oldestAge = age;
+      selected = i;
+    }
+  }
+
+  sessions[selected].token = randomHex(32);
+  sessions[selected].lastSeenMillis = now;
+  return sessions[selected].token;
 }
 
 bool isWebSessionCookieValid(const String& cookieHeader) {
-  if (sessionToken.length() == 0) return false;
-  if (millis() - sessionLastSeenMillis > SESSION_TIMEOUT_MS) {
-    clearWebSession();
-    return false;
-  }
   String suppliedToken = cookieValue(cookieHeader, "boia_session");
-  if (!constantTimeEquals(suppliedToken, sessionToken)) return false;
-  sessionLastSeenMillis = millis();
-  return true;
+  if (suppliedToken.length() == 0) return false;
+
+  unsigned long now = millis();
+  for (uint8_t i = 0; i < MAX_WEB_SESSIONS; ++i) {
+    if (sessions[i].token.length() == 0) continue;
+    if (now - sessions[i].lastSeenMillis > SESSION_TIMEOUT_MS) {
+      sessions[i].token = "";
+      sessions[i].lastSeenMillis = 0;
+      continue;
+    }
+    if (constantTimeEquals(suppliedToken, sessions[i].token)) {
+      sessions[i].lastSeenMillis = now;
+      return true;
+    }
+  }
+  return false;
 }
 
 void clearWebSession() {
-  sessionToken = "";
-  sessionLastSeenMillis = 0;
+  for (uint8_t i = 0; i < MAX_WEB_SESSIONS; ++i) {
+    sessions[i].token = "";
+    sessions[i].lastSeenMillis = 0;
+  }
 }

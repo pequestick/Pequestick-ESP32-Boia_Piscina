@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.9.4-mobile-origin-fix
+1.10.0-public-sensors-sessions
 ```
 
 Funcionalitats principals actuals:
@@ -35,6 +35,8 @@ Funcionalitats principals actuals:
 - Configuració exportable/importable.
 - Preparació per bateria, sensor intern SHT41 i futura gestió energètica.
 - Accés web protegit amb usuari i contrasenya persistents.
+- Lectura pública de temperatura i estat de sensors des de la pantalla d'accés.
+- Sessions web persistents i simultànies per navegar sense reautenticacions constants.
 - OTA GitHub validada amb TLS i SHA-256.
 
 ### Primer accés a la web
