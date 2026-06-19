@@ -1841,8 +1841,31 @@ static bool requestHasValidSession() {
 
 static bool requestOriginIsAllowed() {
   String origin = server.header("Origin");
+  origin.trim();
   if (origin.length() == 0) return true;
-  return origin == "http://" + server.hostHeader() || origin == "https://" + server.hostHeader();
+
+  // Alguns WebView i portals captius mòbils envien un origen opac. La cookie
+  // de sessió SameSite=Strict continua sent obligatòria abans d'arribar aquí.
+  if (origin == "null") return true;
+
+  bool https = origin.startsWith("https://");
+  if (!https && !origin.startsWith("http://")) return false;
+
+  String originAuthority = origin.substring(https ? 8 : 7);
+  while (originAuthority.endsWith("/")) {
+    originAuthority.remove(originAuthority.length() - 1);
+  }
+
+  String requestAuthority = server.hostHeader();
+  requestAuthority.trim();
+  if ((!https && originAuthority.endsWith(":80")) || (https && originAuthority.endsWith(":443"))) {
+    originAuthority.remove(originAuthority.lastIndexOf(':'));
+  }
+  if ((!https && requestAuthority.endsWith(":80")) || (https && requestAuthority.endsWith(":443"))) {
+    requestAuthority.remove(requestAuthority.lastIndexOf(':'));
+  }
+
+  return originAuthority.equalsIgnoreCase(requestAuthority);
 }
 
 static bool authMiddleware(WebServer& currentServer, Middleware::Callback next) {
@@ -1867,6 +1890,10 @@ static bool authMiddleware(WebServer& currentServer, Middleware::Callback next) 
 
   bool credentialChange = uri == "/change-password" || uri == "/user-credentials";
   if (currentServer.method() != HTTP_GET && !credentialChange && !requestOriginIsAllowed()) {
+    Serial.print("Peticio rebutjada. Origin: ");
+    Serial.print(currentServer.header("Origin"));
+    Serial.print(" · Host: ");
+    Serial.println(currentServer.hostHeader());
     currentServer.send(403, "text/plain; charset=utf-8", "Origen de petició no permès");
     return false;
   }

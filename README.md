@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.9.3-mobile-menu-fix
+1.9.4-mobile-origin-fix
 ```
 
 Funcionalitats principals actuals:

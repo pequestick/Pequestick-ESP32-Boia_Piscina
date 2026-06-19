@@ -59,6 +59,11 @@ class ReleaseManifestTests(unittest.TestCase):
         )[0]
         self.assertNotIn("\\'", script)
 
+    def test_origin_validation_supports_mobile_webviews(self):
+        source = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+        self.assertIn('if (origin == "null") return true;', source)
+        self.assertIn("originAuthority.equalsIgnoreCase(requestAuthority)", source)
+
 
 if __name__ == "__main__":
     unittest.main()

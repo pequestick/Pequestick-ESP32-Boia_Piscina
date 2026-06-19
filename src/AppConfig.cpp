@@ -41,9 +41,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.9.3-mobile-menu-fix";
-const char* FIRMWARE_CHANGE_TITLE = "v1.9.3 correccio del menu mobil";
-const char* FIRMWARE_CHANGE_NOTES = "Corregeix un error de sintaxi JavaScript del cercador Wi-Fi que impedia obrir els apartats del menu, especialment visible al mobil.";
+const char* FIRMWARE_VERSION = "1.9.4-mobile-origin-fix";
+const char* FIRMWARE_CHANGE_TITLE = "v1.9.4 formularis des del mobil";
+const char* FIRMWARE_CHANGE_NOTES = "Normalitza la validacio Origin i admet WebView mòbils amb origen opac per poder guardar Wi-Fi i altres formularis sense desactivar la sessio protegida.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
