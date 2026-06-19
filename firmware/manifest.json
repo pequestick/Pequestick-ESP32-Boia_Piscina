@@ -1,8 +1,8 @@
 {
-  "version": "1.6.0-github-ota",
-  "build_sha": "ef0bc635fc9e6801eb4cc1b08dfff5b76771f0e6",
-  "build_short_sha": "ef0bc635fc9e",
-  "build_date": "2026-06-19T10:10:19Z",
+  "version": "1.6.1-internet-check",
+  "build_sha": "a622765ab50fe7374c011069339828aea9ea3ee8",
+  "build_short_sha": "a622765ab50f",
+  "build_date": "2026-06-19T10:23:38Z",
   "size": 1385744,
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
   "notes": "Build automatica de GitHub Actions"
