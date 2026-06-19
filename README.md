@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.10.1-session-cookie-fix
+1.11.0-fast-github-ota
 ```
 
 Funcionalitats principals actuals:
@@ -30,7 +30,7 @@ Funcionalitats principals actuals:
 - OTA des de GitHub mitjançant `firmware/manifest.json`.
 - Comprovació d'accés a Internet des de la boia.
 - Pantalla OTA millorada amb estat Internet, GitHub, versió remota i actualització disponible.
-- OTA GitHub amb descàrrega robusta per rangs HTTP de 32 KB i reconnexió automàtica.
+- OTA GitHub ràpida amb una connexió HTTPS contínua, buffer de 16 KB i represa automàtica si es talla.
 - Web amb menú lateral, subpàgines i estructura més professional.
 - Configuració exportable/importable.
 - Preparació per bateria, sensor intern SHT41 i futura gestió energètica.

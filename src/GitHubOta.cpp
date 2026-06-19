@@ -103,6 +103,8 @@ public:
 private:
   mbedtls_sha256_context context;
 };
+
+uint8_t otaDownloadBuffer[16384];
 }
 
 #ifndef FIRMWARE_BUILD_SHA
@@ -489,7 +491,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
 
   otaAppendLog("Firmware URL: " + info.firmwareUrl);
   otaAppendLog("Mida firmware segons manifest: " + String(totalSize) + " bytes");
-  otaAppendLog("Mode descarrega: HTTP Range adaptatiu. Bloc inicial 128 KB, reconnexio si GitHub talla o s'adorm");
+  otaAppendLog("Mode descarrega: una connexio HTTPS continua, amb represa HTTP Range només si es talla");
 
   appState.otaInProgress = true;
   appState.otaSuccess = false;
@@ -514,10 +516,6 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
   otaAppendLog("Update.begin OK. Començo a escriure flash per blocs.");
   Sha256Accumulator firmwareHash;
 
-  const size_t minRangeBlockSize = 32768;
-  const size_t maxRangeBlockSize = 131072;
-  size_t rangeBlockSize = maxRangeBlockSize;
-  uint8_t buffer[4096];
   size_t written = 0;
   uint8_t lastLoggedPercent = 255;
   unsigned long lastProgressMillis = 0;
@@ -527,9 +525,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
 
   while (written < (size_t)totalSize) {
     size_t startByte = written;
-    size_t endByte = startByte + rangeBlockSize - 1;
-    if (endByte >= (size_t)totalSize) endByte = (size_t)totalSize - 1;
-    size_t expectedThisRequest = endByte - startByte + 1;
+    size_t expectedThisRequest = (size_t)totalSize - startByte;
 
     WiFiClientSecure secureClient;
     WiFiClient plainClient;
@@ -539,6 +535,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
     if (https) {
       secureClient.setCACert(GITHUB_ROOT_CA);
       secureClient.setTimeout(30000);
+      secureClient.setHandshakeTimeout(15);
       if (!http.begin(secureClient, info.firmwareUrl)) {
         messageOut = "No puc obrir URL firmware";
         Update.abort();
@@ -563,27 +560,34 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
       }
     }
 
-    String rangeHeader = "bytes=" + String(startByte) + "-" + String(endByte);
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
     http.setTimeout(30000);
     http.setReuse(false);
-    http.useHTTP10(true);
-    http.addHeader("Range", rangeHeader);
-    http.addHeader("Connection", "close");
+    http.addHeader("Accept-Encoding", "identity");
+
+    String rangeHeader;
+    if (startByte > 0) {
+      rangeHeader = "bytes=" + String(startByte) + "-";
+      http.addHeader("Range", rangeHeader);
+    }
 
     if (lastLoggedPercent == 255 || millis() - lastWaitLogMillis > 8000UL) {
       lastWaitLogMillis = millis();
-      otaAppendLog("Demanant bloc GitHub Range " + rangeHeader);
+      otaAppendLog(startByte == 0 ? "Obrint flux HTTPS continu amb GitHub" : "Reprenent GitHub Range " + rangeHeader);
     }
 
     int code = http.GET();
-    if (code != HTTP_CODE_PARTIAL_CONTENT && !(code == HTTP_CODE_OK && startByte == 0 && expectedThisRequest == (size_t)totalSize)) {
-      messageOut = "GitHub no accepta descarrega parcial. HTTP " + String(code);
+    bool validResponse = (startByte == 0 && code == HTTP_CODE_OK) ||
+                         (startByte > 0 && code == HTTP_CODE_PARTIAL_CONTENT);
+    if (!validResponse) {
+      messageOut = startByte == 0
+        ? "GitHub no permet descarregar el firmware. HTTP " + String(code)
+        : "GitHub no accepta reprendre la descarrega. HTTP " + String(code);
       Update.abort();
       appState.otaInProgress = false;
       appState.otaProgressPhase = "error";
       appState.otaLastMessage = messageOut;
-      otaAppendLog("Error HTTP Range. Code " + String(code) + " per " + rangeHeader);
+      otaAppendLog("Resposta HTTP inesperada. Code " + String(code) + (rangeHeader.length() ? " per " + rangeHeader : ""));
       http.end();
       if (progressCallback) progressCallback();
       return false;
@@ -597,28 +601,39 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
 
     while (receivedThisRequest < expectedThisRequest && written < (size_t)totalSize) {
       size_t remainingInRequest = expectedThisRequest - receivedThisRequest;
-      size_t toRead = remainingInRequest;
-      if (toRead > sizeof(buffer)) toRead = sizeof(buffer);
-
-      int bytesRead = stream->readBytes(buffer, toRead);
-      if (bytesRead <= 0) {
+      int available = stream->available();
+      if (available <= 0) {
         unsigned long now = millis();
-        if (now - lastDataMillis > 45000UL) {
-          otaAppendLog("Bloc sense dades. Reconnectare des del byte " + String(written));
+        if (!http.connected()) {
+          otaAppendLog("Connexio GitHub tancada. Reprendré des del byte " + String(written));
           break;
         }
-        if (now - lastWaitLogMillis > 15000UL) {
+        if (now - lastDataMillis > 15000UL) {
+          otaAppendLog("Flux sense dades durant 15 s. Reprendré des del byte " + String(written));
+          break;
+        }
+        if (now - lastWaitLogMillis > 8000UL) {
           lastWaitLogMillis = now;
           appState.otaLastMessage = "Esperant dades GitHub... " + String(written) + "/" + String(totalSize) + " bytes";
           otaAppendLog(appState.otaLastMessage);
           if (progressCallback) progressCallback();
         }
-        delay(20);
+        delay(10);
+        continue;
+      }
+
+      size_t toRead = (size_t)available;
+      if (toRead > remainingInRequest) toRead = remainingInRequest;
+      if (toRead > sizeof(otaDownloadBuffer)) toRead = sizeof(otaDownloadBuffer);
+
+      int bytesRead = stream->read(otaDownloadBuffer, toRead);
+      if (bytesRead <= 0) {
+        delay(5);
         continue;
       }
 
       lastDataMillis = millis();
-      size_t bytesWritten = Update.write(buffer, (size_t)bytesRead);
+      size_t bytesWritten = Update.write(otaDownloadBuffer, (size_t)bytesRead);
       if (bytesWritten != (size_t)bytesRead) {
         messageOut = "Error escrivint OTA a la flash";
         Update.abort();
@@ -633,7 +648,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
 
       written += bytesWritten;
       receivedThisRequest += bytesWritten;
-      firmwareHash.update(buffer, bytesWritten);
+      firmwareHash.update(otaDownloadBuffer, bytesWritten);
       requestHadProgress = true;
       appState.otaProgressBytes = (uint32_t)written;
       appState.otaProgressPercent = (uint8_t)((written * 100UL) / (size_t)totalSize);
@@ -657,7 +672,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
         otaAppendLog("Progres descarrega: " + String(appState.otaProgressPercent) + "% · " + String(written) + "/" + String(totalSize) + " bytes" + speedText + etaText);
       }
 
-      if (progressCallback && millis() - lastProgressMillis > 350) {
+      if (progressCallback && millis() - lastProgressMillis > 900) {
         lastProgressMillis = millis();
         progressCallback();
       }
@@ -668,15 +683,8 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
 
     if (requestHadProgress) {
       reconnectsWithoutProgress = 0;
-      if (receivedThisRequest >= expectedThisRequest && rangeBlockSize < maxRangeBlockSize) {
-        rangeBlockSize = maxRangeBlockSize;
-      }
     } else {
       reconnectsWithoutProgress++;
-      if (rangeBlockSize > minRangeBlockSize) {
-        rangeBlockSize = minRangeBlockSize;
-        otaAppendLog("Redueixo bloc Range a 32 KB per connexio inestable");
-      }
       otaAppendLog("Reconnexio sense progres (" + String(reconnectsWithoutProgress) + "/8)");
       if (reconnectsWithoutProgress >= 8) {
         messageOut = "Timeout OTA: GitHub no envia mes dades";

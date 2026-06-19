@@ -73,6 +73,12 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("Max-Age=604800", web_source)
         self.assertIn("Lectures públiques", web_source)
 
+    def test_github_ota_uses_one_stream_and_range_only_for_resume(self):
+        source = Path("src/GitHubOta.cpp").read_text(encoding="utf-8")
+        self.assertIn("otaDownloadBuffer[16384]", source)
+        self.assertIn("if (startByte > 0)", source)
+        self.assertNotIn("maxRangeBlockSize", source)
+
 
 if __name__ == "__main__":
     unittest.main()
