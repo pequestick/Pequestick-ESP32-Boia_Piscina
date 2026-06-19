@@ -1,9 +1,9 @@
 {
-  "version": "1.6.5-ota-progress-ui",
-  "build_sha": "d2f411e558e6756d07bb42b44763e4c59e0db1e0",
-  "build_short_sha": "d2f411e558e6",
-  "build_date": "2026-06-19T11:07:48Z",
-  "size": 1401584,
+  "version": "1.6.6-ota-diagnostics-log",
+  "build_sha": "c0c533472f9cec1b475ae9d84e11a00c0a19fe92",
+  "build_short_sha": "c0c533472f9c",
+  "build_date": "2026-06-19T11:34:56Z",
+  "size": 1406976,
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Afegeix una barra de progrés i estat visual durant les actualitzacions OTA locals i des de GitHub per donar confiança mentre el firmware es descarrega i s'instal·la."
+  "notes": "Afegeix un log OTA en directe, diagnòstic de passos GitHub OTA i timeout si la descàrrega queda encallada sense rebre dades."
 }
