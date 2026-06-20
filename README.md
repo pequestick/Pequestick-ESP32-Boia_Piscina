@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.13.0-sht41-internal-environment
+1.13.1-resumable-browser-ota
 ```
 
 Funcionalitats principals actuals:

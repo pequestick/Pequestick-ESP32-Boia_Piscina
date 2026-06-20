@@ -107,6 +107,14 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn('discoveryTopic("sensor", "internal_humidity")', mqtt)
         self.assertIn("internal_temperature_c", web)
 
+    def test_browser_ota_uploads_resumable_blocks(self):
+        web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+        self.assertIn("sendFirmwareBlock", web)
+        self.assertIn("blockSize=65536", web)
+        self.assertIn("X-Firmware-Offset", web)
+        self.assertIn("requestedOffset == localOtaReceivedSize", web)
+        self.assertIn("es pot reprendre des del byte", web)
+
 
 if __name__ == "__main__":
     unittest.main()
