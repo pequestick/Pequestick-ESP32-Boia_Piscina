@@ -16,6 +16,6 @@ String webAuthUsername();
 bool webAuthPasswordChangeRequired();
 
 String createWebSession();
+String createWebUploadToken();
 bool isWebSessionCookieValid(const String& cookieHeader);
 void clearWebSession();
-

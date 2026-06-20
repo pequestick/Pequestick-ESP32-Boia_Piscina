@@ -51,6 +51,8 @@ struct AppState {
   String githubUpdateSha = "";
   String githubUpdateDate = "";
   String githubFirmwareUrl = "";
+  String githubFirmwareSha256 = "";
+  uint32_t githubFirmwareSize = 0;
   String githubUpdateDetails = "Prem Comprovar actualitzacio per llegir el manifest publicat a GitHub.";
 
   bool internetCheckDone = false;

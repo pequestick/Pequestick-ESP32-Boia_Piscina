@@ -183,6 +183,10 @@ String createWebSession() {
   return persistentSessionToken;
 }
 
+String createWebUploadToken() {
+  return randomHex(24);
+}
+
 bool isWebSessionCookieValid(const String& cookieHeader) {
   String suppliedToken = cookieValue(cookieHeader, "boia_session_v2");
   return suppliedToken.length() == 64 &&

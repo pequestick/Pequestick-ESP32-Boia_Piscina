@@ -80,6 +80,21 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("if (startByte > 0)", source)
         self.assertNotIn("maxRangeBlockSize", source)
 
+    def test_browser_assisted_ota_keeps_sha256_verification(self):
+        source = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+        self.assertIn("installGithubViaBrowser", source)
+        self.assertIn("X-Firmware-SHA256", source)
+        self.assertIn("SHA-256 OTA verificat correctament", source)
+
+    def test_upload_route_is_available_before_headers_are_parsed(self):
+        auth_source = Path("src/AuthManager.cpp").read_text(encoding="utf-8")
+        web_source = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+        self.assertIn("String createWebUploadToken()", auth_source)
+        self.assertIn('localOtaUploadPath = "/update/" + createWebUploadToken()', web_source)
+        self.assertIn("server.on(localOtaUploadPath.c_str()", web_source)
+        self.assertNotIn("setFilter(protectedUploadRequest)", web_source)
+        self.assertIn("xhr.open('POST',local.action)", web_source)
+
 
 if __name__ == "__main__":
     unittest.main()
