@@ -1,10 +1,10 @@
 {
-  "version": "1.13.1-resumable-browser-ota",
-  "build_sha": "4f3d652b1b0bf8aaa6c95123a05eaa787fb60b7b",
-  "build_short_sha": "4f3d652b1b0b",
-  "build_date": "2026-06-20T21:02:01Z",
-  "size": 1492432,
-  "sha256": "805fdc0db4b3db8539880771e8cca9b3797b435a303517361bfd03c2de46c5c6",
+  "version": "1.14.0-ota-ui-sht41",
+  "build_sha": "56d2ff323c419413f51fef8b54066d7e3bcd3377",
+  "build_short_sha": "56d2ff323c41",
+  "build_date": "2026-06-20T22:04:43Z",
+  "size": 1500768,
+  "sha256": "33e2cc9a012bb5e06cd9bcf7caab210c7da37f0847402c21c503c9b4debc09b9",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Divideix la pujada OTA en blocs de 64 KiB amb offset i represa automàtica, mantenint la verificació final de mida i SHA-256."
+  "notes": "Assegura el reinici diferit de l'OTA, converteix el progres en modal, reordena el SHT41 i afegeix alarmes persistents i una particio de core dump."
 }
