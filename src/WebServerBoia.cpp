@@ -36,6 +36,7 @@ static String localOtaExpectedSha256;
 static uint32_t localOtaExpectedSize = 0;
 static uint32_t localOtaReceivedSize = 0;
 static String localOtaUploadPath;
+static bool localOtaChunkRejected = false;
 
 static void finishLocalOtaHash() {
   if (!localOtaShaActive) return;
@@ -213,7 +214,8 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "function loadTempHistory(){var c=document.getElementById('temp-history-chart');if(!c)return;var inp=document.getElementById('ha-history-hours-inline');var hours=inp?parseInt(inp.value||'24',10):24;if(!isFinite(hours)||hours<1)hours=24;if(hours>168)hours=168;var start=new Date(Date.now()-hours*60*60*1000).toISOString();fetch('/ha-history?hours='+encodeURIComponent(hours)+'&start='+encodeURIComponent(start)).then(function(r){return r.json();}).then(function(j){if(j.error){txt('temp-history-note',j.error);return;}drawTempHistory(extractHaPoints(j),hours);}).catch(function(){txt('temp-history-note','No puc llegir historial HA. Prova menys hores o revisa token/URL.');});}";
   html += "function showOtaProgress(source,msg){var card=document.getElementById('ota-progress-card');if(!card)return;sessionStorage.setItem('boiaOtaPending','1');card.classList.remove('hidden','done','error');txt('ota-progress-phase',source+' · iniciant');txt('ota-progress-message',msg||'Preparant actualitzacio');txt('ota-progress-percent','0%');txt('ota-progress-bytes','-- / --');var fill=document.getElementById('ota-progress-fill');if(fill){fill.classList.remove('indeterminate');fill.style.width='0%';}}function dismissOtaProgress(){sessionStorage.removeItem('boiaOtaPending');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('hidden');}";
   html += "function otaUiError(message){sessionStorage.removeItem('boiaOtaPending');txt('ota-progress-message',message);txt('ota-progress-phase','OTA · error');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('error');var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.remove('indeterminate');}";
-  html += "function uploadGithubFirmware(buffer,status){return new Promise(function(resolve,reject){txt('ota-progress-phase','GitHub OTA · pujant a la boia');txt('ota-progress-message','Firmware descarregat i validat pel manifest. Pujant per la xarxa local...');var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.remove('indeterminate');var local=document.getElementById('ota-local-form');if(!local){reject(new Error('Ruta de pujada OTA no disponible'));return;}var xhr=new XMLHttpRequest();xhr.open('POST',local.action);xhr.setRequestHeader('X-Firmware-SHA256',status.github_firmware_sha256);xhr.setRequestHeader('X-Firmware-Size',String(status.github_firmware_size));xhr.upload.onprogress=function(ev){if(!ev.lengthComputable)return;var pct=Math.round(ev.loaded*100/ev.total);if(fill)fill.style.width=pct+'%';txt('ota-progress-percent',pct+'%');txt('ota-progress-bytes',bytesHuman(ev.loaded)+' / '+bytesHuman(ev.total));};xhr.onload=function(){if(xhr.status>=200&&xhr.status<300){sessionStorage.removeItem('boiaOtaPending');txt('ota-progress-message','Firmware verificat i instal·lat. La boia es reiniciara.');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('done');resolve();}else{reject(new Error('La boia ha rebutjat el firmware. HTTP '+xhr.status));}};xhr.onerror=function(){reject(new Error('Connexio local tallada durant la pujada'));};var data=new FormData();data.append('update',new Blob([buffer],{type:'application/octet-stream'}),'firmware.bin');xhr.send(data);});}";
+  html += "function sendFirmwareBlock(buffer,status,offset,end){return new Promise(function(resolve,reject){var local=document.getElementById('ota-local-form');if(!local){reject(new Error('Ruta de pujada OTA no disponible'));return;}var xhr=new XMLHttpRequest();xhr.open('POST',local.action);xhr.setRequestHeader('X-Firmware-SHA256',status.github_firmware_sha256);xhr.setRequestHeader('X-Firmware-Size',String(status.github_firmware_size));xhr.setRequestHeader('X-Firmware-Offset',String(offset));xhr.upload.onprogress=function(ev){if(!ev.lengthComputable)return;var sent=offset+ev.loaded;var pct=Math.round(sent*100/buffer.byteLength);var fill=document.getElementById('ota-progress-fill');if(fill)fill.style.width=pct+'%';txt('ota-progress-percent',pct+'%');txt('ota-progress-bytes',bytesHuman(sent)+' / '+bytesHuman(buffer.byteLength));};xhr.onload=function(){if(xhr.status>=200&&xhr.status<300)resolve();else reject(new Error('La boia ha rebutjat el bloc. HTTP '+xhr.status));};xhr.onerror=function(){reject(new Error('Connexio local tallada durant un bloc'));};var data=new FormData();data.append('update',new Blob([buffer.slice(offset,end)],{type:'application/octet-stream'}),'firmware.bin');xhr.send(data);});}";
+  html += "async function uploadGithubFirmware(buffer,status){txt('ota-progress-phase','GitHub OTA · pujant a la boia');txt('ota-progress-message','Firmware descarregat. Pujant en blocs recuperables de 64 KiB...');var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.remove('indeterminate');var offset=0;var retries=0;var blockSize=65536;while(offset<buffer.byteLength){var end=Math.min(offset+blockSize,buffer.byteLength);try{await sendFirmwareBlock(buffer,status,offset,end);offset=end;retries=0;}catch(error){retries++;try{var check=await fetch('/status',{cache:'no-store'});var current=await check.json();var confirmed=parseInt(current.ota_progress_bytes||0,10);if(confirmed>offset&&confirmed<=buffer.byteLength){offset=confirmed;retries=0;}}catch(ignore){}if(retries>=3)throw error;await new Promise(function(resolve){setTimeout(resolve,500);});}}sessionStorage.removeItem('boiaOtaPending');txt('ota-progress-message','Firmware verificat i instal·lat. La boia es reiniciara.');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('done');}";
   html += "async function installGithubViaBrowser(){showOtaProgress('GitHub OTA','Llegint el manifest publicat');var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.add('indeterminate');try{var check=await fetch('/github-check-update-run',{cache:'no-store'});if(!check.ok)throw new Error('No puc comprovar GitHub. HTTP '+check.status);var status=await check.json();if(!status.github_firmware_url||!status.github_firmware_sha256||!status.github_firmware_size)throw new Error('El manifest no porta URL, SHA-256 o mida valida');txt('ota-progress-phase','GitHub OTA · descarregant al navegador');txt('ota-progress-message','Descarregant '+bytesHuman(status.github_firmware_size)+' des de GitHub...');var separator=status.github_firmware_url.indexOf('?')>=0?'&':'?';var response=await fetch(status.github_firmware_url+separator+'build='+encodeURIComponent(status.github_update_sha||Date.now()),{cache:'no-store'});if(!response.ok)throw new Error('GitHub ha respost HTTP '+response.status);var buffer=await response.arrayBuffer();if(buffer.byteLength!==parseInt(status.github_firmware_size,10))throw new Error('Mida incorrecta: '+buffer.byteLength+' bytes');await uploadGithubFirmware(buffer,status);}catch(error){otaUiError(error.message||'Error OTA GitHub');}}";
   html += "function bindOtaForms(){var local=document.getElementById('ota-local-form');if(local){local.addEventListener('submit',function(e){e.preventDefault();if(local.getAttribute('data-confirm')&&!confirm(local.getAttribute('data-confirm')))return;var file=document.getElementById('ota-local-file');if(!file||!file.files||!file.files.length){alert('Tria primer un firmware.bin');return;}showOtaProgress('OTA local','Pujant firmware local');var xhr=new XMLHttpRequest();xhr.open('POST',local.action);xhr.upload.onprogress=function(ev){if(ev.lengthComputable){var pct=Math.round(ev.loaded*100/ev.total);var fill=document.getElementById('ota-progress-fill');if(fill)fill.style.width=pct+'%';txt('ota-progress-percent',pct+'%');txt('ota-progress-bytes',bytesHuman(ev.loaded)+' / '+bytesHuman(ev.total));}};xhr.onload=function(){if(xhr.status>=200&&xhr.status<300){sessionStorage.removeItem('boiaOtaPending');txt('ota-progress-message','Firmware rebut. La boia es reiniciara.');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('done');}else{otaUiError('OTA local fallida. HTTP '+xhr.status);}};xhr.onerror=function(){otaUiError('Error de xarxa pujant firmware');};xhr.send(new FormData(local));});}var gh=document.getElementById('github-install-form');if(gh){gh.addEventListener('submit',function(e){e.preventDefault();if(gh.getAttribute('data-confirm')&&!confirm(gh.getAttribute('data-confirm')))return;installGithubViaBrowser();});}}";
   html += "window.addEventListener('load',function(){bindConfirms();bindAccordion();applySubpage();startWS();loadTempHistory();bindOtaForms();setTimeout(runOtaAutoChecks,600);});";
@@ -434,7 +436,7 @@ static String buildStatusPage() {
   html += "<div id='temp-history-note' class='chart-note'>Carregant històric HA...</div>";
   html += "</div>";
 
-  html += "<div class='card'><h2>Ambient interior · SHT41</h2><div class='grid'>";
+  html += "<div class='card'><h2>Sensor intern temperatura/humitat</h2><div class='grid'>";
   html += "<div class='item'><div class='label'>Temperatura interior</div><div id='live-internal-temp' class='value'>";
   html += isnan(appState.lastInternalTemperatureC) ? "Sense dades" : formatTemperature(appState.lastInternalTemperatureC, 2) + " °C";
   html += "</div></div>";
@@ -2902,6 +2904,16 @@ static void handleRestartPost() {
 }
 
 static void handleUpdateFinished() {
+  if (localOtaChunkRejected) {
+    server.send(409, "text/plain", "Offset OTA no valid");
+    return;
+  }
+
+  if (appState.otaInProgress && localOtaExpectedSize > 0 && localOtaReceivedSize < localOtaExpectedSize) {
+    server.send(200, "application/json", "{\"received\":" + String(localOtaReceivedSize) + "}");
+    return;
+  }
+
   bool ok = appState.otaSuccess && !Update.hasError();
 
   String title = ok ? "OTA completada" : "OTA fallida";
@@ -2931,6 +2943,32 @@ static void handleUpdateUpload() {
   HTTPUpload& upload = server.upload();
 
   if (upload.status == UPLOAD_FILE_START) {
+    uint32_t requestedOffset = (uint32_t)server.header("X-Firmware-Offset").toInt();
+    uint32_t requestedSize = (uint32_t)server.header("X-Firmware-Size").toInt();
+    String requestedSha256 = server.header("X-Firmware-SHA256");
+    requestedSha256.toLowerCase();
+    localOtaChunkRejected = false;
+
+    if (requestedOffset > 0) {
+      bool validContinuation = appState.otaInProgress &&
+                               requestedOffset == localOtaReceivedSize &&
+                               requestedSize == localOtaExpectedSize &&
+                               requestedSha256 == localOtaExpectedSha256;
+      if (!validContinuation) {
+        localOtaChunkRejected = true;
+        Serial.print("Bloc OTA rebutjat. Offset demanat: ");
+        Serial.print(requestedOffset);
+        Serial.print(" · esperat: ");
+        Serial.println(localOtaReceivedSize);
+      }
+      return;
+    }
+
+    if (appState.otaInProgress) {
+      Update.abort();
+      finishLocalOtaHash();
+    }
+
     Serial.println();
     Serial.print("OTA iniciada: ");
     Serial.println(upload.filename);
@@ -2940,9 +2978,8 @@ static void handleUpdateUpload() {
     appState.otaProgressSource = "Local";
     appState.otaProgressPhase = "pujant";
     appState.otaProgressBytes = 0;
-    localOtaExpectedSha256 = server.header("X-Firmware-SHA256");
-    localOtaExpectedSha256.toLowerCase();
-    localOtaExpectedSize = (uint32_t)server.header("X-Firmware-Size").toInt();
+    localOtaExpectedSha256 = requestedSha256;
+    localOtaExpectedSize = requestedSize;
     localOtaReceivedSize = 0;
     finishLocalOtaHash();
     if (validSha256Header(localOtaExpectedSha256)) {
@@ -2966,6 +3003,7 @@ static void handleUpdateUpload() {
       Update.printError(Serial);
     }
   } else if (upload.status == UPLOAD_FILE_WRITE) {
+    if (localOtaChunkRejected) return;
     localOtaReceivedSize += upload.currentSize;
     if (localOtaShaActive) {
       mbedtls_sha256_update(&localOtaShaContext, upload.buf, upload.currentSize);
@@ -2986,6 +3024,13 @@ static void handleUpdateUpload() {
     appState.otaProgressMillis = millis();
     appState.otaLastMessage = "OTA local rebuda: " + String(upload.totalSize) + " bytes";
   } else if (upload.status == UPLOAD_FILE_END) {
+    if (localOtaChunkRejected) return;
+    if (localOtaExpectedSize > 0 && localOtaReceivedSize < localOtaExpectedSize) {
+      appState.otaProgressPhase = "bloc rebut";
+      appState.otaLastMessage = "OTA preparada per continuar des del byte " + String(localOtaReceivedSize);
+      return;
+    }
+
     bool integrityOk = true;
     if (localOtaExpectedSize > 0 && localOtaReceivedSize != localOtaExpectedSize) {
       integrityOk = false;
@@ -3032,13 +3077,21 @@ static void handleUpdateUpload() {
     appState.otaInProgress = false;
     notifyOtaProgressNow();
   } else if (upload.status == UPLOAD_FILE_ABORTED) {
-    finishLocalOtaHash();
-    Update.end();
-    appState.otaInProgress = false;
-    appState.otaSuccess = false;
-    appState.otaProgressPhase = "error";
-    appState.otaLastMessage = "OTA avortada";
-    Serial.println("OTA avortada.");
+    if (localOtaExpectedSize > 0 && localOtaReceivedSize < localOtaExpectedSize) {
+      appState.otaInProgress = true;
+      appState.otaSuccess = false;
+      appState.otaProgressPhase = "reprenent";
+      appState.otaLastMessage = "Bloc interromput; es pot reprendre des del byte " + String(localOtaReceivedSize);
+      Serial.println(appState.otaLastMessage);
+    } else {
+      finishLocalOtaHash();
+      Update.abort();
+      appState.otaInProgress = false;
+      appState.otaSuccess = false;
+      appState.otaProgressPhase = "error";
+      appState.otaLastMessage = "OTA avortada";
+      Serial.println("OTA avortada.");
+    }
   }
 }
 
@@ -3435,8 +3488,8 @@ static void notifyOtaProgressNow() {
 void setupWebServer() {
   initAuthManager();
   localOtaUploadPath = "/update/" + createWebUploadToken();
-  static const char* collectedHeaders[] = {"Cookie", "Origin", "X-Firmware-SHA256", "X-Firmware-Size"};
-  server.collectHeaders(collectedHeaders, 4);
+  static const char* collectedHeaders[] = {"Cookie", "Origin", "X-Firmware-SHA256", "X-Firmware-Size", "X-Firmware-Offset"};
+  server.collectHeaders(collectedHeaders, 5);
   server.addMiddleware(authMiddleware);
 
   server.on("/login", HTTP_GET, handleLoginGet);

@@ -41,9 +41,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.13.0-sht41-internal-environment";
-const char* FIRMWARE_CHANGE_TITLE = "v1.13.0 Sensor ambiental intern SHT41";
-const char* FIRMWARE_CHANGE_NOTES = "Activa l'SHT41 a GPIO6/GPIO7 amb CRC, mostra temperatura i humitat internes a la web i les publica per MQTT i Home Assistant Discovery.";
+const char* FIRMWARE_VERSION = "1.13.1-resumable-browser-ota";
+const char* FIRMWARE_CHANGE_TITLE = "v1.13.1 OTA del navegador per blocs";
+const char* FIRMWARE_CHANGE_NOTES = "Divideix la pujada OTA en blocs de 64 KiB amb offset i represa automàtica, mantenint la verificació final de mida i SHA-256.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
