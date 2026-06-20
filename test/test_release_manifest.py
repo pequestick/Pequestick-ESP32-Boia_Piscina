@@ -75,7 +75,8 @@ class ReleaseManifestTests(unittest.TestCase):
 
     def test_github_ota_uses_one_stream_and_range_only_for_resume(self):
         source = Path("src/GitHubOta.cpp").read_text(encoding="utf-8")
-        self.assertIn("otaDownloadBuffer[16384]", source)
+        self.assertIn("class OtaUpdateStream", source)
+        self.assertIn("http.writeToStream(&updateStream)", source)
         self.assertIn("if (startByte > 0)", source)
         self.assertNotIn("maxRangeBlockSize", source)
 

@@ -118,7 +118,73 @@ private:
   wifi_ps_type_t previousMode;
 };
 
-uint8_t otaDownloadBuffer[16384];
+class OtaUpdateStream : public Stream {
+public:
+  OtaUpdateStream(
+    Sha256Accumulator& hashAccumulator,
+    size_t expectedTotal,
+    unsigned long startedMillis,
+    OtaProgressCallback callback
+  ) : hash(hashAccumulator), total(expectedTotal), started(startedMillis), progressCallback(callback) {}
+
+  size_t write(const uint8_t* buffer, size_t length) override {
+    size_t bytesWritten = Update.write(const_cast<uint8_t*>(buffer), length);
+    if (bytesWritten != length) {
+      writeFailed = true;
+      setWriteError();
+      return bytesWritten;
+    }
+
+    hash.update(buffer, bytesWritten);
+    writtenBytes += bytesWritten;
+    appState.otaProgressBytes = (uint32_t)writtenBytes;
+    appState.otaProgressPercent = (uint8_t)((writtenBytes * 100UL) / total);
+    appState.otaProgressMillis = millis();
+
+    unsigned long elapsedMs = appState.otaProgressMillis - started;
+    float speedKbps = elapsedMs > 0 ? (writtenBytes / 1024.0f) / (elapsedMs / 1000.0f) : 0.0f;
+    uint32_t etaSeconds = 0;
+    if (speedKbps > 0.1f && writtenBytes < total) {
+      etaSeconds = (uint32_t)(((total - writtenBytes) / 1024.0f) / speedKbps);
+    }
+
+    String speedText = speedKbps > 0.1f ? (" · " + String(speedKbps, 1) + " KB/s") : "";
+    String etaText = etaSeconds > 0 ? (" · ETA " + String(etaSeconds) + "s") : "";
+    appState.otaLastMessage = "GitHub OTA " + String(appState.otaProgressPercent) + "%" + speedText + etaText;
+
+    if (lastLoggedPercent == 255 || appState.otaProgressPercent >= lastLoggedPercent + 5 || appState.otaProgressPercent == 100) {
+      lastLoggedPercent = appState.otaProgressPercent;
+      otaAppendLog("Progres descarrega: " + String(appState.otaProgressPercent) + "% · " + String(writtenBytes) + "/" + String(total) + " bytes" + speedText + etaText);
+    }
+    if (progressCallback && millis() - lastProgressMillis > 900UL) {
+      lastProgressMillis = millis();
+      progressCallback();
+    }
+    return bytesWritten;
+  }
+
+  size_t write(uint8_t value) override {
+    return write(&value, 1);
+  }
+
+  int available() override { return 0; }
+  int read() override { return -1; }
+  int peek() override { return -1; }
+  void flush() override {}
+
+  size_t written() const { return writtenBytes; }
+  bool failed() const { return writeFailed; }
+
+private:
+  Sha256Accumulator& hash;
+  size_t total;
+  unsigned long started;
+  OtaProgressCallback progressCallback;
+  size_t writtenBytes = 0;
+  unsigned long lastProgressMillis = 0;
+  uint8_t lastLoggedPercent = 255;
+  bool writeFailed = false;
+};
 }
 
 #ifndef FIRMWARE_BUILD_SHA
@@ -530,18 +596,15 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
   otaAppendLog("Update.begin OK. Començo a escriure flash per blocs.");
   Sha256Accumulator firmwareHash;
   WifiPerformanceMode wifiPerformanceMode;
+  unsigned long otaStartMillis = millis();
+  OtaUpdateStream updateStream(firmwareHash, (size_t)totalSize, otaStartMillis, progressCallback);
   otaAppendLog("Mode rendiment Wi-Fi actiu durant la descarrega");
 
-  size_t written = 0;
-  uint8_t lastLoggedPercent = 255;
-  unsigned long lastProgressMillis = 0;
   unsigned long lastWaitLogMillis = 0;
-  unsigned long otaStartMillis = millis();
   uint8_t reconnectsWithoutProgress = 0;
 
-  while (written < (size_t)totalSize) {
-    size_t startByte = written;
-    size_t expectedThisRequest = (size_t)totalSize - startByte;
+  while (updateStream.written() < (size_t)totalSize) {
+    size_t startByte = updateStream.written();
 
     WiFiClientSecure secureClient;
     WiFiClient plainClient;
@@ -587,7 +650,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
       http.addHeader("Range", rangeHeader);
     }
 
-    if (lastLoggedPercent == 255 || millis() - lastWaitLogMillis > 8000UL) {
+    if (startByte == 0 || millis() - lastWaitLogMillis > 8000UL) {
       lastWaitLogMillis = millis();
       otaAppendLog(startByte == 0 ? "Obrint flux HTTPS continu amb GitHub" : "Reprenent GitHub Range " + rangeHeader);
     }
@@ -609,69 +672,25 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
       return false;
     }
 
-    WiFiClient* stream = http.getStreamPtr();
-    stream->setTimeout(12000);
-    size_t receivedThisRequest = 0;
-    bool requestHadProgress = false;
-
-    while (receivedThisRequest < expectedThisRequest && written < (size_t)totalSize) {
-      size_t remainingInRequest = expectedThisRequest - receivedThisRequest;
-      size_t toRead = remainingInRequest;
-      if (toRead > sizeof(otaDownloadBuffer)) toRead = sizeof(otaDownloadBuffer);
-
-      int bytesRead = stream->readBytes(otaDownloadBuffer, toRead);
-      if (bytesRead <= 0) {
-        otaAppendLog("Flux TLS sense dades. Reprendré des del byte " + String(written));
-        break;
-      }
-
-      size_t bytesWritten = Update.write(otaDownloadBuffer, (size_t)bytesRead);
-      if (bytesWritten != (size_t)bytesRead) {
-        messageOut = "Error escrivint OTA a la flash";
-        Update.abort();
-        appState.otaInProgress = false;
-        appState.otaProgressPhase = "error";
-        appState.otaLastMessage = messageOut;
-        otaAppendLog("Update.write parcial. Llegits " + String(bytesRead) + " bytes, escrits " + String(bytesWritten));
-        http.end();
-        if (progressCallback) progressCallback();
-        return false;
-      }
-
-      written += bytesWritten;
-      receivedThisRequest += bytesWritten;
-      firmwareHash.update(otaDownloadBuffer, bytesWritten);
-      requestHadProgress = true;
-      appState.otaProgressBytes = (uint32_t)written;
-      appState.otaProgressPercent = (uint8_t)((written * 100UL) / (size_t)totalSize);
-      appState.otaProgressMillis = millis();
-      unsigned long elapsedMs = appState.otaProgressMillis - otaStartMillis;
-      float speedKbps = 0.0f;
-      uint32_t etaSeconds = 0;
-      if (elapsedMs > 1000UL && written > 0) {
-        speedKbps = (written / 1024.0f) / (elapsedMs / 1000.0f);
-        if (speedKbps > 0.1f && written < (size_t)totalSize) {
-          etaSeconds = (uint32_t)(((totalSize - written) / 1024.0f) / speedKbps);
-        }
-      }
-
-      String etaText = etaSeconds > 0 ? (" · ETA " + String(etaSeconds) + "s") : "";
-      String speedText = speedKbps > 0.1f ? (" · " + String(speedKbps, 1) + " KB/s") : "";
-      appState.otaLastMessage = "GitHub OTA " + String(appState.otaProgressPercent) + "%" + speedText + etaText;
-
-      if (lastLoggedPercent == 255 || appState.otaProgressPercent >= lastLoggedPercent + 5 || appState.otaProgressPercent == 100) {
-        lastLoggedPercent = appState.otaProgressPercent;
-        otaAppendLog("Progres descarrega: " + String(appState.otaProgressPercent) + "% · " + String(written) + "/" + String(totalSize) + " bytes" + speedText + etaText);
-      }
-
-      if (progressCallback && millis() - lastProgressMillis > 900) {
-        lastProgressMillis = millis();
-        progressCallback();
-      }
-      delay(0);
-    }
+    int streamedBytes = http.writeToStream(&updateStream);
+    bool requestHadProgress = updateStream.written() > startByte;
 
     http.end();
+
+    if (updateStream.failed()) {
+      messageOut = "Error escrivint OTA a la flash";
+      Update.abort();
+      appState.otaInProgress = false;
+      appState.otaProgressPhase = "error";
+      appState.otaLastMessage = messageOut;
+      otaAppendLog("Update.write ha retornat una escriptura parcial");
+      if (progressCallback) progressCallback();
+      return false;
+    }
+
+    if (streamedBytes < 0) {
+      otaAppendLog("Flux HTTP interromput (" + HTTPClient::errorToString(streamedBytes) + "). Reprendré des del byte " + String(updateStream.written()));
+    }
 
     if (requestHadProgress) {
       reconnectsWithoutProgress = 0;
@@ -684,7 +703,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
         appState.otaInProgress = false;
         appState.otaProgressPhase = "error";
         appState.otaLastMessage = messageOut;
-        otaAppendLog("Aturat: massa reconnexions sense progres. Bytes escrits: " + String(written) + "/" + String(totalSize));
+        otaAppendLog("Aturat: massa reconnexions sense progres. Bytes escrits: " + String(updateStream.written()) + "/" + String(totalSize));
         if (progressCallback) progressCallback();
         return false;
       }
@@ -692,6 +711,7 @@ bool performGitHubOtaUpdate(String& messageOut, OtaProgressCallback progressCall
     }
   }
 
+  size_t written = updateStream.written();
   if (written != (size_t)totalSize) {
     messageOut = "OTA incompleta: " + String(written) + "/" + String(totalSize);
     Update.abort();
