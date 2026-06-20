@@ -1,10 +1,10 @@
 {
-  "version": "1.13.0-sht41-internal-environment",
-  "build_sha": "15cdb71f23be7dd5a8ba1c1dcbdc491ee1c1ca5e",
-  "build_short_sha": "15cdb71f23be",
-  "build_date": "2026-06-20T16:58:47Z",
-  "size": 1490672,
-  "sha256": "33915fa115af600a8f18334be9167b30cd20ab36382125a649df5a369fae9ff0",
+  "version": "1.13.1-resumable-browser-ota",
+  "build_sha": "110a097886c2643f5eaabd2b4ba10a56a298bc4d",
+  "build_short_sha": "110a097886c2",
+  "build_date": "2026-06-20T17:06:32Z",
+  "size": 1492416,
+  "sha256": "8dcfc8df78aa0e34000ae818f56caa9f02b125612fe0d5c37824b820cec1b1fb",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Activa l'SHT41 a GPIO6/GPIO7 amb CRC, mostra temperatura i humitat internes a la web i les publica per MQTT i Home Assistant Discovery."
+  "notes": "Divideix la pujada OTA en blocs de 64 KiB amb offset i represa automàtica, mantenint la verificació final de mida i SHA-256."
 }
