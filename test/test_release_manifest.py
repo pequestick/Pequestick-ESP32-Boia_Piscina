@@ -107,6 +107,18 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn('discoveryTopic("sensor", "internal_humidity")', mqtt)
         self.assertIn("internal_temperature_c", web)
 
+    def test_internal_buoy_environment_alarms_are_exposed_to_home_assistant(self):
+        mqtt = Path("src/MqttManager.cpp").read_text(encoding="utf-8")
+        web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+        self.assertIn('discoveryTopic("binary_sensor", "internal_temperature_alarm")', mqtt)
+        self.assertIn('discoveryTopic("binary_sensor", "internal_humidity_alarm")', mqtt)
+        self.assertIn('discoveryTopic("switch", "internal_env_alarms")', mqtt)
+        self.assertIn('discoveryTopic("number", "internal_temp_alarm")', mqtt)
+        self.assertIn('discoveryTopic("number", "internal_humidity_alarm")', mqtt)
+        self.assertIn("Temperatura interior de la boia", mqtt)
+        self.assertIn("internal_temperature_alarm_threshold_c", web)
+        self.assertIn("internal_humidity_alarm_threshold_percent", web)
+
     def test_browser_ota_uploads_resumable_blocks(self):
         web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
         self.assertIn("sendFirmwareBlock", web)

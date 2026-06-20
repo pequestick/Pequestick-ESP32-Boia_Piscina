@@ -194,6 +194,23 @@ static String buildBinarySensorConfig(
   return json;
 }
 
+static String buildAlarmBinarySensorConfig(
+  const String& name,
+  const String& uniqueId,
+  const String& stateTopic,
+  const String& extraFields
+) {
+  String json = "{";
+  json += "\"name\":\"" + jsonEscape(name) + "\",";
+  json += "\"unique_id\":\"" + jsonEscape(uniqueId) + "\",";
+  json += "\"state_topic\":\"" + jsonEscape(stateTopic) + "\",";
+  json += "\"payload_on\":\"ON\",";
+  json += "\"payload_off\":\"OFF\",";
+  json += appendCommonAvailabilityAndDevice(extraFields);
+  json += "}";
+  return json;
+}
+
 static String buildButtonConfig(
   const String& name,
   const String& uniqueId,
@@ -304,6 +321,9 @@ void publishMqttConfigState() {
   mqttPublishRetained(configStateTopic("temperature_offset"), floatPayload(configTemperatureOffsetC, 2));
   mqttPublishRetained(configStateTopic("min_valid_temperature"), floatPayload(configMinValidTempC, 2));
   mqttPublishRetained(configStateTopic("max_valid_temperature"), floatPayload(configMaxValidTempC, 2));
+  mqttPublishRetained(configStateTopic("internal_env_alarms"), configInternalEnvAlarmEnabled ? "ON" : "OFF");
+  mqttPublishRetained(configStateTopic("internal_temp_alarm"), floatPayload(configInternalTempAlarmC, 1));
+  mqttPublishRetained(configStateTopic("internal_humidity_alarm"), floatPayload(configInternalHumidityAlarmPercent, 1));
 }
 
 
@@ -400,12 +420,23 @@ void publishHomeAssistantDiscovery() {
 
   ok &= mqttPublishRetained(
     discoveryTopic("sensor", "internal_temperature"),
-    buildBaseSensorConfig("Temperatura interior", deviceId + "_internal_temperature", mqttTopic("internal_temperature"), tempExtra)
+    buildBaseSensorConfig("Temperatura interior de la boia", deviceId + "_internal_temperature", mqttTopic("internal_temperature"), tempExtra)
   );
 
   ok &= mqttPublishRetained(
     discoveryTopic("sensor", "internal_humidity"),
-    buildBaseSensorConfig("Humitat interior", deviceId + "_internal_humidity", mqttTopic("internal_humidity"), humidityExtra)
+    buildBaseSensorConfig("Humitat interior de la boia", deviceId + "_internal_humidity", mqttTopic("internal_humidity"), humidityExtra)
+  );
+
+  String internalTempAlarmExtra = "\"device_class\":\"heat\",\"icon\":\"mdi:thermometer-alert\"";
+  String internalHumidityAlarmExtra = "\"device_class\":\"moisture\",\"icon\":\"mdi:water-alert\"";
+  ok &= mqttPublishRetained(
+    discoveryTopic("binary_sensor", "internal_temperature_alarm"),
+    buildAlarmBinarySensorConfig("Alarma temperatura interior de la boia", deviceId + "_internal_temperature_alarm", mqttTopic("internal_temperature_alarm"), internalTempAlarmExtra)
+  );
+  ok &= mqttPublishRetained(
+    discoveryTopic("binary_sensor", "internal_humidity_alarm"),
+    buildAlarmBinarySensorConfig("Alarma humitat interior de la boia", deviceId + "_internal_humidity_alarm", mqttTopic("internal_humidity_alarm"), internalHumidityAlarmExtra)
   );
 
   ok &= mqttPublishRetained(
@@ -555,6 +586,45 @@ void publishHomeAssistantDiscovery() {
       configStateTopic("mqtt_enabled"),
       configSetTopic("mqtt_enabled"),
       configExtra
+    )
+  );
+
+  String internalAlarmConfigExtra = "\"entity_category\":\"config\",\"icon\":\"mdi:shield-alert\"";
+  String humidityConfigExtra = "\"unit_of_measurement\":\"%\",\"entity_category\":\"config\"";
+  ok &= mqttPublishRetained(
+    discoveryTopic("switch", "internal_env_alarms"),
+    buildSwitchConfig(
+      "Alarmes ambient interior de la boia",
+      deviceId + "_internal_env_alarms",
+      configStateTopic("internal_env_alarms"),
+      configSetTopic("internal_env_alarms"),
+      internalAlarmConfigExtra
+    )
+  );
+  ok &= mqttPublishRetained(
+    discoveryTopic("number", "internal_temp_alarm"),
+    buildNumberConfigFloat(
+      "Llindar temperatura interior de la boia",
+      deviceId + "_internal_temp_alarm",
+      configStateTopic("internal_temp_alarm"),
+      configSetTopic("internal_temp_alarm"),
+      -20.0f,
+      85.0f,
+      0.1f,
+      tempConfigExtra
+    )
+  );
+  ok &= mqttPublishRetained(
+    discoveryTopic("number", "internal_humidity_alarm"),
+    buildNumberConfigFloat(
+      "Llindar humitat interior de la boia",
+      deviceId + "_internal_humidity_alarm",
+      configStateTopic("internal_humidity_alarm"),
+      configSetTopic("internal_humidity_alarm"),
+      1.0f,
+      100.0f,
+      0.1f,
+      humidityConfigExtra
     )
   );
 
@@ -726,6 +796,35 @@ static void handleMqttMessage(char* topic, byte* payload, unsigned int length) {
     }
     return;
   }
+
+  if (topicText == configSetTopic("internal_env_alarms")) {
+    if (payloadIsOn(payloadText) || payloadIsOff(payloadText)) {
+      saveInternalEnvAlarmConfig(payloadIsOn(payloadText), configInternalTempAlarmC, configInternalHumidityAlarmPercent);
+      appState.mqttConfigStatePublishRequested = true;
+      appState.lastMqttPublishMillis = 0;
+      Serial.print("Alarmes ambient interior de la boia canviades per MQTT a ");
+      Serial.println(configInternalEnvAlarmEnabled ? "ON" : "OFF");
+    }
+    return;
+  }
+
+  if (topicText == configSetTopic("internal_temp_alarm")) {
+    saveInternalEnvAlarmConfig(configInternalEnvAlarmEnabled, payloadRaw.toFloat(), configInternalHumidityAlarmPercent);
+    appState.mqttConfigStatePublishRequested = true;
+    appState.lastMqttPublishMillis = 0;
+    Serial.print("Llindar temperatura interior de la boia canviat per MQTT a ");
+    Serial.println(configInternalTempAlarmC);
+    return;
+  }
+
+  if (topicText == configSetTopic("internal_humidity_alarm")) {
+    saveInternalEnvAlarmConfig(configInternalEnvAlarmEnabled, configInternalTempAlarmC, payloadRaw.toFloat());
+    appState.mqttConfigStatePublishRequested = true;
+    appState.lastMqttPublishMillis = 0;
+    Serial.print("Llindar humitat interior de la boia canviat per MQTT a ");
+    Serial.println(configInternalHumidityAlarmPercent);
+    return;
+  }
 }
 
 static void subscribeOneTopic(const String& topic) {
@@ -753,6 +852,9 @@ static void subscribeMqttCommands() {
   subscribeOneTopic(configSetTopic("max_valid_temperature"));
   subscribeOneTopic(configSetTopic("mqtt_publish_interval"));
   subscribeOneTopic(configSetTopic("mqtt_enabled"));
+  subscribeOneTopic(configSetTopic("internal_env_alarms"));
+  subscribeOneTopic(configSetTopic("internal_temp_alarm"));
+  subscribeOneTopic(configSetTopic("internal_humidity_alarm"));
 }
 
 // ==========================
@@ -871,6 +973,10 @@ void publishMqttTelemetry() {
     );
   }
   mqttPublishRetained(mqttTopic("internal_env_status"), appState.internalEnvStatus);
+  bool internalTempAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalTemperatureC) && appState.lastInternalTemperatureC >= configInternalTempAlarmC;
+  bool internalHumidityAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalHumidityPercent) && appState.lastInternalHumidityPercent >= configInternalHumidityAlarmPercent;
+  mqttPublishRetained(mqttTopic("internal_temperature_alarm"), internalTempAlarm ? "ON" : "OFF");
+  mqttPublishRetained(mqttTopic("internal_humidity_alarm"), internalHumidityAlarm ? "ON" : "OFF");
 
   mqttPublishRetained(mqttTopic("rssi"), String(WiFi.RSSI()));
   mqttPublishRetained(mqttTopic("uptime"), String(getUptimeSeconds()));
@@ -899,6 +1005,22 @@ void publishMqttTelemetry() {
   telemetry += "\"internal_env_status\":\"";
   telemetry += jsonEscape(appState.internalEnvStatus);
   telemetry += "\",";
+
+  telemetry += "\"internal_env_alarms_enabled\":";
+  telemetry += configInternalEnvAlarmEnabled ? "true" : "false";
+  telemetry += ",";
+  telemetry += "\"internal_temperature_alarm\":";
+  telemetry += internalTempAlarm ? "true" : "false";
+  telemetry += ",";
+  telemetry += "\"internal_humidity_alarm\":";
+  telemetry += internalHumidityAlarm ? "true" : "false";
+  telemetry += ",";
+  telemetry += "\"internal_temperature_alarm_threshold_c\":";
+  telemetry += floatPayload(configInternalTempAlarmC, 1);
+  telemetry += ",";
+  telemetry += "\"internal_humidity_alarm_threshold_percent\":";
+  telemetry += floatPayload(configInternalHumidityAlarmPercent, 1);
+  telemetry += ",";
 
   telemetry += "\"total_reads\":";
   telemetry += String(appState.totalReads);

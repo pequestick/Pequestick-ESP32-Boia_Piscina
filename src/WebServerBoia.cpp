@@ -292,7 +292,7 @@ static void appendTabs(String& html, const String& active) {
   html += "<button class='tab menu-toggle "; html += active == "system" ? "active" : ""; html += "' type='button'>⚙️ Sistema <span class='chev'>▶</span></button>";
   html += "<div class='subnav'>";
   html += "<a class='"; html += (active == "system" && (section == "" || section == "sys-summary")) ? "active" : ""; html += "' href='/system?section=sys-summary'>Resum</a>";
-  html += "<a class='"; html += (active == "system" && section == "sys-internal-env") ? "active" : ""; html += "' href='/system?section=sys-internal-env'>Sensor intern / alarmes</a>";
+  html += "<a class='"; html += (active == "system" && section == "sys-internal-env") ? "active" : ""; html += "' href='/system?section=sys-internal-env'>Interior boia / alarmes</a>";
   html += "<a class='"; html += (active == "system" && section == "sys-identity") ? "active" : ""; html += "' href='/system?section=sys-identity'>Identitat</a>";
   html += "<a class='"; html += (active == "system" && section == "sys-mode") ? "active" : ""; html += "' href='/system?section=sys-mode'>Mode</a>";
   html += "<a class='"; html += (active == "system" && section == "sys-leds") ? "active" : ""; html += "' href='/system?section=sys-leds'>LEDs</a>";
@@ -1679,7 +1679,7 @@ static String buildSystemPage() {
   String html = "";
   appendPageStart(html, "system", false);
 
-  static const char* labels[] = {"Resum", "Sensor intern", "Identitat", "Mode", "LEDs", "Usuaris"};
+  static const char* labels[] = {"Resum", "Interior boia", "Identitat", "Mode", "LEDs", "Usuaris"};
   static const char* anchors[] = {"sys-summary", "sys-internal-env", "sys-identity", "sys-mode", "sys-leds", "sys-users"};
   appendSubTabs(html, "Sistema", labels, anchors, 6);
   bool tempAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalTemperatureC) && appState.lastInternalTemperatureC >= configInternalTempAlarmC;
@@ -1723,35 +1723,35 @@ static String buildSystemPage() {
   html += String(appState.mqttFailCount);
   html += "</div></div>";
 
-  html += "<div class='item'><div class='label'>Sensor intern / alarmes</div><div class='value ";
+  html += "<div class='item'><div class='label'>Ambient interior de la boia / alarmes</div><div class='value ";
   html += (tempAlarm || humidityAlarm) ? "bad" : "ok";
   html += "'>";
   if (tempAlarm || humidityAlarm) html += "ALARMA ACTIVA";
   else if (!configInternalEnvAlarmEnabled) html += "Alarmes desactivades";
   else html += "Configurat";
   html += "</div><div class='small'>Llindars: " + String(configInternalTempAlarmC, 1) + " °C i " + String(configInternalHumidityAlarmPercent, 1) + " % HR.</div>";
-  html += "<div class='buttons' style='margin-top:10px'><a class='action-link' href='/system?section=sys-internal-env'>Veure sensor i configurar alarmes</a></div></div>";
+  html += "<div class='buttons' style='margin-top:10px'><a class='action-link' href='/system?section=sys-internal-env'>Veure interior de la boia i configurar alarmes</a></div></div>";
 
   html += "</div>";
   html += "</div>";
 
-  html += "<div id='sys-internal-env' class='card'><h2>Sensor intern SHT41</h2>";
+  html += "<div id='sys-internal-env' class='card'><h2>Temperatura i humitat interior de la boia · SHT41</h2>";
   html += "<p class='hint'>El SHT41 mesura la temperatura i la humitat de l'aire dins la carcassa de la boia. Serveix per detectar sobreescalfament de l'electrònica i possibles entrades d'aigua o condensació abans que provoquin una avaria.</p>";
-  html += "<div class='item'><div class='label'>Com funcionen les alarmes</div><div class='small'>La temperatura alta s'activa quan la lectura interior arriba al llindar configurat. La humitat alta s'activa quan arriba al percentatge configurat. Si qualsevol llindar se supera, el valor es mostra en vermell en aquesta pàgina. Les lectures continuen publicant-se per MQTT i Home Assistant perquè també hi puguis crear notificacions.</div></div>";
+  html += "<div class='item'><div class='label'>Alarmes de l'ambient interior de la boia</div><div class='small'>Aquestes alarmes no corresponen a la temperatura de l'aigua. La sobretemperatura s'activa quan l'aire dins la carcassa arriba al llindar configurat; la humitat alta indica condensació o una possible entrada d'aigua. L'estat, els llindars i l'activació es publiquen com a entitats pròpies a Home Assistant.</div></div>";
   html += "<h3>Lectura actual</h3><div class='grid'>";
-  html += "<div class='item'><div class='label'>Temperatura interior</div><div class='value ";
+  html += "<div class='item'><div class='label'>Temperatura de l'aire interior de la boia</div><div class='value ";
   html += tempAlarm ? "bad" : "ok";
   html += "'>" + (isnan(appState.lastInternalTemperatureC) ? String("Sense dades") : formatTemperature(appState.lastInternalTemperatureC, 2) + " °C") + "</div></div>";
-  html += "<div class='item'><div class='label'>Humitat interior</div><div class='value ";
+  html += "<div class='item'><div class='label'>Humitat de l'aire interior de la boia</div><div class='value ";
   html += humidityAlarm ? "bad" : "ok";
   html += "'>" + (isnan(appState.lastInternalHumidityPercent) ? String("Sense dades") : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %") + "</div></div>";
   html += "<div class='item'><div class='label'>Estat sensor</div><div class='value'>" + htmlEscape(appState.internalEnvStatus) + "</div><div class='small'>" + htmlEscape(appState.internalEnvLastError) + "</div></div>";
   html += "<div class='item'><div class='label'>Bus I2C</div><div class='value'>0x44</div><div class='small'>SDA GPIO6 · SCL GPIO7</div></div></div>";
   html += "<h3>Configuració de valors i alarmes</h3><form method='POST' action='/internal-env-alarm'><div><label><input name='alarm_enabled' type='checkbox' value='1' ";
   html += configInternalEnvAlarmEnabled ? "checked" : "";
-  html += ">Activar alarmes visuals del sensor intern</label></div><div class='grid'>";
-  html += "<div><div class='label'>Alarma temperatura alta (°C)</div><input name='temp_alarm_c' type='number' min='-20' max='85' step='0.1' value='" + String(configInternalTempAlarmC, 1) + "' required></div>";
-  html += "<div><div class='label'>Alarma humitat alta (%)</div><input name='humidity_alarm_percent' type='number' min='1' max='100' step='0.1' value='" + String(configInternalHumidityAlarmPercent, 1) + "' required></div></div>";
+  html += ">Activar alarmes de temperatura i humitat interior de la boia</label></div><div class='grid'>";
+  html += "<div><div class='label'>Sobretemperatura interior de la boia (°C)</div><input name='temp_alarm_c' type='number' min='-20' max='85' step='0.1' value='" + String(configInternalTempAlarmC, 1) + "' required></div>";
+  html += "<div><div class='label'>Humitat interior alta de la boia (%)</div><input name='humidity_alarm_percent' type='number' min='1' max='100' step='0.1' value='" + String(configInternalHumidityAlarmPercent, 1) + "' required></div></div>";
   html += "<div class='buttons'><button type='submit'>Guardar alarmes</button></div></form></div>";
 
   html += "<div id='sys-identity' class='card'>";
@@ -2276,11 +2276,12 @@ static void handleInternalEnvAlarmPost() {
   float temperatureC = server.hasArg("temp_alarm_c") ? server.arg("temp_alarm_c").toFloat() : DEFAULT_INTERNAL_TEMP_ALARM_C;
   float humidityPercent = server.hasArg("humidity_alarm_percent") ? server.arg("humidity_alarm_percent").toFloat() : DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT;
   saveInternalEnvAlarmConfig(enabled, temperatureC, humidityPercent);
+  appState.lastMqttPublishMillis = 0;
 
   server.send(
     200,
     "text/html",
-    buildSavedPage("Alarmes SHT41 guardades", enabled ? "Els llindars del sensor intern ja estan actius." : "Les alarmes del sensor intern queden desactivades.", false)
+    buildSavedPage("Alarmes de l'interior de la boia guardades", enabled ? "Els llindars de temperatura i humitat interior de la boia ja estan actius i es publicaran a Home Assistant." : "Les alarmes de l'ambient interior de la boia queden desactivades.", false)
   );
 }
 
@@ -3268,6 +3269,24 @@ static String buildStatusJsonPayload() {
   json += "\"internal_env_last_error\":\"";
   json += jsonEscape(appState.internalEnvLastError);
   json += "\",";
+
+  bool internalTempAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalTemperatureC) && appState.lastInternalTemperatureC >= configInternalTempAlarmC;
+  bool internalHumidityAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalHumidityPercent) && appState.lastInternalHumidityPercent >= configInternalHumidityAlarmPercent;
+  json += "\"internal_env_alarms_enabled\":";
+  json += configInternalEnvAlarmEnabled ? "true" : "false";
+  json += ",";
+  json += "\"internal_temperature_alarm\":";
+  json += internalTempAlarm ? "true" : "false";
+  json += ",";
+  json += "\"internal_humidity_alarm\":";
+  json += internalHumidityAlarm ? "true" : "false";
+  json += ",";
+  json += "\"internal_temperature_alarm_threshold_c\":";
+  json += String(configInternalTempAlarmC, 1);
+  json += ",";
+  json += "\"internal_humidity_alarm_threshold_percent\":";
+  json += String(configInternalHumidityAlarmPercent, 1);
+  json += ",";
 
   json += "\"total_reads\":";
   json += String(appState.totalReads);
