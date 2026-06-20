@@ -7,6 +7,7 @@
 #include "MqttManager.h"
 #include "WebServerBoia.h"
 #include "HardwareManager.h"
+#include "InternalEnvSensor.h"
 
 // ==========================
 // ESTAT GLOBAL
@@ -23,12 +24,17 @@ void printHeader() {
   Serial.println("================================");
   Serial.print("BOIA PISCINA - ");
   Serial.println(FIRMWARE_VERSION);
-  Serial.println("ESP32-C6 + DS18B20 + Wi-Fi + AP + WebSocket + MQTT + HA + OTA + GitHub OTA");
+  Serial.println("ESP32-C6 + DS18B20 + SHT41 + Wi-Fi + MQTT + HA + OTA");
   Serial.println("v1.8 - autenticacio web i OTA verificada");
   Serial.println("================================");
 
   Serial.print("GPIO sonda DS18B20: GPIO");
   Serial.println(ONE_WIRE_PIN);
+
+  Serial.print("SHT41 I2C: SDA GPIO");
+  Serial.print(INTERNAL_ENV_I2C_SDA_PIN);
+  Serial.print(" · SCL GPIO");
+  Serial.println(INTERNAL_ENV_I2C_SCL_PIN);
 
   Serial.print("GPIO boto fisic: ");
   Serial.println(RESET_BUTTON_ENABLED ? ("GPIO" + String(RESET_BUTTON_PIN)) : "desactivat");
@@ -110,6 +116,7 @@ void setup() {
 
   initTemperatureSensor();
   initHardwareManager();
+  initInternalEnvSensor();
 
   connectWifi();
 
@@ -141,6 +148,7 @@ void loop() {
   if (now - appState.lastReadMillis >= (unsigned long)configReadIntervalSeconds * 1000UL || appState.lastReadMillis == 0) {
     appState.lastReadMillis = now;
     performTemperatureRead();
+    performInternalEnvRead();
   }
 
   if (configMqttEnabled && (now - appState.lastMqttPublishMillis >= (unsigned long)configMqttPublishIntervalSeconds * 1000UL || appState.lastMqttPublishMillis == 0)) {

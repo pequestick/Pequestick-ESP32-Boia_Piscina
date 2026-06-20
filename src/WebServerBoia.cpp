@@ -201,7 +201,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "function service(id,on,bad,text){var e=document.getElementById(id);if(!e)return;e.classList.remove('ok','warn','bad');e.classList.add(on?'ok':(bad?'bad':'warn'));if(text!==undefined){var sp=e.querySelector('span:last-child');if(sp)sp.textContent=text;}}";
   html += "function bytesHuman(n){n=parseInt(n||0,10);if(!n)return '--';if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(1)+' KB';return (n/1048576).toFixed(2)+' MB';}";
   html += "function updateGithubOtaStatus(d){var internetCls=d.internet_check_done?(d.internet_check_ok?'ok':'bad'):'info';var ghCls=d.github_update_checked?(d.github_update_ok?'ok':'bad'):'info';var updCls='info';if(d.github_update_checked){if(d.github_update_available)updCls='warn';else if(d.github_remote_older)updCls='bad';else if(d.github_update_ok)updCls='ok';}txt('ota-internet-main',d.internet_check_done?d.internet_check_message:'Comprovant...');txt('ota-internet-meta',(d.internet_check_details||'')+(d.internet_resolved_ip?' · DNS '+d.internet_resolved_ip:'')+(d.internet_check_done?' · última prova ara':''));txt('ota-github-main',d.github_update_checked?(d.github_update_ok?'Manifest llegit':'Manifest fallit'):'Comprovant...');txt('ota-github-version',d.github_update_version||'--');txt('ota-github-sha',d.github_update_sha_short||d.github_update_sha||'--');txt('ota-github-date',d.github_update_date||'--');txt('ota-update-main',d.github_update_message||'Encara no comprovat');txt('ota-update-details',d.github_update_details||'');cls('ota-internet-tile',internetCls);cls('ota-github-tile',ghCls);cls('ota-update-tile',updCls);cls('ota-internet-main',internetCls);cls('ota-github-main',ghCls);cls('ota-update-main',updCls);var b=document.getElementById('github-install-button');if(b){b.disabled=!(d.github_update_available||(d.github_remote_same_version&&d.github_allow_same_version_update));}}";
-  html += "function updateOtaProgress(d){var card=document.getElementById('ota-progress-card');if(!card)return;var pct=parseInt(d.ota_progress_percent||0,10);var inProg=!!d.ota_in_progress;var phase=d.ota_progress_phase||'espera';var source=d.ota_progress_source||'cap';var active=(source!=='cap'&&phase!=='espera')||inProg;var interrupted=sessionStorage.getItem('boiaOtaPending')==='1'&&!active;if(interrupted){active=true;source='OTA';phase='interrompuda';}if(phase==='error'||phase==='completada')sessionStorage.removeItem('boiaOtaPending');if(active)card.classList.remove('hidden');else card.classList.add('hidden');var fill=document.getElementById('ota-progress-fill');var pctEl=document.getElementById('ota-progress-percent');var phaseEl=document.getElementById('ota-progress-phase');var msgEl=document.getElementById('ota-progress-message');var bytesEl=document.getElementById('ota-progress-bytes');card.classList.remove('done','error');if(phase==='error'||interrupted)card.classList.add('error');if(phase==='completada')card.classList.add('done');if(fill){fill.classList.remove('indeterminate');if(inProg&&(!pct||pct<1)){fill.classList.add('indeterminate');fill.style.width='38%';}else{fill.style.width=Math.max(0,Math.min(100,pct))+'%';}}if(pctEl)pctEl.textContent=(pct?pct:0)+'%';if(phaseEl)phaseEl.textContent=(source||'OTA')+' · '+phase;if(msgEl)msgEl.textContent=interrupted?'L actualitzacio ha perdut la connexio o la boia ha reiniciat. Comprova la versio i el log abans de repetir-la.':(d.ota_last_message||'Esperant accio OTA');if(bytesEl)bytesEl.textContent=bytesHuman(d.ota_progress_bytes)+' / '+bytesHuman(d.ota_progress_total);var log=document.getElementById('ota-log');if(log&&d.ota_log!==undefined){var atBottom=(log.scrollTop+log.clientHeight+24)>=log.scrollHeight;log.textContent=d.ota_log||'Sense log OTA';if(atBottom)log.scrollTop=log.scrollHeight;}}";
+  html += "function updateOtaProgress(d){txt('live-internal-temp',d.internal_temperature_c===null?'Sense dades':d.internal_temperature_c+' °C');txt('live-internal-humidity',d.internal_humidity_percent===null?'Sense dades':d.internal_humidity_percent+' %');txt('live-internal-env-status',d.internal_env_status||'UNKNOWN');var card=document.getElementById('ota-progress-card');if(!card)return;var pct=parseInt(d.ota_progress_percent||0,10);var inProg=!!d.ota_in_progress;var phase=d.ota_progress_phase||'espera';var source=d.ota_progress_source||'cap';var active=(source!=='cap'&&phase!=='espera')||inProg;var interrupted=sessionStorage.getItem('boiaOtaPending')==='1'&&!active;if(interrupted){active=true;source='OTA';phase='interrompuda';}if(phase==='error'||phase==='completada')sessionStorage.removeItem('boiaOtaPending');if(active)card.classList.remove('hidden');else card.classList.add('hidden');var fill=document.getElementById('ota-progress-fill');var pctEl=document.getElementById('ota-progress-percent');var phaseEl=document.getElementById('ota-progress-phase');var msgEl=document.getElementById('ota-progress-message');var bytesEl=document.getElementById('ota-progress-bytes');card.classList.remove('done','error');if(phase==='error'||interrupted)card.classList.add('error');if(phase==='completada')card.classList.add('done');if(fill){fill.classList.remove('indeterminate');if(inProg&&(!pct||pct<1)){fill.classList.add('indeterminate');fill.style.width='38%';}else{fill.style.width=Math.max(0,Math.min(100,pct))+'%';}}if(pctEl)pctEl.textContent=(pct?pct:0)+'%';if(phaseEl)phaseEl.textContent=(source||'OTA')+' · '+phase;if(msgEl)msgEl.textContent=interrupted?'L actualitzacio ha perdut la connexio o la boia ha reiniciat. Comprova la versio i el log abans de repetir-la.':(d.ota_last_message||'Esperant accio OTA');if(bytesEl)bytesEl.textContent=bytesHuman(d.ota_progress_bytes)+' / '+bytesHuman(d.ota_progress_total);var log=document.getElementById('ota-log');if(log&&d.ota_log!==undefined){var atBottom=(log.scrollTop+log.clientHeight+24)>=log.scrollHeight;log.textContent=d.ota_log||'Sense log OTA';if(atBottom)log.scrollTop=log.scrollHeight;}}";
   html += "function runOtaAutoChecks(){if(location.pathname!=='/maintenance'||location.search.indexOf('section=mnt-ota')<0)return;txt('ota-internet-main','Comprovant...');txt('ota-github-main','Comprovant...');fetch('/internet-check-run',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){applyStatus(d);return fetch('/github-check-update-run',{cache:'no-store'});}).then(function(r){return r.json();}).then(function(d){applyStatus(d);}).catch(function(){txt('ota-update-main','No puc actualitzar estat OTA');txt('ota-update-details','La comprovació automàtica ha fallat. Prova els botons manuals.');});}";
   html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',d.uptime_seconds+' s');txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateGithubOtaStatus(d);updateOtaProgress(d);}";
   html += "function startWS(){if(location.pathname==='/login'||location.pathname==='/change-password')return;try{var ws=new WebSocket('ws://'+location.hostname+':81/');ws.onmessage=function(ev){try{applyStatus(JSON.parse(ev.data));}catch(e){}};ws.onclose=function(){setTimeout(startWS,3000);};ws.onerror=function(){try{ws.close();}catch(e){}};}catch(e){}}";
@@ -312,6 +312,7 @@ static void appendTabs(String& html, const String& active) {
   html += "<a class='tab' href='/logout'>Tancar sessió</a>";
   html += "</div>";
   html += "</div>";
+
 }
 
 
@@ -432,6 +433,19 @@ static String buildStatusPage() {
   html += "</div>";
   html += "<div id='temp-history-note' class='chart-note'>Carregant històric HA...</div>";
   html += "</div>";
+
+  html += "<div class='card'><h2>Ambient interior · SHT41</h2><div class='grid'>";
+  html += "<div class='item'><div class='label'>Temperatura interior</div><div id='live-internal-temp' class='value'>";
+  html += isnan(appState.lastInternalTemperatureC) ? "Sense dades" : formatTemperature(appState.lastInternalTemperatureC, 2) + " °C";
+  html += "</div></div>";
+  html += "<div class='item'><div class='label'>Humitat interior</div><div id='live-internal-humidity' class='value'>";
+  html += isnan(appState.lastInternalHumidityPercent) ? "Sense dades" : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %";
+  html += "</div></div>";
+  html += "<div class='item'><div class='label'>Estat SHT41</div><div id='live-internal-env-status' class='value'>";
+  html += htmlEscape(appState.internalEnvStatus);
+  html += "</div><div class='small'>" + htmlEscape(appState.internalEnvLastError) + "</div></div>";
+  html += "<div class='item'><div class='label'>Bus I2C</div><div class='value'>0x44</div><div class='small'>SDA GPIO6 · SCL GPIO7</div></div>";
+  html += "</div></div>";
 
   html += "<div class='card'>";
   html += "<h2>Lectures</h2>";
@@ -1052,6 +1066,7 @@ static String healthDetails() {
   if (isWifiConnected() && WiFi.RSSI() < -80) details += "RSSI dolent. ";
   if (appState.sensorStatus == "ERROR") details += "Sonda amb error. ";
   if (appState.consecutiveSensorErrors > 0) details += "Hi ha errors consecutius de sonda. ";
+  if (appState.internalEnvStatus == "ERROR") details += "SHT41 amb error. ";
   if (configMqttEnabled && !isMqttConnected()) details += "MQTT activat però desconnectat. ";
   if (details.length() == 0) details = "Tots els serveis principals estan dins del rang esperat.";
   return details;
@@ -1176,9 +1191,10 @@ static void appendDiagnosticsSection(String& html) {
   bool mqttOk = !configMqttEnabled || isMqttConnected();
   bool sensorOk = appState.sensorStatus == "OK";
   bool tempOk = !isnan(appState.lastValidTemperatureC);
+  bool internalEnvOk = appState.internalEnvStatus == "OK";
   bool discoveryOk = !configHaDiscoveryEnabled || appState.mqttDiscoveryPublished;
   bool otaOk = !appState.otaInProgress;
-  bool overallReady = wifiOk && mqttOk && sensorOk && tempOk && discoveryOk && otaOk;
+  bool overallReady = wifiOk && mqttOk && sensorOk && tempOk && internalEnvOk && discoveryOk && otaOk;
 
   html += "<div class='card'>";
   html += "<h2>Estat general</h2>";
@@ -1197,6 +1213,7 @@ static void appendDiagnosticsSection(String& html) {
   appendChecklistItem(html, "MQTT", boolBadge(mqttOk, "OK", "ERROR"), mqttStatusText() + " · " + configMqttHost + ":" + String(configMqttPort));
   appendChecklistItem(html, "Home Assistant Discovery", boolBadge(discoveryOk, "OK", "PENDENT"), String(configHaDiscoveryEnabled ? "Activat" : "Desactivat") + " · publicat: " + String(appState.mqttDiscoveryPublished ? "si" : "no"));
   appendChecklistItem(html, "Sonda DS18B20", boolBadge(sensorOk, "OK", "ERROR"), String("Estat: ") + appState.sensorStatus + " · errors consecutius: " + String(appState.consecutiveSensorErrors));
+  appendChecklistItem(html, "Sensor intern SHT41", boolBadge(internalEnvOk, "OK", "ERROR"), String("Estat: ") + appState.internalEnvStatus + " · " + appState.internalEnvLastError);
 
   String tempValue = tempOk ? formatTemperature(appState.lastValidTemperatureC, configTemperatureDecimals) + " ºC" : String("Encara cap");
   appendChecklistItem(html, "Última temperatura vàlida", htmlEscape(tempValue), String("Últim error: ") + appState.lastErrorMessage);
@@ -1218,6 +1235,8 @@ static void appendDiagnosticsSection(String& html) {
   html += "<div class='item'><div class='label'>Sonda temperatura DS18B20</div><div class='value'>GPIO";
   html += String(ONE_WIRE_PIN);
   html += "</div><div class='small'>Bus OneWire DATA. Necessita resistència pull-up de 4.7 kΩ entre DATA i 3V3. Alimentació recomanada: 3V3 i GND de l'ESP32.</div></div>";
+
+  html += "<div class='item'><div class='label'>Sensor intern SHT41</div><div class='value'>GPIO6 / GPIO7</div><div class='small'>I2C: SDA GPIO6, SCL GPIO7, adreça 0x44 i alimentació 3V3.</div></div>";
 
   html += "<div class='item'><div class='label'>Botó físic de rescat</div><div class='value'>";
   html += htmlEscape(hardwareResetButtonPinText());
@@ -1391,19 +1410,19 @@ static String futurePinText(int pin) {
 static void appendFutureExpansionSection(String& html) {
   html += "<div class='card'>";
   html += "<h2>Ampliacions futures preparades</h2>";
-  html += "<p class='hint'>Aquesta boia ja queda preparada a nivell de documentació i estructura per afegir sensors interns i energia autònoma. No ho activo encara al firmware perquè posar codi sense tenir el mòdul físic concret seria una font d'errors. Primer es reserva i es documenta; després, quan tinguem components exactes, s'implementa.</p>";
+  html += "<p class='hint'>El sensor ambiental intern SHT41 ja està actiu. Aquesta secció conserva la preparació per a bateria, placa solar i altres ampliacions futures.</p>";
   html += "<div class='grid'>";
-  html += "<div class='item'><div class='label'>Temperatura interna</div><div class='value'>Preparada</div><div class='small'>Pensada per controlar la temperatura dins del tub, no la temperatura de l'aigua. Sensor recomanat: SHT31 o BME280 per I2C.</div></div>";
-  html += "<div class='item'><div class='label'>Humitat interna</div><div class='value'>Preparada</div><div class='small'>Això és important de veritat: si puja la humitat dins la boia, vol dir condensació o entrada d'aigua abans que mori l'electrònica.</div></div>";
+  html += "<div class='item'><div class='label'>Temperatura interna</div><div class='value'>SHT41 actiu</div><div class='small'>Mesura la temperatura dins del tub per separat de l'aigua.</div></div>";
+  html += "<div class='item'><div class='label'>Humitat interna</div><div class='value'>SHT41 actiu</div><div class='small'>Permet detectar condensació o entrada d'aigua abans que afecti l'electrònica.</div></div>";
   html += "<div class='item'><div class='label'>Bateria</div><div class='value'>Preparada</div><div class='small'>Futur monitoratge de tensió, percentatge estimat, estat de càrrega i alarma de bateria baixa.</div></div>";
   html += "<div class='item'><div class='label'>Placa solar</div><div class='value'>Preparada</div><div class='small'>Futur control de tensió solar, estat de càrrega i diagnòstic de si realment està carregant.</div></div>";
   html += "</div></div>";
 
   html += "<div class='card'>";
   html += "<h2>GPIO reservats per ampliacions</h2>";
-  html += "<p class='hint'>De moment no assignem pins reals perquè depèn del mòdul que compris. És millor no mentir al firmware. Quan triem sensor i carregador, fixem pins i els mostrem aquí com a actius.</p>";
+  html += "<p class='hint'>Els pins del bus ambiental ja estan assignats. Els pins d'energia continuen reservats fins definir el hardware de bateria i càrrega.</p>";
   html += "<div class='grid'>";
-  html += "<div class='item'><div class='label'>I2C SDA intern</div><div class='value'>" + htmlEscape(futurePinText(INTERNAL_ENV_I2C_SDA_PIN)) + "</div><div class='small'>Per SHT31/BME280 o sensor intern equivalent.</div></div>";
+  html += "<div class='item'><div class='label'>I2C SDA intern</div><div class='value'>" + htmlEscape(futurePinText(INTERNAL_ENV_I2C_SDA_PIN)) + "</div><div class='small'>SHT41 actiu, adreça 0x44.</div></div>";
   html += "<div class='item'><div class='label'>I2C SCL intern</div><div class='value'>" + htmlEscape(futurePinText(INTERNAL_ENV_I2C_SCL_PIN)) + "</div><div class='small'>Mateix bus I2C intern.</div></div>";
   html += "<div class='item'><div class='label'>ADC bateria</div><div class='value'>" + htmlEscape(futurePinText(BATTERY_VOLTAGE_ADC_PIN)) + "</div><div class='small'>Lectura de bateria sempre amb divisor resistiu. Mai posar tensió de bateria directa a l'ESP32.</div></div>";
   html += "<div class='item'><div class='label'>ADC solar</div><div class='value'>" + htmlEscape(futurePinText(SOLAR_VOLTAGE_ADC_PIN)) + "</div><div class='small'>Per saber si la placa solar està donant tensió útil.</div></div>";
@@ -1879,7 +1898,12 @@ static String buildAuthPage(
   html += "<div class='item'><div class='label'>Sonda d'aigua</div><div class='value ";
   html += appState.sensorStatus == "OK" ? "ok" : (appState.sensorStatus == "ERROR" ? "bad" : "warn");
   html += "'>" + htmlEscape(appState.sensorStatus) + "</div><div class='small'>DS18B20</div></div>";
-  html += "<div class='item'><div class='label'>Ambient interior</div><div class='value'>Properament</div><div class='small'>Temperatura i humitat interna</div></div>";
+  html += "<div class='item'><div class='label'>Temperatura interior</div><div class='value'>";
+  html += isnan(appState.lastInternalTemperatureC) ? "Sense dades" : formatTemperature(appState.lastInternalTemperatureC, 2) + " °C";
+  html += "</div><div class='small'>SHT41 · estat " + htmlEscape(appState.internalEnvStatus) + "</div></div>";
+  html += "<div class='item'><div class='label'>Humitat interior</div><div class='value'>";
+  html += isnan(appState.lastInternalHumidityPercent) ? "Sense dades" : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %";
+  html += "</div><div class='small'>SHT41 a 0x44</div></div>";
   html += "<div class='item'><div class='label'>Energia</div><div class='value'>Properament</div><div class='small'>Bateria i càrrega solar</div></div>";
   html += "</div></div>";
   html += "</div></div></body></html>";
@@ -3036,6 +3060,22 @@ static String buildStatusJsonPayload() {
   json += "\"temperature_c\":";
   json += formatTemperatureForJson(appState.lastValidTemperatureC, configTemperatureDecimals);
   json += ",";
+
+  json += "\"internal_temperature_c\":";
+  json += formatTemperatureForJson(appState.lastInternalTemperatureC, 2);
+  json += ",";
+
+  json += "\"internal_humidity_percent\":";
+  json += formatTemperatureForJson(appState.lastInternalHumidityPercent, 1);
+  json += ",";
+
+  json += "\"internal_env_status\":\"";
+  json += jsonEscape(appState.internalEnvStatus);
+  json += "\",";
+
+  json += "\"internal_env_last_error\":\"";
+  json += jsonEscape(appState.internalEnvLastError);
+  json += "\",";
 
   json += "\"total_reads\":";
   json += String(appState.totalReads);

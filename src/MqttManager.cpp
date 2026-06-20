@@ -133,7 +133,7 @@ static String buildDeviceInfoJsonPart() {
   deviceInfo += "\"identifiers\":[\"" + jsonEscape(configHaDeviceId) + "\"],";
   deviceInfo += "\"name\":\"" + jsonEscape(configHaDeviceName) + "\",";
   deviceInfo += "\"manufacturer\":\"Oriol Lab\",";
-  deviceInfo += "\"model\":\"ESP32-C6 DS18B20\",";
+  deviceInfo += "\"model\":\"ESP32-C6 DS18B20 + SHT41\",";
   deviceInfo += "\"sw_version\":\"" + String(FIRMWARE_VERSION) + "\"";
   deviceInfo += "}";
 
@@ -327,6 +327,11 @@ void publishHomeAssistantDiscovery() {
   tempExtra += "\"device_class\":\"temperature\",";
   tempExtra += "\"state_class\":\"measurement\"";
 
+  String humidityExtra = "";
+  humidityExtra += "\"unit_of_measurement\":\"%\",";
+  humidityExtra += "\"device_class\":\"humidity\",";
+  humidityExtra += "\"state_class\":\"measurement\"";
+
   String rssiExtra = "";
   rssiExtra += "\"unit_of_measurement\":\"dBm\",";
   rssiExtra += "\"device_class\":\"signal_strength\",";
@@ -390,7 +395,17 @@ void publishHomeAssistantDiscovery() {
 
   ok &= mqttPublishRetained(
     discoveryTopic("sensor", "temperature"),
-    buildBaseSensorConfig("Temperatura", deviceId + "_temperature", mqttTopic("temperature"), tempExtra)
+    buildBaseSensorConfig("Temperatura aigua", deviceId + "_temperature", mqttTopic("temperature"), tempExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "internal_temperature"),
+    buildBaseSensorConfig("Temperatura interior", deviceId + "_internal_temperature", mqttTopic("internal_temperature"), tempExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "internal_humidity"),
+    buildBaseSensorConfig("Humitat interior", deviceId + "_internal_humidity", mqttTopic("internal_humidity"), humidityExtra)
   );
 
   ok &= mqttPublishRetained(
@@ -843,6 +858,20 @@ void publishMqttTelemetry() {
     }
   }
 
+  if (!isnan(appState.lastInternalTemperatureC)) {
+    mqttPublishRetained(
+      mqttTopic("internal_temperature"),
+      formatTemperatureForJson(appState.lastInternalTemperatureC, 2)
+    );
+  }
+  if (!isnan(appState.lastInternalHumidityPercent)) {
+    mqttPublishRetained(
+      mqttTopic("internal_humidity"),
+      formatTemperatureForJson(appState.lastInternalHumidityPercent, 1)
+    );
+  }
+  mqttPublishRetained(mqttTopic("internal_env_status"), appState.internalEnvStatus);
+
   mqttPublishRetained(mqttTopic("rssi"), String(WiFi.RSSI()));
   mqttPublishRetained(mqttTopic("uptime"), String(getUptimeSeconds()));
   mqttPublishRetained(mqttTopic("ip"), WiFi.localIP().toString());
@@ -858,6 +887,18 @@ void publishMqttTelemetry() {
   telemetry += "\"temperature_c\":";
   telemetry += formatTemperatureForJson(appState.lastValidTemperatureC, configTemperatureDecimals);
   telemetry += ",";
+
+  telemetry += "\"internal_temperature_c\":";
+  telemetry += formatTemperatureForJson(appState.lastInternalTemperatureC, 2);
+  telemetry += ",";
+
+  telemetry += "\"internal_humidity_percent\":";
+  telemetry += formatTemperatureForJson(appState.lastInternalHumidityPercent, 1);
+  telemetry += ",";
+
+  telemetry += "\"internal_env_status\":\"";
+  telemetry += jsonEscape(appState.internalEnvStatus);
+  telemetry += "\",";
 
   telemetry += "\"total_reads\":";
   telemetry += String(appState.totalReads);

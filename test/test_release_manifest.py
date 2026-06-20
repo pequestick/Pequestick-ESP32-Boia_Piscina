@@ -95,6 +95,18 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertNotIn("setFilter(protectedUploadRequest)", web_source)
         self.assertIn("xhr.open('POST',local.action)", web_source)
 
+    def test_sht41_is_wired_into_status_mqtt_and_home_assistant(self):
+        config = Path("include/AppConfig.h").read_text(encoding="utf-8")
+        sensor = Path("src/InternalEnvSensor.cpp").read_text(encoding="utf-8")
+        mqtt = Path("src/MqttManager.cpp").read_text(encoding="utf-8")
+        web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+        self.assertIn("INTERNAL_ENV_I2C_SDA_PIN 6", config)
+        self.assertIn("INTERNAL_ENV_I2C_SCL_PIN 7", config)
+        self.assertIn("SHT41_MEASURE_HIGH_PRECISION", sensor)
+        self.assertIn("sht41Crc", sensor)
+        self.assertIn('discoveryTopic("sensor", "internal_humidity")', mqtt)
+        self.assertIn("internal_temperature_c", web)
+
 
 if __name__ == "__main__":
     unittest.main()

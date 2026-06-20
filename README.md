@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.12.1-browser-ota-upload-auth
+1.13.0-sht41-internal-environment
 ```
 
 Funcionalitats principals actuals:
@@ -33,7 +33,7 @@ Funcionalitats principals actuals:
 - OTA GitHub assistida pel navegador, amb descàrrega ràpida, pujada local i verificació SHA-256 a la boia.
 - Web amb menú lateral, subpàgines i estructura més professional.
 - Configuració exportable/importable.
-- Preparació per bateria, sensor intern SHT41 i futura gestió energètica.
+- Sensor intern SHT41 actiu i preparació per a futura gestió energètica.
 - Accés web protegit amb usuari i contrasenya persistents.
 - Lectura pública de temperatura i estat de sensors des de la pantalla d'accés.
 - Sessió web persistent de set dies amb cookie versionada per navegar sense reautenticacions constants.
@@ -64,7 +64,7 @@ Les credencials Wi-Fi, MQTT i Home Assistant introduïdes des de la web també e
 ### Sensors
 
 - **DS18B20 impermeable** per temperatura de l'aigua.
-- **SHT41** previst per temperatura i humitat internes de la boia.
+- **SHT41** actiu per temperatura i humitat internes de la boia.
 
 ### Energia
 
@@ -93,15 +93,15 @@ Resistència   -> 4.7kΩ entre DATA i 3V3
 
 ---
 
-## Connexió SHT41 prevista
+## Connexió SHT41
 
 El SHT41 farà de sensor ambiental intern dins la boia:
 
 ```text
 SHT41 VCC -> 3V3
 SHT41 GND -> GND
-SHT41 SDA -> GPIO SDA configurat
-SHT41 SCL -> GPIO SCL configurat
+SHT41 SDA -> GPIO6
+SHT41 SCL -> GPIO7
 ```
 
 En una futura ESP32-C6 Mini, la proposta inicial és reservar:
@@ -377,7 +377,7 @@ Material físic actual:
 - Protoboard per proves.
 - Sonda DS18B20.
 - Battery shield i bateries pendents/provats.
-- SHT41 previst.
+- SHT41 actiu a l'adreça I2C `0x44`.
 
 Recomanacions:
 
@@ -408,7 +408,7 @@ No substituirà un bon segellat. És una assegurança, no una solució màgica.
 
 Funcionalitats previstes:
 
-- Integració funcional del SHT41.
+- Alarmes configurables de condensació i humitat elevada a partir de l'SHT41.
 - Lectura de bateria.
 - Mode energia: instal·lació / producció / bateria.
 - LEDs més austers per bateria.

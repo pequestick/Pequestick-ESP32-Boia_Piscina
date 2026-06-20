@@ -41,9 +41,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.12.1-browser-ota-upload-auth";
-const char* FIRMWARE_CHANGE_TITLE = "v1.12.1 Pujada OTA autenticada i fiable";
-const char* FIRMWARE_CHANGE_NOTES = "Corregeix la ruta de pujada OTA perquè l'ESP32 accepti el firmware del navegador abans de processar les capçaleres HTTP, mantenint una ruta secreta nova a cada arrencada.";
+const char* FIRMWARE_VERSION = "1.13.0-sht41-internal-environment";
+const char* FIRMWARE_CHANGE_TITLE = "v1.13.0 Sensor ambiental intern SHT41";
+const char* FIRMWARE_CHANGE_NOTES = "Activa l'SHT41 a GPIO6/GPIO7 amb CRC, mostra temperatura i humitat internes a la web i les publica per MQTT i Home Assistant Discovery.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
@@ -52,7 +52,7 @@ const bool DEFAULT_BOARD_LED_ENABLED = false;
 const bool DEFAULT_BOARD_LED_MIRROR_STATUS = true;
 
 // Ampliacions futures. Documentades a la web, no actives encara.
-const char* FUTURE_INTERNAL_ENV_SENSOR = "SHT31/BME280 per temperatura i humitat interna";
+const char* FUTURE_INTERNAL_ENV_SENSOR = "SHT41 actiu per temperatura i humitat interna";
 const char* FUTURE_BATTERY_MONITOR = "Lectura tensio bateria via divisor resistiu + ADC";
 const char* FUTURE_SOLAR_CHARGER = "Placa solar + carregador Li-Ion/LiFePO4 amb proteccio";
 const char* FUTURE_EXPANSION_BUS = "I2C intern reservat per sensors ambientals";

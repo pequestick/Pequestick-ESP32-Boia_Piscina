@@ -1,10 +1,10 @@
 {
-  "version": "1.11.2-httpclient-ota-stream",
-  "build_sha": "dc63c024e02cc2f17df3ea8adb53749e9b3dfd63",
-  "build_short_sha": "dc63c024e02c",
-  "build_date": "2026-06-20T05:34:33Z",
-  "size": 1447488,
-  "sha256": "41e2fe3035c6fe2118a339c408de955ae927f8aa0dff89a83e710a6f711b07c9",
+  "version": "1.12.0-browser-github-ota",
+  "build_sha": "041648f0abfeeda67213af6184797294ca1febff",
+  "build_short_sha": "041648f0abfe",
+  "build_date": "2026-06-20T05:47:17Z",
+  "size": 1450976,
+  "sha256": "e13bff47efb4cb0423769c4d5ed45ad8d7cb523f14f6a3b19579c99891d8b63a",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Utilitza el lector de flux oficial d'HTTPClient per gestionar TLS i transferencies chunked, amb SHA-256, progres i represa automatica."
+  "notes": "El navegador descarrega el firmware de GitHub i el puja localment a la boia, que verifica mida i SHA-256 abans d'instal·lar-lo."
 }

@@ -21,6 +21,16 @@ struct AppState {
   String sensorStatus = "UNKNOWN";
   String lastErrorMessage = "Encara no s'ha fet cap lectura";
 
+  unsigned long internalEnvLastReadMillis = 0;
+  uint32_t internalEnvTotalReads = 0;
+  uint32_t internalEnvValidReads = 0;
+  uint32_t internalEnvFailedReads = 0;
+  uint32_t internalEnvConsecutiveErrors = 0;
+  float lastInternalTemperatureC = NAN;
+  float lastInternalHumidityPercent = NAN;
+  String internalEnvStatus = "UNKNOWN";
+  String internalEnvLastError = "Encara no s'ha fet cap lectura";
+
   bool mqttDiscoveryPublished = false;
   bool mqttRestartRequested = false;
   bool mqttDiscoveryRequested = false;

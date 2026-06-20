@@ -81,10 +81,10 @@ extern const uint16_t WEB_SERVER_PORT;
 #define INTERNAL_BOARD_LED_PIN 8
 #define INTERNAL_BOARD_LED_IS_RGB 1
 
-// GPIO reservats per futures ampliacions. -1 = no assignat encara.
-// Millor deixar-los sense assignar fins tenir el modul fisic concret.
-#define INTERNAL_ENV_I2C_SDA_PIN -1
-#define INTERNAL_ENV_I2C_SCL_PIN -1
+// Bus I2C del sensor ambiental intern SHT41.
+#define INTERNAL_ENV_I2C_SDA_PIN 6
+#define INTERNAL_ENV_I2C_SCL_PIN 7
+#define INTERNAL_ENV_I2C_ADDRESS 0x44
 #define BATTERY_VOLTAGE_ADC_PIN -1
 #define SOLAR_VOLTAGE_ADC_PIN -1
 #define CHARGER_STATUS_PIN -1
