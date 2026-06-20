@@ -1,10 +1,10 @@
 {
   "version": "1.13.1-resumable-browser-ota",
-  "build_sha": "110a097886c2643f5eaabd2b4ba10a56a298bc4d",
-  "build_short_sha": "110a097886c2",
-  "build_date": "2026-06-20T17:06:32Z",
-  "size": 1492416,
-  "sha256": "8dcfc8df78aa0e34000ae818f56caa9f02b125612fe0d5c37824b820cec1b1fb",
+  "build_sha": "4f3d652b1b0bf8aaa6c95123a05eaa787fb60b7b",
+  "build_short_sha": "4f3d652b1b0b",
+  "build_date": "2026-06-20T21:02:01Z",
+  "size": 1492432,
+  "sha256": "805fdc0db4b3db8539880771e8cca9b3797b435a303517361bfd03c2de46c5c6",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
   "notes": "Divideix la pujada OTA en blocs de 64 KiB amb offset i represa automàtica, mantenint la verificació final de mida i SHA-256."
 }
