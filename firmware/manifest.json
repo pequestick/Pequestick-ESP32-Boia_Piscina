@@ -1,10 +1,10 @@
 {
-  "version": "1.11.1-fast-github-ota-tls",
-  "build_sha": "85be5899e8e0fc6df8a951d562e5a6b006d6f191",
-  "build_short_sha": "85be5899e8e0",
-  "build_date": "2026-06-19T20:44:59Z",
-  "size": 1445920,
-  "sha256": "3fbbd84a742b72f7b551cf7f0e10eaea5a164398eb11b655d1783f12b40a4d94",
+  "version": "1.11.2-httpclient-ota-stream",
+  "build_sha": "dc63c024e02cc2f17df3ea8adb53749e9b3dfd63",
+  "build_short_sha": "dc63c024e02c",
+  "build_date": "2026-06-20T05:34:33Z",
+  "size": 1447488,
+  "sha256": "41e2fe3035c6fe2118a339c408de955ae927f8aa0dff89a83e710a6f711b07c9",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Força lectures TLS de 16 KB en una connexio continua, desactiva temporalment l'estalvi Wi-Fi i repren per Range si el flux es talla."
+  "notes": "Utilitza el lector de flux oficial d'HTTPClient per gestionar TLS i transferencies chunked, amb SHA-256, progres i represa automatica."
 }
