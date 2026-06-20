@@ -37,6 +37,14 @@ static uint32_t localOtaExpectedSize = 0;
 static uint32_t localOtaReceivedSize = 0;
 static String localOtaUploadPath;
 static bool localOtaChunkRejected = false;
+static bool restartPending = false;
+static unsigned long restartAtMillis = 0;
+
+static void scheduleRestart(unsigned long delayMs = 8000) {
+  restartPending = true;
+  restartAtMillis = millis() + delayMs;
+  Serial.println("Reinici programat després de respondre al navegador.");
+}
 
 static void finishLocalOtaHash() {
   if (!localOtaShaActive) return;
@@ -182,16 +190,17 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += ".ota-meta{font-size:12px;color:#94a3b8;line-height:1.45;word-break:break-word;}";
   html += ".ota-badges{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}.ota-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #334155;border-radius:999px;padding:6px 9px;background:#0b1220;color:#cbd5e1;font-size:12px;font-weight:850}.ota-badge.ok{border-color:rgba(34,197,94,.45);color:#bbf7d0;background:rgba(34,197,94,.10)}.ota-badge.warn{border-color:rgba(250,204,21,.45);color:#fef08a;background:rgba(250,204,21,.10)}.ota-badge.bad{border-color:rgba(239,68,68,.50);color:#fecaca;background:rgba(239,68,68,.10)}";
   html += ".ota-config{margin-top:14px;padding-top:14px;border-top:1px solid rgba(148,163,184,.14)}";
-  html += ".ota-progress-card{margin:14px 0;padding:14px;border:1px solid rgba(56,189,248,.25);background:linear-gradient(180deg,rgba(14,165,233,.10),rgba(15,23,42,.40));border-radius:16px}.ota-progress-card.hidden{display:none}.ota-progress-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}.ota-progress-title{font-weight:950;color:#e0f2fe}.ota-progress-text{font-size:12px;color:#94a3b8;line-height:1.45}.ota-dismiss{display:none;margin-top:10px;padding:7px 10px;font-size:12px}.ota-progress-card.error .ota-dismiss,.ota-progress-card.done .ota-dismiss{display:inline-block}.progress-track{height:15px;background:#020617;border:1px solid #263449;border-radius:999px;overflow:hidden;position:relative}.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#38bdf8,#22c55e);border-radius:999px;transition:width .25s ease}.progress-fill.indeterminate{width:38%;position:absolute;animation:indeterminate 1.2s infinite ease-in-out}.ota-progress-card.done .progress-fill{background:linear-gradient(90deg,#16a34a,#86efac)}.ota-progress-card.error .progress-fill{background:linear-gradient(90deg,#dc2626,#fca5a5)}@keyframes indeterminate{0%{left:-40%}100%{left:105%}}";
+  html += "body.ota-locked{overflow:hidden}.ota-progress-card{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(2,6,23,.82);backdrop-filter:blur(7px)}.ota-progress-card.hidden{display:none}.ota-progress-dialog{width:min(900px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:18px;border:1px solid rgba(56,189,248,.38);background:linear-gradient(180deg,#10243a,#0f172a);border-radius:18px;box-shadow:0 28px 80px rgba(0,0,0,.65)}.ota-progress-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}.ota-progress-title{font-weight:950;color:#e0f2fe}.ota-progress-text{font-size:12px;color:#94a3b8;line-height:1.45}.ota-dismiss{display:none;margin-top:10px;padding:7px 10px;font-size:12px}.ota-progress-card.error .ota-dismiss,.ota-progress-card.done .ota-dismiss{display:inline-block}.progress-track{height:15px;background:#020617;border:1px solid #263449;border-radius:999px;overflow:hidden;position:relative}.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#38bdf8,#22c55e);border-radius:999px;transition:width .25s ease}.progress-fill.indeterminate{width:38%;position:absolute;animation:indeterminate 1.2s infinite ease-in-out}.ota-progress-card.done .progress-fill{background:linear-gradient(90deg,#16a34a,#86efac)}.ota-progress-card.error .progress-fill{background:linear-gradient(90deg,#dc2626,#fca5a5)}@keyframes indeterminate{0%{left:-40%}100%{left:105%}}";
   html += ".ota-log{margin-top:12px;background:#020617;border:1px solid #263449;border-radius:14px;padding:12px;color:#c7d2fe;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45;max-height:230px;overflow:auto;white-space:pre-wrap}.ota-log-head{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#bfdbfe;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}.ota-log small{color:#64748b}";
   html += "button:disabled{opacity:.45;cursor:not-allowed;background:#334155;}";
   html += "pre{white-space:pre-wrap;word-break:break-word;background:#050b14;border:1px solid #334155;border-radius:14px;padding:14px;color:#dbeafe;}";
   html += ".temp-card{position:relative;overflow:hidden;min-height:188px;}";
   html += ".temp-card canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.26;pointer-events:none;}";
   html += ".temp-card .temp-content{position:relative;z-index:1;}";
+  html += ".temp-reading-row{display:flex;align-items:center;justify-content:space-between;gap:18px}.internal-mini{min-width:170px;padding:10px 12px;border:1px solid rgba(125,211,252,.24);border-radius:13px;background:rgba(2,6,23,.58);font-size:12px;color:#94a3b8}.internal-mini b{display:block;color:#e0f2fe;font-size:16px;margin:3px 0 7px}.internal-mini .bad{color:#fca5a5}";
   html += ".chart-note{position:absolute;right:18px;bottom:12px;color:#94a3b8;font-size:11px;z-index:1;}";
   html += ".history-controls{position:relative;z-index:2;display:flex;justify-content:flex-end;margin-bottom:10px}.history-controls form{display:flex;gap:8px;align-items:center;background:rgba(15,23,42,.78);border:1px solid #263449;border-radius:999px;padding:7px 9px;backdrop-filter:blur(8px)}.history-controls input{width:78px;padding:6px 8px;border-radius:999px;font-size:13px}.history-controls button{padding:7px 10px;border-radius:999px;font-size:12px}.history-controls .label-inline{color:#bfdbfe;font-size:12px;font-weight:800;white-space:nowrap}";
-  html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}}";
+  html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.temp-reading-row{align-items:flex-start}.internal-mini{min-width:135px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}}";
   html += "</style>";
 
   html += "<script>";
@@ -202,7 +211,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "function service(id,on,bad,text){var e=document.getElementById(id);if(!e)return;e.classList.remove('ok','warn','bad');e.classList.add(on?'ok':(bad?'bad':'warn'));if(text!==undefined){var sp=e.querySelector('span:last-child');if(sp)sp.textContent=text;}}";
   html += "function bytesHuman(n){n=parseInt(n||0,10);if(!n)return '--';if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(1)+' KB';return (n/1048576).toFixed(2)+' MB';}";
   html += "function updateGithubOtaStatus(d){var internetCls=d.internet_check_done?(d.internet_check_ok?'ok':'bad'):'info';var ghCls=d.github_update_checked?(d.github_update_ok?'ok':'bad'):'info';var updCls='info';if(d.github_update_checked){if(d.github_update_available)updCls='warn';else if(d.github_remote_older)updCls='bad';else if(d.github_update_ok)updCls='ok';}txt('ota-internet-main',d.internet_check_done?d.internet_check_message:'Comprovant...');txt('ota-internet-meta',(d.internet_check_details||'')+(d.internet_resolved_ip?' · DNS '+d.internet_resolved_ip:'')+(d.internet_check_done?' · última prova ara':''));txt('ota-github-main',d.github_update_checked?(d.github_update_ok?'Manifest llegit':'Manifest fallit'):'Comprovant...');txt('ota-github-version',d.github_update_version||'--');txt('ota-github-sha',d.github_update_sha_short||d.github_update_sha||'--');txt('ota-github-date',d.github_update_date||'--');txt('ota-update-main',d.github_update_message||'Encara no comprovat');txt('ota-update-details',d.github_update_details||'');cls('ota-internet-tile',internetCls);cls('ota-github-tile',ghCls);cls('ota-update-tile',updCls);cls('ota-internet-main',internetCls);cls('ota-github-main',ghCls);cls('ota-update-main',updCls);var b=document.getElementById('github-install-button');if(b){b.disabled=!(d.github_update_available||(d.github_remote_same_version&&d.github_allow_same_version_update));}}";
-  html += "function updateOtaProgress(d){txt('live-internal-temp',d.internal_temperature_c===null?'Sense dades':d.internal_temperature_c+' °C');txt('live-internal-humidity',d.internal_humidity_percent===null?'Sense dades':d.internal_humidity_percent+' %');txt('live-internal-env-status',d.internal_env_status||'UNKNOWN');var card=document.getElementById('ota-progress-card');if(!card)return;var pct=parseInt(d.ota_progress_percent||0,10);var inProg=!!d.ota_in_progress;var phase=d.ota_progress_phase||'espera';var source=d.ota_progress_source||'cap';var active=(source!=='cap'&&phase!=='espera')||inProg;var interrupted=sessionStorage.getItem('boiaOtaPending')==='1'&&!active;if(interrupted){active=true;source='OTA';phase='interrompuda';}if(phase==='error'||phase==='completada')sessionStorage.removeItem('boiaOtaPending');if(active)card.classList.remove('hidden');else card.classList.add('hidden');var fill=document.getElementById('ota-progress-fill');var pctEl=document.getElementById('ota-progress-percent');var phaseEl=document.getElementById('ota-progress-phase');var msgEl=document.getElementById('ota-progress-message');var bytesEl=document.getElementById('ota-progress-bytes');card.classList.remove('done','error');if(phase==='error'||interrupted)card.classList.add('error');if(phase==='completada')card.classList.add('done');if(fill){fill.classList.remove('indeterminate');if(inProg&&(!pct||pct<1)){fill.classList.add('indeterminate');fill.style.width='38%';}else{fill.style.width=Math.max(0,Math.min(100,pct))+'%';}}if(pctEl)pctEl.textContent=(pct?pct:0)+'%';if(phaseEl)phaseEl.textContent=(source||'OTA')+' · '+phase;if(msgEl)msgEl.textContent=interrupted?'L actualitzacio ha perdut la connexio o la boia ha reiniciat. Comprova la versio i el log abans de repetir-la.':(d.ota_last_message||'Esperant accio OTA');if(bytesEl)bytesEl.textContent=bytesHuman(d.ota_progress_bytes)+' / '+bytesHuman(d.ota_progress_total);var log=document.getElementById('ota-log');if(log&&d.ota_log!==undefined){var atBottom=(log.scrollTop+log.clientHeight+24)>=log.scrollHeight;log.textContent=d.ota_log||'Sense log OTA';if(atBottom)log.scrollTop=log.scrollHeight;}}";
+  html += "function updateOtaProgress(d){txt('live-internal-temp',d.internal_temperature_c===null?'Sense dades':d.internal_temperature_c+' °C');txt('live-internal-humidity',d.internal_humidity_percent===null?'Sense dades':d.internal_humidity_percent+' %');txt('live-internal-env-status',d.internal_env_status||'UNKNOWN');var card=document.getElementById('ota-progress-card');if(!card)return;var pct=parseInt(d.ota_progress_percent||0,10);var inProg=!!d.ota_in_progress;var phase=d.ota_progress_phase||'espera';var source=d.ota_progress_source||'cap';var active=(source!=='cap'&&phase!=='espera')||inProg;var interrupted=sessionStorage.getItem('boiaOtaPending')==='1'&&!active;if(interrupted){active=true;source='OTA';phase='interrompuda';}if(phase==='error'||phase==='completada')sessionStorage.removeItem('boiaOtaPending');if(active)card.classList.remove('hidden');else card.classList.add('hidden');setOtaModal(active);var fill=document.getElementById('ota-progress-fill');var pctEl=document.getElementById('ota-progress-percent');var phaseEl=document.getElementById('ota-progress-phase');var msgEl=document.getElementById('ota-progress-message');var bytesEl=document.getElementById('ota-progress-bytes');card.classList.remove('done','error');if(phase==='error'||interrupted)card.classList.add('error');if(phase==='completada')card.classList.add('done');if(fill){fill.classList.remove('indeterminate');if(inProg&&(!pct||pct<1)){fill.classList.add('indeterminate');fill.style.width='38%';}else{fill.style.width=Math.max(0,Math.min(100,pct))+'%';}}if(pctEl)pctEl.textContent=(pct?pct:0)+'%';if(phaseEl)phaseEl.textContent=(source||'OTA')+' · '+phase;if(msgEl)msgEl.textContent=interrupted?'L actualitzacio ha perdut la connexio o la boia ha reiniciat. Comprova la versio i el log abans de repetir-la.':(d.ota_last_message||'Esperant accio OTA');if(bytesEl)bytesEl.textContent=bytesHuman(d.ota_progress_bytes)+' / '+bytesHuman(d.ota_progress_total);var log=document.getElementById('ota-log');if(log&&d.ota_log!==undefined){var atBottom=(log.scrollTop+log.clientHeight+24)>=log.scrollHeight;log.textContent=d.ota_log||'Sense log OTA';if(atBottom)log.scrollTop=log.scrollHeight;}}";
   html += "function runOtaAutoChecks(){if(location.pathname!=='/maintenance'||location.search.indexOf('section=mnt-ota')<0)return;txt('ota-internet-main','Comprovant...');txt('ota-github-main','Comprovant...');fetch('/internet-check-run',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){applyStatus(d);return fetch('/github-check-update-run',{cache:'no-store'});}).then(function(r){return r.json();}).then(function(d){applyStatus(d);}).catch(function(){txt('ota-update-main','No puc actualitzar estat OTA');txt('ota-update-details','La comprovació automàtica ha fallat. Prova els botons manuals.');});}";
   html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',d.uptime_seconds+' s');txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateGithubOtaStatus(d);updateOtaProgress(d);}";
   html += "function startWS(){if(location.pathname==='/login'||location.pathname==='/change-password')return;try{var ws=new WebSocket('ws://'+location.hostname+':81/');ws.onmessage=function(ev){try{applyStatus(JSON.parse(ev.data));}catch(e){}};ws.onclose=function(){setTimeout(startWS,3000);};ws.onerror=function(){try{ws.close();}catch(e){}};}catch(e){}}";
@@ -211,13 +220,14 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "function applySubpage(){var links=[].slice.call(document.querySelectorAll('.subtab'));if(!links.length)return;var params=new URLSearchParams(location.search);var selected=params.get('section');var ids=[];links.forEach(function(a){var u=new URL(a.href,location.href);var id=u.searchParams.get('section');if(id){ids.push(id);}});if(!selected||ids.indexOf(selected)<0)selected=ids[0];ids.forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=(id===selected)?'':'none';});document.querySelectorAll('.subpage-extra').forEach(function(el){el.style.display=(el.getAttribute('data-parent')===selected)?'':'none';});links.forEach(function(a){var u=new URL(a.href,location.href);a.classList.toggle('active',u.searchParams.get('section')===selected);});}";
   html += "function extractHaPoints(raw){var out=[];try{if(raw&&Array.isArray(raw.points)){raw.points.forEach(function(x){var v=parseFloat(x.v);var tm=x.t;if(isFinite(v)&&tm){out.push({t:new Date(tm).getTime(),v:v});}});return out;}var arr=raw;if(Array.isArray(arr)&&Array.isArray(arr[0]))arr=arr[0];if(!Array.isArray(arr))return out;arr.forEach(function(x){var st=(x.state!==undefined)?x.state:x.s;var tm=x.last_changed||x.last_updated||x.lc||x.lu;var v=parseFloat(st);if(isFinite(v)&&tm){out.push({t:new Date(tm).getTime(),v:v});}});}catch(e){}return out;}";
   html += "function drawTempHistory(points,hours){var c=document.getElementById('temp-history-chart');if(!c)return;var ctx=c.getContext('2d');var r=c.getBoundingClientRect();var w=Math.max(1,Math.floor(r.width*devicePixelRatio));var h=Math.max(1,Math.floor(r.height*devicePixelRatio));if(c.width!==w)c.width=w;if(c.height!==h)c.height=h;ctx.clearRect(0,0,w,h);if(!points||points.length<2){txt('temp-history-note','Històric HA no disponible');return;}var vals=points.map(function(p){return p.v;});var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);if(mx-mn<0.2){mx+=0.1;mn-=0.1;}var t0=points[0].t,t1=points[points.length-1].t;if(t1<=t0)t1=t0+1;ctx.globalAlpha=1;ctx.lineWidth=Math.max(2,2*devicePixelRatio);ctx.strokeStyle='rgba(125,211,252,.95)';ctx.fillStyle='rgba(37,99,235,.22)';ctx.beginPath();points.forEach(function(p,i){var x=(p.t-t0)/(t1-t0)*w;var y=h-((p.v-mn)/(mx-mn)*h*.72+h*.14);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.fill();txt('temp-history-note','Últimes '+hours+' h · mostres horàries · '+points.length+' punts · '+mn.toFixed(1)+'-'+mx.toFixed(1)+' °C');}";
-  html += "function loadTempHistory(){var c=document.getElementById('temp-history-chart');if(!c)return;var inp=document.getElementById('ha-history-hours-inline');var hours=inp?parseInt(inp.value||'24',10):24;if(!isFinite(hours)||hours<1)hours=24;if(hours>168)hours=168;var start=new Date(Date.now()-hours*60*60*1000).toISOString();fetch('/ha-history?hours='+encodeURIComponent(hours)+'&start='+encodeURIComponent(start)).then(function(r){return r.json();}).then(function(j){if(j.error){txt('temp-history-note',j.error);return;}drawTempHistory(extractHaPoints(j),hours);}).catch(function(){txt('temp-history-note','No puc llegir historial HA. Prova menys hores o revisa token/URL.');});}";
-  html += "function showOtaProgress(source,msg){var card=document.getElementById('ota-progress-card');if(!card)return;sessionStorage.setItem('boiaOtaPending','1');card.classList.remove('hidden','done','error');txt('ota-progress-phase',source+' · iniciant');txt('ota-progress-message',msg||'Preparant actualitzacio');txt('ota-progress-percent','0%');txt('ota-progress-bytes','-- / --');var fill=document.getElementById('ota-progress-fill');if(fill){fill.classList.remove('indeterminate');fill.style.width='0%';}}function dismissOtaProgress(){sessionStorage.removeItem('boiaOtaPending');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('hidden');}";
+  html += "function loadTempHistory(){var c=document.getElementById('temp-history-chart');if(!c)return;var hours=parseInt(c.getAttribute('data-hours')||'24',10);if(!isFinite(hours)||hours<1)hours=24;if(hours>168)hours=168;var end=new Date(),start=new Date(end.getTime()-hours*3600000),chunks=[];for(var cursor=new Date(start);cursor<end;){var chunkEnd=new Date(Math.min(end.getTime(),cursor.getTime()+24*3600000));chunks.push({start:new Date(cursor),end:chunkEnd});cursor=chunkEnd;}var points=[];var chain=Promise.resolve();chunks.forEach(function(chunk,index){chain=chain.then(function(){txt('temp-history-note','Carregant historic HA '+(index+1)+'/'+chunks.length+'...');var chunkHours=Math.max(1,Math.ceil((chunk.end-chunk.start)/3600000));return fetch('/ha-history?hours='+chunkHours+'&start='+encodeURIComponent(chunk.start.toISOString())+'&end='+encodeURIComponent(chunk.end.toISOString())).then(function(r){return r.json();}).then(function(j){if(j.error)throw new Error(j.error);points=points.concat(extractHaPoints(j));});});});chain.then(function(){points.sort(function(a,b){return a.t-b.t;});drawTempHistory(points,hours);}).catch(function(error){txt('temp-history-note',error.message||'No puc llegir historial HA. Revisa la configuracio dins HA.');});}";
+  html += "function setOtaModal(active){document.body.classList.toggle('ota-locked',!!active);}function showOtaProgress(source,msg){var card=document.getElementById('ota-progress-card');if(!card)return;sessionStorage.setItem('boiaOtaPending','1');card.classList.remove('hidden','done','error');setOtaModal(true);txt('ota-progress-phase',source+' · iniciant');txt('ota-progress-message',msg||'Preparant actualitzacio');txt('ota-progress-percent','0%');txt('ota-progress-bytes','-- / --');var fill=document.getElementById('ota-progress-fill');if(fill){fill.classList.remove('indeterminate');fill.style.width='0%';}}function dismissOtaProgress(){sessionStorage.removeItem('boiaOtaPending');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('hidden');setOtaModal(false);}";
   html += "function otaUiError(message){sessionStorage.removeItem('boiaOtaPending');txt('ota-progress-message',message);txt('ota-progress-phase','OTA · error');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('error');var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.remove('indeterminate');}";
-  html += "function sendFirmwareBlock(buffer,status,offset,end){return new Promise(function(resolve,reject){var local=document.getElementById('ota-local-form');if(!local){reject(new Error('Ruta de pujada OTA no disponible'));return;}var xhr=new XMLHttpRequest();xhr.open('POST',local.action);xhr.setRequestHeader('X-Firmware-SHA256',status.github_firmware_sha256);xhr.setRequestHeader('X-Firmware-Size',String(status.github_firmware_size));xhr.setRequestHeader('X-Firmware-Offset',String(offset));xhr.upload.onprogress=function(ev){if(!ev.lengthComputable)return;var sent=offset+ev.loaded;var pct=Math.round(sent*100/buffer.byteLength);var fill=document.getElementById('ota-progress-fill');if(fill)fill.style.width=pct+'%';txt('ota-progress-percent',pct+'%');txt('ota-progress-bytes',bytesHuman(sent)+' / '+bytesHuman(buffer.byteLength));};xhr.onload=function(){if(xhr.status>=200&&xhr.status<300)resolve();else reject(new Error('La boia ha rebutjat el bloc. HTTP '+xhr.status));};xhr.onerror=function(){reject(new Error('Connexio local tallada durant un bloc'));};var data=new FormData();data.append('update',new Blob([buffer.slice(offset,end)],{type:'application/octet-stream'}),'firmware.bin');xhr.send(data);});}";
-  html += "async function uploadGithubFirmware(buffer,status){txt('ota-progress-phase','GitHub OTA · pujant a la boia');txt('ota-progress-message','Firmware descarregat. Pujant en blocs recuperables de 64 KiB...');var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.remove('indeterminate');var offset=0;var retries=0;var blockSize=65536;while(offset<buffer.byteLength){var end=Math.min(offset+blockSize,buffer.byteLength);try{await sendFirmwareBlock(buffer,status,offset,end);offset=end;retries=0;}catch(error){retries++;try{var check=await fetch('/status',{cache:'no-store'});var current=await check.json();var confirmed=parseInt(current.ota_progress_bytes||0,10);if(confirmed>offset&&confirmed<=buffer.byteLength){offset=confirmed;retries=0;}}catch(ignore){}if(retries>=3)throw error;await new Promise(function(resolve){setTimeout(resolve,500);});}}sessionStorage.removeItem('boiaOtaPending');txt('ota-progress-message','Firmware verificat i instal·lat. La boia es reiniciara.');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('done');}";
+  html += "function sendFirmwareBlock(buffer,status,offset,end){return new Promise(function(resolve,reject){var local=document.getElementById('ota-local-form');if(!local){reject(new Error('Ruta de pujada OTA no disponible'));return;}var xhr=new XMLHttpRequest();xhr.open('POST',local.action);var sha=status.github_firmware_sha256||status.sha256||'';var size=status.github_firmware_size||status.size||buffer.byteLength;if(sha)xhr.setRequestHeader('X-Firmware-SHA256',sha);xhr.setRequestHeader('X-Firmware-Size',String(size));xhr.setRequestHeader('X-Firmware-Offset',String(offset));xhr.upload.onprogress=function(ev){if(!ev.lengthComputable)return;var sent=offset+ev.loaded;var pct=Math.round(sent*100/buffer.byteLength);var fill=document.getElementById('ota-progress-fill');if(fill)fill.style.width=pct+'%';txt('ota-progress-percent',pct+'%');txt('ota-progress-bytes',bytesHuman(sent)+' / '+bytesHuman(buffer.byteLength));};xhr.onload=function(){if(xhr.status>=200&&xhr.status<300)resolve();else reject(new Error('La boia ha rebutjat el bloc. HTTP '+xhr.status));};xhr.onerror=function(){reject(new Error('Connexio local tallada durant un bloc'));};var data=new FormData();data.append('update',new Blob([buffer.slice(offset,end)],{type:'application/octet-stream'}),'firmware.bin');xhr.send(data);});}";
+  html += "async function uploadFirmwareBlocks(buffer,status,label){var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.remove('indeterminate');var offset=0,retries=0,blockSize=65536;while(offset<buffer.byteLength){var end=Math.min(offset+blockSize,buffer.byteLength);try{await sendFirmwareBlock(buffer,status,offset,end);offset=end;retries=0;}catch(error){retries++;try{var check=await fetch('/status',{cache:'no-store'});var current=await check.json();var confirmed=parseInt(current.ota_progress_bytes||0,10);if(confirmed>offset&&confirmed<=buffer.byteLength){offset=confirmed;retries=0;}}catch(ignore){}if(retries>=3)throw error;await new Promise(function(resolve){setTimeout(resolve,500);});}}sessionStorage.removeItem('boiaOtaPending');txt('ota-progress-message','Firmware verificat i instal·lat. La boia es reiniciara.');txt('ota-progress-phase',label+' · completada');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('done');}";
+  html += "async function uploadGithubFirmware(buffer,status){txt('ota-progress-phase','GitHub OTA · pujant a la boia');txt('ota-progress-message','Firmware descarregat. Pujant en blocs recuperables de 64 KiB...');await uploadFirmwareBlocks(buffer,status,'GitHub OTA');}";
   html += "async function installGithubViaBrowser(){showOtaProgress('GitHub OTA','Llegint el manifest publicat');var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.add('indeterminate');try{var check=await fetch('/github-check-update-run',{cache:'no-store'});if(!check.ok)throw new Error('No puc comprovar GitHub. HTTP '+check.status);var status=await check.json();if(!status.github_firmware_url||!status.github_firmware_sha256||!status.github_firmware_size)throw new Error('El manifest no porta URL, SHA-256 o mida valida');txt('ota-progress-phase','GitHub OTA · descarregant al navegador');txt('ota-progress-message','Descarregant '+bytesHuman(status.github_firmware_size)+' des de GitHub...');var separator=status.github_firmware_url.indexOf('?')>=0?'&':'?';var response=await fetch(status.github_firmware_url+separator+'build='+encodeURIComponent(status.github_update_sha||Date.now()),{cache:'no-store'});if(!response.ok)throw new Error('GitHub ha respost HTTP '+response.status);var buffer=await response.arrayBuffer();if(buffer.byteLength!==parseInt(status.github_firmware_size,10))throw new Error('Mida incorrecta: '+buffer.byteLength+' bytes');await uploadGithubFirmware(buffer,status);}catch(error){otaUiError(error.message||'Error OTA GitHub');}}";
-  html += "function bindOtaForms(){var local=document.getElementById('ota-local-form');if(local){local.addEventListener('submit',function(e){e.preventDefault();if(local.getAttribute('data-confirm')&&!confirm(local.getAttribute('data-confirm')))return;var file=document.getElementById('ota-local-file');if(!file||!file.files||!file.files.length){alert('Tria primer un firmware.bin');return;}showOtaProgress('OTA local','Pujant firmware local');var xhr=new XMLHttpRequest();xhr.open('POST',local.action);xhr.upload.onprogress=function(ev){if(ev.lengthComputable){var pct=Math.round(ev.loaded*100/ev.total);var fill=document.getElementById('ota-progress-fill');if(fill)fill.style.width=pct+'%';txt('ota-progress-percent',pct+'%');txt('ota-progress-bytes',bytesHuman(ev.loaded)+' / '+bytesHuman(ev.total));}};xhr.onload=function(){if(xhr.status>=200&&xhr.status<300){sessionStorage.removeItem('boiaOtaPending');txt('ota-progress-message','Firmware rebut. La boia es reiniciara.');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('done');}else{otaUiError('OTA local fallida. HTTP '+xhr.status);}};xhr.onerror=function(){otaUiError('Error de xarxa pujant firmware');};xhr.send(new FormData(local));});}var gh=document.getElementById('github-install-form');if(gh){gh.addEventListener('submit',function(e){e.preventDefault();if(gh.getAttribute('data-confirm')&&!confirm(gh.getAttribute('data-confirm')))return;installGithubViaBrowser();});}}";
+  html += "function bindOtaForms(){var local=document.getElementById('ota-local-form');if(local){local.addEventListener('submit',async function(e){e.preventDefault();if(local.getAttribute('data-confirm')&&!confirm(local.getAttribute('data-confirm')))return;var input=document.getElementById('ota-local-file');if(!input||!input.files||!input.files.length){alert('Tria primer un firmware.bin');return;}showOtaProgress('OTA local','Llegint el fitxer i preparant blocs de 64 KiB');try{var buffer=await input.files[0].arrayBuffer();txt('ota-progress-phase','OTA local · pujant a la boia');await uploadFirmwareBlocks(buffer,{size:buffer.byteLength},'OTA local');}catch(error){otaUiError(error.message||'Error pujant firmware local');}});}var gh=document.getElementById('github-install-form');if(gh){gh.addEventListener('submit',function(e){e.preventDefault();if(gh.getAttribute('data-confirm')&&!confirm(gh.getAttribute('data-confirm')))return;installGithubViaBrowser();});}}";
   html += "window.addEventListener('load',function(){bindConfirms();bindAccordion();applySubpage();startWS();loadTempHistory();bindOtaForms();setTimeout(runOtaAutoChecks,600);});";
   html += "</script>";
 
@@ -407,12 +417,12 @@ static String buildStatusPage() {
   appendPageStart(html, "status", true);
 
   html += "<div class='card temp-card'>";
-  html += "<canvas id='temp-history-chart' aria-hidden='true'></canvas>";
-  html += "<div class='temp-content'>";
-  html += "<div class='history-controls'><form method='POST' action='/ha-history-settings'><span class='label-inline'>Històric</span><input id='ha-history-hours-inline' name='ha_history_hours' type='number' min='1' max='168' value='";
+  html += "<canvas id='temp-history-chart' data-hours='";
   html += String(configHaHistoryHours);
-  html += "'><span class='label-inline'>hores</span><button type='submit'>Aplicar</button></form></div>";
+  html += "' aria-hidden='true'></canvas>";
+  html += "<div class='temp-content'>";
   html += "<h2>Temperatura actual</h2>";
+  html += "<div class='temp-reading-row'><div>";
   html += "<div class='temp'><span id='live-temp'>";
   html += tempText;
 
@@ -432,22 +442,14 @@ static String buildStatusPage() {
     html += "<div class='warn'>Estat: hi ha hagut alguna lectura fallida</div>";
   }
 
+  html += "</div><div class='internal-mini'><span>Interior SHT41</span><b id='live-internal-temp'>";
+  html += isnan(appState.lastInternalTemperatureC) ? "Sense dades" : formatTemperature(appState.lastInternalTemperatureC, 2) + " °C";
+  html += "</b><span>Humitat</span><b id='live-internal-humidity'>";
+  html += isnan(appState.lastInternalHumidityPercent) ? "Sense dades" : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %";
+  html += "</b><span id='live-internal-env-status'>" + htmlEscape(appState.internalEnvStatus) + "</span></div></div>";
   html += "</div>";
   html += "<div id='temp-history-note' class='chart-note'>Carregant històric HA...</div>";
   html += "</div>";
-
-  html += "<div class='card'><h2>Sensor intern temperatura/humitat</h2><div class='grid'>";
-  html += "<div class='item'><div class='label'>Temperatura interior</div><div id='live-internal-temp' class='value'>";
-  html += isnan(appState.lastInternalTemperatureC) ? "Sense dades" : formatTemperature(appState.lastInternalTemperatureC, 2) + " °C";
-  html += "</div></div>";
-  html += "<div class='item'><div class='label'>Humitat interior</div><div id='live-internal-humidity' class='value'>";
-  html += isnan(appState.lastInternalHumidityPercent) ? "Sense dades" : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %";
-  html += "</div></div>";
-  html += "<div class='item'><div class='label'>Estat SHT41</div><div id='live-internal-env-status' class='value'>";
-  html += htmlEscape(appState.internalEnvStatus);
-  html += "</div><div class='small'>" + htmlEscape(appState.internalEnvLastError) + "</div></div>";
-  html += "<div class='item'><div class='label'>Bus I2C</div><div class='value'>0x44</div><div class='small'>SDA GPIO6 · SCL GPIO7</div></div>";
-  html += "</div></div>";
 
   html += "<div class='card'>";
   html += "<h2>Lectures</h2>";
@@ -1571,7 +1573,8 @@ static String buildMaintenancePage() {
   html += "<div id='ota-progress-card' class='ota-progress-card";
   if (!showOtaProgress) html += " hidden";
   html += "'>";
-  html += "<div class='ota-progress-head'><div><div class='ota-progress-title'>Progrés d'actualització</div><div id='ota-progress-message' class='ota-progress-text'>";
+  html += "<div class='ota-progress-dialog' role='dialog' aria-modal='true' aria-labelledby='ota-progress-title'>";
+  html += "<div class='ota-progress-head'><div><div id='ota-progress-title' class='ota-progress-title'>Progrés d'actualització</div><div id='ota-progress-message' class='ota-progress-text'>";
   html += htmlEscape(appState.otaLastMessage);
   html += "</div></div><div class='ota-progress-text'><b id='ota-progress-percent'>";
   html += String(appState.otaProgressPercent);
@@ -1593,7 +1596,7 @@ static String buildMaintenancePage() {
   html += htmlEscape(appState.otaLog);
   html += "</pre>";
   html += "<button class='secondary ota-dismiss' type='button' onclick='dismissOtaProgress()'>Tancar aquest resultat</button>";
-  html += "</div>";
+  html += "</div></div>";
 
   html += "<div class='buttons'>";
   html += "<form method='POST' action='/internet-check'><button class='secondary' type='submit'>🌍 Comprovar Internet</button></form>";
@@ -1672,9 +1675,9 @@ static String buildSystemPage() {
   String html = "";
   appendPageStart(html, "system", false);
 
-  static const char* labels[] = {"Resum", "Identitat", "Mode", "LEDs", "Usuaris"};
-  static const char* anchors[] = {"sys-summary", "sys-identity", "sys-mode", "sys-leds", "sys-users"};
-  appendSubTabs(html, "Sistema", labels, anchors, 5);
+  static const char* labels[] = {"Resum", "Sensor intern", "Identitat", "Mode", "LEDs", "Usuaris"};
+  static const char* anchors[] = {"sys-summary", "sys-internal-env", "sys-identity", "sys-mode", "sys-leds", "sys-users"};
+  appendSubTabs(html, "Sistema", labels, anchors, 6);
 
   html += "<div id='sys-summary' class='card'>";
   html += "<h2>Sistema</h2>";
@@ -1716,6 +1719,25 @@ static String buildSystemPage() {
 
   html += "</div>";
   html += "</div>";
+
+  bool tempAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalTemperatureC) && appState.lastInternalTemperatureC >= configInternalTempAlarmC;
+  bool humidityAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalHumidityPercent) && appState.lastInternalHumidityPercent >= configInternalHumidityAlarmPercent;
+  html += "<div id='sys-internal-env' class='card'><h2>Sensor intern SHT41</h2>";
+  html += "<p class='hint'>Temperatura i humitat dins la boia. Les alarmes avisen de sobreescalfament o humitat elevada a l'interior.</p><div class='grid'>";
+  html += "<div class='item'><div class='label'>Temperatura interior</div><div class='value ";
+  html += tempAlarm ? "bad" : "ok";
+  html += "'>" + (isnan(appState.lastInternalTemperatureC) ? String("Sense dades") : formatTemperature(appState.lastInternalTemperatureC, 2) + " °C") + "</div></div>";
+  html += "<div class='item'><div class='label'>Humitat interior</div><div class='value ";
+  html += humidityAlarm ? "bad" : "ok";
+  html += "'>" + (isnan(appState.lastInternalHumidityPercent) ? String("Sense dades") : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %") + "</div></div>";
+  html += "<div class='item'><div class='label'>Estat sensor</div><div class='value'>" + htmlEscape(appState.internalEnvStatus) + "</div><div class='small'>" + htmlEscape(appState.internalEnvLastError) + "</div></div>";
+  html += "<div class='item'><div class='label'>Bus I2C</div><div class='value'>0x44</div><div class='small'>SDA GPIO6 · SCL GPIO7</div></div></div>";
+  html += "<form method='POST' action='/internal-env-alarm'><div><label><input name='alarm_enabled' type='checkbox' value='1' ";
+  html += configInternalEnvAlarmEnabled ? "checked" : "";
+  html += ">Activar alarmes del sensor intern</label></div><div class='grid'>";
+  html += "<div><div class='label'>Alarma temperatura alta (°C)</div><input name='temp_alarm_c' type='number' min='-20' max='85' step='0.1' value='" + String(configInternalTempAlarmC, 1) + "' required></div>";
+  html += "<div><div class='label'>Alarma humitat alta (%)</div><input name='humidity_alarm_percent' type='number' min='1' max='100' step='0.1' value='" + String(configInternalHumidityAlarmPercent, 1) + "' required></div></div>";
+  html += "<div class='buttons'><button type='submit'>Guardar alarmes</button></div></form></div>";
 
   html += "<div id='sys-identity' class='card'>";
   html += "<h2>Identitat del dispositiu</h2>";
@@ -2234,6 +2256,19 @@ static void handleBoardLedsPost() {
   );
 }
 
+static void handleInternalEnvAlarmPost() {
+  bool enabled = server.hasArg("alarm_enabled");
+  float temperatureC = server.hasArg("temp_alarm_c") ? server.arg("temp_alarm_c").toFloat() : DEFAULT_INTERNAL_TEMP_ALARM_C;
+  float humidityPercent = server.hasArg("humidity_alarm_percent") ? server.arg("humidity_alarm_percent").toFloat() : DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT;
+  saveInternalEnvAlarmConfig(enabled, temperatureC, humidityPercent);
+
+  server.send(
+    200,
+    "text/html",
+    buildSavedPage("Alarmes SHT41 guardades", enabled ? "Els llindars del sensor intern ja estan actius." : "Les alarmes del sensor intern queden desactivades.", false)
+  );
+}
+
 static void handleMqttPublishNowPost() {
   if (!configMqttEnabled || !isMqttConnected()) {
     server.send(400, "text/html", buildSavedPage("MQTT no connectat", "No puc publicar telemetria perquè MQTT no esta connectat.", false));
@@ -2486,10 +2521,11 @@ static String urlEncode(const String& value) {
   return out;
 }
 
-static String haHistoryEndpointUrl(const String& startIso) {
+static String haHistoryEndpointUrl(const String& startIso, const String& endIso) {
   String base = normalizedHaApiUrl(configHaApiUrl);
   String url = base + "/api/history/period/" + urlEncode(startIso);
   url += "?filter_entity_id=" + urlEncode(configHaHistoryEntityId);
+  if (endIso.length() > 0) url += "&end_time=" + urlEncode(endIso);
   url += "&minimal_response&no_attributes&significant_changes_only";
   return url;
 }
@@ -2574,6 +2610,100 @@ static String buildCompactHourlyHistoryJson(const String& payload, uint16_t hour
   return out;
 }
 
+static String buildCompactHourlyHistoryJsonFromStream(HTTPClient& http, uint16_t hours, bool& receivedBody) {
+  String out = "{\"hours\":" + String(hours) + ",\"sample\":\"hourly\",\"points\":[";
+  String object;
+  object.reserve(768);
+  String pendingHour;
+  String pendingIso;
+  float pendingValue = NAN;
+  bool hasPending = false;
+  bool first = true;
+  bool inString = false;
+  bool escaped = false;
+  int depth = 0;
+  unsigned long lastDataMillis = millis();
+  NetworkClient* stream = http.getStreamPtr();
+  receivedBody = false;
+
+  if (!stream) return out + "]}";
+
+  while (http.connected() || stream->available() > 0) {
+    int available = stream->available();
+    if (available <= 0) {
+      if (millis() - lastDataMillis > 20000UL) break;
+      delay(1);
+      continue;
+    }
+
+    while (available-- > 0) {
+      char c = (char)stream->read();
+      receivedBody = true;
+      lastDataMillis = millis();
+
+      if (depth > 0 && object.length() < 4096) object += c;
+
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (c == '\\') escaped = true;
+        else if (c == '"') inString = false;
+        continue;
+      }
+
+      if (c == '"') {
+        inString = true;
+      } else if (c == '{') {
+        if (depth == 0) {
+          object = "{";
+        }
+        depth++;
+      } else if (c == '}' && depth > 0) {
+        depth--;
+        if (depth == 0) {
+          const String stateMarker = "\"state\":\"";
+          const String changedMarker = "\"last_changed\":\"";
+          int statePos = object.indexOf(stateMarker);
+          int changedPos = object.indexOf(changedMarker);
+          if (statePos >= 0 && changedPos >= 0) {
+            int stateStart = statePos + stateMarker.length();
+            int stateEnd = object.indexOf('"', stateStart);
+            int changedStart = changedPos + changedMarker.length();
+            int changedEnd = object.indexOf('"', changedStart);
+            if (stateEnd > stateStart && changedEnd > changedStart) {
+              String state = object.substring(stateStart, stateEnd);
+              if (looksNumericState(state)) {
+                String iso = object.substring(changedStart, changedEnd);
+                String hourKey = iso.length() >= 13 ? iso.substring(0, 13) : iso;
+                float value = state.toFloat();
+                if (!hasPending) {
+                  pendingHour = hourKey;
+                  pendingIso = iso;
+                  pendingValue = value;
+                  hasPending = true;
+                } else if (hourKey == pendingHour) {
+                  pendingIso = iso;
+                  pendingValue = value;
+                } else {
+                  appendHistoryPoint(out, first, pendingIso, pendingValue);
+                  pendingHour = hourKey;
+                  pendingIso = iso;
+                  pendingValue = value;
+                }
+              }
+            }
+          }
+          object = "";
+        }
+      }
+    }
+    yield();
+  }
+
+  if (hasPending) appendHistoryPoint(out, first, pendingIso, pendingValue);
+  out += "]}";
+  return out;
+}
+
 static void handleHaHistorySettingsPost() {
   uint16_t hours = server.hasArg("ha_history_hours") ? (uint16_t)server.arg("ha_history_hours").toInt() : configHaHistoryHours;
   saveHomeAssistantApiConfig(configHaApiEnabled, configHaApiUrl, configHaApiToken, configHaHistoryEntityId, hours);
@@ -2624,10 +2754,14 @@ static void handleHaHistoryGet() {
     return;
   }
 
-  String url = haHistoryEndpointUrl(startIso);
+  String endIso = server.hasArg("end") ? server.arg("end") : "";
+  endIso.trim();
+  String url = haHistoryEndpointUrl(startIso, endIso);
   HTTPClient http;
   int code = -1;
   String payload = "";
+  String compact = "";
+  bool receivedBody = false;
 
   if (url.startsWith("https://")) {
     WiFiClientSecure client;
@@ -2636,10 +2770,13 @@ static void handleHaHistoryGet() {
       server.send(200, "application/json", "{\"error\":\"No puc obrir connexió HTTPS amb HA\"}");
       return;
     }
+    http.useHTTP10(true);
+    http.setTimeout(20000);
     http.addHeader("Authorization", "Bearer " + configHaApiToken);
     http.addHeader("Accept", "application/json");
     code = http.GET();
-    if (code > 0) payload = http.getString();
+    if (code == 200) compact = buildCompactHourlyHistoryJsonFromStream(http, hours, receivedBody);
+    else if (code > 0) payload = http.getString();
     http.end();
   } else {
     WiFiClient client;
@@ -2647,27 +2784,31 @@ static void handleHaHistoryGet() {
       server.send(200, "application/json", "{\"error\":\"No puc obrir connexió HTTP amb HA\"}");
       return;
     }
+    http.useHTTP10(true);
+    http.setTimeout(20000);
     http.addHeader("Authorization", "Bearer " + configHaApiToken);
     http.addHeader("Accept", "application/json");
     code = http.GET();
-    if (code > 0) payload = http.getString();
+    if (code == 200) compact = buildCompactHourlyHistoryJsonFromStream(http, hours, receivedBody);
+    else if (code > 0) payload = http.getString();
     http.end();
   }
 
-  if (code != 200 || payload.length() == 0) {
+  if (code != 200 || !receivedBody) {
     String err = "{\"error\":\"HA HTTP ";
     err += String(code);
     if (code == 401) {
       err += ": token no autoritzat. Revisa que sigui un token de llarga durada i que no estigui caducat o copiat malament";
     } else if (code == 404) {
       err += ": URL o entity_id no trobats";
+    } else if (code == 200) {
+      err += ": resposta buida; Home Assistant no ha retornat historial per aquesta entitat o finestra";
     }
     err += "\"}";
     server.send(200, "application/json", err);
     return;
   }
 
-  String compact = buildCompactHourlyHistoryJson(payload, hours);
   server.send(200, "application/json", compact);
 }
 
@@ -2865,12 +3006,7 @@ static void handleGithubUpdatePost() {
     buildSavedPage("Actualitzant des de GitHub", message, true)
   );
 
-  if (ok) {
-    delay(1000);
-    publishOfflineAndDisconnect();
-    delay(500);
-    ESP.restart();
-  }
+  if (ok) scheduleRestart();
 }
 
 static void handleDefaultsPost() {
@@ -2895,12 +3031,7 @@ static void handleRestartPost() {
     buildSavedPage("Reiniciant boia", "La boia es reiniciara en uns segons.", true)
   );
 
-  delay(1000);
-
-  publishOfflineAndDisconnect();
-
-  delay(500);
-  ESP.restart();
+  scheduleRestart();
 }
 
 static void handleUpdateFinished() {
@@ -2916,7 +3047,6 @@ static void handleUpdateFinished() {
 
   bool ok = appState.otaSuccess && !Update.hasError();
 
-  String title = ok ? "OTA completada" : "OTA fallida";
   String message = ok
     ? "Firmware rebut correctament. La boia es reiniciara ara."
     : "L'actualitzacio ha fallat o no s'ha rebut cap firmware valid. Mira el monitor serie per veure el detall.";
@@ -2925,18 +3055,12 @@ static void handleUpdateFinished() {
   appState.otaSuccess = ok;
   appState.otaLastMessage = message;
 
-  server.send(
-    ok ? 200 : 500,
-    "text/html",
-    buildSavedPage(title, message, ok)
-  );
+  String response = "{\"ok\":";
+  response += ok ? "true" : "false";
+  response += ",\"message\":\"" + jsonEscape(message) + "\"}";
+  server.send(ok ? 200 : 500, "application/json", response);
 
-  if (ok) {
-    delay(1000);
-    publishOfflineAndDisconnect();
-    delay(500);
-    ESP.restart();
-  }
+  if (ok) scheduleRestart();
 }
 
 static void handleUpdateUpload() {
@@ -3520,6 +3644,7 @@ void setupWebServer() {
   server.on("/identity", HTTP_POST, handleIdentityPost);
   server.on("/device-mode", HTTP_POST, handleDeviceModePost);
   server.on("/board-leds", HTTP_POST, handleBoardLedsPost);
+  server.on("/internal-env-alarm", HTTP_POST, handleInternalEnvAlarmPost);
   server.on("/user-credentials", HTTP_POST, handleUserCredentialsPost);
   server.on("/mqtt-publish-now", HTTP_POST, handleMqttPublishNowPost);
   server.on("/config-export", HTTP_GET, handleConfigExport);
@@ -3574,4 +3699,12 @@ void handleWebServer() {
   server.handleClient();
   webSocket.loop();
   broadcastWebSocketStatus(false);
+
+  if (restartPending && (long)(millis() - restartAtMillis) >= 0) {
+    restartPending = false;
+    Serial.println("Reiniciant ara.");
+    publishOfflineAndDisconnect();
+    delay(80);
+    ESP.restart();
+  }
 }

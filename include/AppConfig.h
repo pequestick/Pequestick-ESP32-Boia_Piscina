@@ -44,6 +44,9 @@ extern const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE;
 extern const bool DEFAULT_PRODUCTION_MODE;
 extern const bool DEFAULT_BOARD_LED_ENABLED;
 extern const bool DEFAULT_BOARD_LED_MIRROR_STATUS;
+extern const bool DEFAULT_INTERNAL_ENV_ALARM_ENABLED;
+extern const float DEFAULT_INTERNAL_TEMP_ALARM_C;
+extern const float DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT;
 
 // Ampliacions futures preparades/documentades
 extern const char* FUTURE_INTERNAL_ENV_SENSOR;
@@ -127,6 +130,9 @@ extern bool configBoardLedMirrorStatus;
 extern bool configGithubOtaEnabled;
 extern String configGithubManifestUrl;
 extern bool configGithubAllowSameVersionUpdate;
+extern bool configInternalEnvAlarmEnabled;
+extern float configInternalTempAlarmC;
+extern float configInternalHumidityAlarmPercent;
 
 // Configuracio persistent: temperatura
 extern uint16_t configReadIntervalSeconds;
@@ -225,5 +231,6 @@ String normalizedDeviceHostname(const String& hostname);
 void saveDeviceIdentity(const String& deviceName, const String& hostname);
 void saveDeviceMode(bool productionMode);
 void saveBoardLedConfig(bool enabled, bool mirrorStatus);
+void saveInternalEnvAlarmConfig(bool enabled, float temperatureC, float humidityPercent);
 void saveGithubOtaConfig(bool enabled, const String& manifestUrl, bool allowSameVersionUpdate);
 String normalizedGithubManifestUrl(const String& manifestUrl);

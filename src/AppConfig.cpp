@@ -41,15 +41,18 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.13.1-resumable-browser-ota";
-const char* FIRMWARE_CHANGE_TITLE = "v1.13.1 OTA del navegador per blocs";
-const char* FIRMWARE_CHANGE_NOTES = "Divideix la pujada OTA en blocs de 64 KiB amb offset i represa automàtica, mantenint la verificació final de mida i SHA-256.";
+const char* FIRMWARE_VERSION = "1.14.0-ota-ui-sht41";
+const char* FIRMWARE_CHANGE_TITLE = "v1.14.0 OTA modal i gestio SHT41";
+const char* FIRMWARE_CHANGE_NOTES = "Assegura el reinici diferit de l'OTA, converteix el progres en modal, reordena el SHT41 i afegeix alarmes persistents i una particio de core dump.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
 const bool DEFAULT_PRODUCTION_MODE = false;
 const bool DEFAULT_BOARD_LED_ENABLED = false;
 const bool DEFAULT_BOARD_LED_MIRROR_STATUS = true;
+const bool DEFAULT_INTERNAL_ENV_ALARM_ENABLED = true;
+const float DEFAULT_INTERNAL_TEMP_ALARM_C = 50.0f;
+const float DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT = 80.0f;
 
 // Ampliacions futures. Documentades a la web, no actives encara.
 const char* FUTURE_INTERNAL_ENV_SENSOR = "SHT41 actiu per temperatura i humitat interna";
@@ -155,6 +158,9 @@ bool configBoardLedMirrorStatus = DEFAULT_BOARD_LED_MIRROR_STATUS;
 bool configGithubOtaEnabled = DEFAULT_GITHUB_OTA_ENABLED;
 String configGithubManifestUrl = DEFAULT_GITHUB_MANIFEST_URL;
 bool configGithubAllowSameVersionUpdate = DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE;
+bool configInternalEnvAlarmEnabled = DEFAULT_INTERNAL_ENV_ALARM_ENABLED;
+float configInternalTempAlarmC = DEFAULT_INTERNAL_TEMP_ALARM_C;
+float configInternalHumidityAlarmPercent = DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT;
 
 static Preferences preferences;
 
@@ -404,6 +410,13 @@ void loadConfig() {
   configGithubOtaEnabled = preferences.getBool("gh_ota_en", DEFAULT_GITHUB_OTA_ENABLED);
   configGithubManifestUrl = normalizedGithubManifestUrl(preferences.getString("gh_manifest", DEFAULT_GITHUB_MANIFEST_URL));
   configGithubAllowSameVersionUpdate = preferences.getBool("gh_same", DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE);
+  configInternalEnvAlarmEnabled = preferences.getBool("env_alarm", DEFAULT_INTERNAL_ENV_ALARM_ENABLED);
+  configInternalTempAlarmC = preferences.isKey("env_temp_hi")
+    ? preferences.getFloat("env_temp_hi", DEFAULT_INTERNAL_TEMP_ALARM_C)
+    : DEFAULT_INTERNAL_TEMP_ALARM_C;
+  configInternalHumidityAlarmPercent = preferences.isKey("env_hum_hi")
+    ? preferences.getFloat("env_hum_hi", DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT)
+    : DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT;
 
   preferences.end();
 
@@ -434,6 +447,8 @@ void loadConfig() {
   configTemperatureOffsetC = clampFloat(configTemperatureOffsetC, MIN_TEMPERATURE_OFFSET_C, MAX_TEMPERATURE_OFFSET_C);
   configMinValidTempC = clampFloat(configMinValidTempC, ABSOLUTE_MIN_VALID_TEMP_C, ABSOLUTE_MAX_VALID_TEMP_C);
   configMaxValidTempC = clampFloat(configMaxValidTempC, ABSOLUTE_MIN_VALID_TEMP_C, ABSOLUTE_MAX_VALID_TEMP_C);
+  configInternalTempAlarmC = clampFloat(configInternalTempAlarmC, -20.0f, 85.0f);
+  configInternalHumidityAlarmPercent = clampFloat(configInternalHumidityAlarmPercent, 1.0f, 100.0f);
 
   if (configMinValidTempC >= configMaxValidTempC) {
     configMinValidTempC = DEFAULT_MIN_VALID_TEMP_C;
@@ -622,6 +637,9 @@ void factoryResetConfigAndSetupMode() {
   configGithubOtaEnabled = DEFAULT_GITHUB_OTA_ENABLED;
   configGithubManifestUrl = DEFAULT_GITHUB_MANIFEST_URL;
   configGithubAllowSameVersionUpdate = DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE;
+  configInternalEnvAlarmEnabled = DEFAULT_INTERNAL_ENV_ALARM_ENABLED;
+  configInternalTempAlarmC = DEFAULT_INTERNAL_TEMP_ALARM_C;
+  configInternalHumidityAlarmPercent = DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT;
 }
 
 bool hasWifiConfig() {
@@ -840,6 +858,18 @@ void saveBoardLedConfig(bool enabled, bool mirrorStatus) {
   preferences.begin("boia", false);
   preferences.putBool("brd_led_en", configBoardLedEnabled);
   preferences.putBool("brd_led_mir", configBoardLedMirrorStatus);
+  preferences.end();
+}
+
+void saveInternalEnvAlarmConfig(bool enabled, float temperatureC, float humidityPercent) {
+  configInternalEnvAlarmEnabled = enabled;
+  configInternalTempAlarmC = clampFloat(temperatureC, -20.0f, 85.0f);
+  configInternalHumidityAlarmPercent = clampFloat(humidityPercent, 1.0f, 100.0f);
+
+  preferences.begin("boia", false);
+  preferences.putBool("env_alarm", configInternalEnvAlarmEnabled);
+  preferences.putFloat("env_temp_hi", configInternalTempAlarmC);
+  preferences.putFloat("env_hum_hi", configInternalHumidityAlarmPercent);
   preferences.end();
 }
 
