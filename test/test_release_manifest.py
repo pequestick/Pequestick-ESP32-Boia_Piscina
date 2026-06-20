@@ -80,6 +80,12 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("if (startByte > 0)", source)
         self.assertNotIn("maxRangeBlockSize", source)
 
+    def test_browser_assisted_ota_keeps_sha256_verification(self):
+        source = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+        self.assertIn("installGithubViaBrowser", source)
+        self.assertIn("X-Firmware-SHA256", source)
+        self.assertIn("SHA-256 OTA verificat correctament", source)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -41,9 +41,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.11.2-httpclient-ota-stream";
-const char* FIRMWARE_CHANGE_TITLE = "v1.11.2 flux OTA HTTPClient";
-const char* FIRMWARE_CHANGE_NOTES = "Utilitza el lector de flux oficial d'HTTPClient per gestionar TLS i transferencies chunked, amb SHA-256, progres i represa automatica.";
+const char* FIRMWARE_VERSION = "1.12.0-browser-github-ota";
+const char* FIRMWARE_CHANGE_TITLE = "v1.12.0 OTA GitHub assistida pel navegador";
+const char* FIRMWARE_CHANGE_NOTES = "El navegador descarrega el firmware de GitHub i el puja localment a la boia, que verifica mida i SHA-256 abans d'instal·lar-lo.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
