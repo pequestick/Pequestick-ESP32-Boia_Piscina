@@ -194,14 +194,13 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += ".ota-log{margin-top:12px;background:#020617;border:1px solid #263449;border-radius:14px;padding:12px;color:#c7d2fe;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45;max-height:230px;overflow:auto;white-space:pre-wrap}.ota-log-head{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#bfdbfe;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}.ota-log small{color:#64748b}";
   html += "button:disabled{opacity:.45;cursor:not-allowed;background:#334155;}";
   html += "pre{white-space:pre-wrap;word-break:break-word;background:#050b14;border:1px solid #334155;border-radius:14px;padding:14px;color:#dbeafe;}";
-  html += ".temp-card{position:relative;overflow:hidden;min-height:188px;}";
+  html += ".temp-card{position:relative;overflow:hidden;min-height:270px;}";
   html += ".temp-card canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.26;pointer-events:none;}";
   html += ".temp-card .temp-content{position:relative;z-index:1}.temp-card h2{padding-right:210px}";
   html += ".temp-trend{display:inline-block;margin-left:9px;font-size:36px;font-weight:950;line-height:1;vertical-align:7px;text-shadow:0 2px 12px rgba(0,0,0,.35)}.temp-trend.up{color:#22c55e}.temp-trend.down{color:#ef4444}.temp-trend.stable{color:#facc15}.temp-trend.pending{visibility:hidden}";
   html += ".internal-mini{position:absolute;top:0;right:0;display:flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid rgba(125,211,252,.24);border-radius:10px;background:rgba(2,6,23,.58);font-size:11px;color:#94a3b8;white-space:nowrap}.internal-mini b{color:#e0f2fe;font-size:12px}.internal-mini .separator{color:#475569;margin:0 1px}";
-  html += ".chart-note{position:absolute;right:18px;bottom:12px;color:#94a3b8;font-size:11px;z-index:1;}";
-  html += ".history-controls{position:relative;z-index:2;display:flex;justify-content:flex-end;margin-bottom:10px}.history-controls form{display:flex;gap:8px;align-items:center;background:rgba(15,23,42,.78);border:1px solid #263449;border-radius:999px;padding:7px 9px;backdrop-filter:blur(8px)}.history-controls input{width:78px;padding:6px 8px;border-radius:999px;font-size:13px}.history-controls button{padding:7px 10px;border-radius:999px;font-size:12px}.history-controls .label-inline{color:#bfdbfe;font-size:12px;font-weight:800;white-space:nowrap}";
-  html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.temp-trend{font-size:29px;vertical-align:5px}.temp-card h2{padding-right:165px}.internal-mini{font-size:10px;padding:5px 7px;gap:4px}.internal-mini b{font-size:11px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}}";
+  html += ".chart-note{position:absolute;right:18px;bottom:12px;color:#94a3b8;font-size:11px;z-index:2}.history-toolbar{position:absolute;left:18px;bottom:38px;z-index:3;display:flex;gap:5px;flex-wrap:wrap}.history-range{padding:5px 8px;border-radius:999px;background:rgba(15,23,42,.82);border:1px solid #334155;font-size:11px;color:#cbd5e1}.history-range.active{border-color:var(--range-color,#38bdf8);box-shadow:0 0 0 2px color-mix(in srgb,var(--range-color,#38bdf8) 24%,transparent);color:#fff}.chart-legend{position:absolute;left:18px;bottom:12px;z-index:2;display:flex;gap:12px;color:#94a3b8;font-size:11px}.legend-item{display:inline-flex;align-items:center;gap:5px}.legend-line{width:18px;height:2px;background:var(--range-color,#38bdf8)}.legend-band{width:18px;height:8px;border:1px solid var(--range-color,#38bdf8);background:color-mix(in srgb,var(--range-color,#38bdf8) 22%,transparent)}.history-panel{position:relative;overflow:hidden;min-height:270px}.history-panel canvas{position:absolute;inset:48px 0 0;width:100%;height:calc(100% - 48px);opacity:.72;pointer-events:none}.history-panel h3{position:relative;z-index:2;margin:0;padding-right:12px}.history-panel .history-toolbar{top:46px;bottom:auto}.history-panel .chart-note,.history-panel .chart-legend{bottom:10px}";
+  html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.temp-trend{font-size:29px;vertical-align:5px}.temp-card h2{padding-right:165px}.internal-mini{font-size:10px;padding:5px 7px;gap:4px}.internal-mini b{font-size:11px}.history-toolbar{left:12px;bottom:40px}.chart-legend{left:12px;gap:8px}.chart-note{right:12px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}}";
   html += "</style>";
 
   html += "<script>";
@@ -221,8 +220,11 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "function applySubpage(){var links=[].slice.call(document.querySelectorAll('.subtab'));if(!links.length)return;var params=new URLSearchParams(location.search);var selected=params.get('section');var ids=[];links.forEach(function(a){var u=new URL(a.href,location.href);var id=u.searchParams.get('section');if(id){ids.push(id);}});if(!selected||ids.indexOf(selected)<0)selected=ids[0];ids.forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=(id===selected)?'':'none';});document.querySelectorAll('.subpage-extra').forEach(function(el){el.style.display=(el.getAttribute('data-parent')===selected)?'':'none';});links.forEach(function(a){var u=new URL(a.href,location.href);a.classList.toggle('active',u.searchParams.get('section')===selected);});}";
   html += "function extractHaPoints(raw){var out=[];try{if(raw&&Array.isArray(raw.points)){raw.points.forEach(function(x){var v=parseFloat(x.v);var tm=x.t;if(isFinite(v)&&tm){out.push({t:new Date(tm).getTime(),v:v});}});return out;}var arr=raw;if(Array.isArray(arr)&&Array.isArray(arr[0]))arr=arr[0];if(!Array.isArray(arr))return out;arr.forEach(function(x){var st=(x.state!==undefined)?x.state:x.s;var tm=x.last_changed||x.last_updated||x.lc||x.lu;var v=parseFloat(st);if(isFinite(v)&&tm){out.push({t:new Date(tm).getTime(),v:v});}});}catch(e){}return out;}";
   html += "function updateTempTrend(points){var e=document.getElementById('temp-trend');if(!e)return;e.className='temp-trend pending';if(!points||points.length<3)return;var lastT=points[points.length-1].t;var sample=points.filter(function(p){return p.t>=lastT-6*3600000;});if(sample.length<3)sample=points.slice(-3);var t0=sample[0].t,n=sample.length,sx=0,sy=0,sxy=0,sxx=0;sample.forEach(function(p){var x=(p.t-t0)/3600000;sx+=x;sy+=p.v;sxy+=x*p.v;sxx+=x*x;});var den=n*sxx-sx*sx;if(!den)return;var slope=(n*sxy-sx*sy)/den;var cls=slope>0.05?'up':(slope<-0.05?'down':'stable');var arrow=cls==='up'?'↑':(cls==='down'?'↓':'→');var label=cls==='up'?'L’aigua s’està escalfant':(cls==='down'?'L’aigua s’està refredant':'Temperatura estable');e.className='temp-trend '+cls;e.textContent=arrow;e.title=label+' · '+(slope>=0?'+':'')+slope.toFixed(2)+' °C/h · últimes '+((lastT-t0)/3600000).toFixed(1)+' h';e.setAttribute('aria-label',e.title);}";
-  html += "function drawTempHistory(points,hours){updateTempTrend(points);var c=document.getElementById('temp-history-chart');if(!c)return;var ctx=c.getContext('2d');var r=c.getBoundingClientRect();var w=Math.max(1,Math.floor(r.width*devicePixelRatio));var h=Math.max(1,Math.floor(r.height*devicePixelRatio));if(c.width!==w)c.width=w;if(c.height!==h)c.height=h;ctx.clearRect(0,0,w,h);if(!points||points.length<2){txt('temp-history-note','Històric HA no disponible');return;}var vals=points.map(function(p){return p.v;});var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);if(mx-mn<0.2){mx+=0.1;mn-=0.1;}var t0=points[0].t,t1=points[points.length-1].t;if(t1<=t0)t1=t0+1;ctx.globalAlpha=1;ctx.lineWidth=Math.max(2,2*devicePixelRatio);ctx.strokeStyle='rgba(125,211,252,.95)';ctx.fillStyle='rgba(37,99,235,.22)';ctx.beginPath();points.forEach(function(p,i){var x=(p.t-t0)/(t1-t0)*w;var y=h-((p.v-mn)/(mx-mn)*h*.72+h*.14);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();ctx.lineTo(w,h);ctx.lineTo(0,h);ctx.closePath();ctx.fill();txt('temp-history-note','Últimes '+hours+' h · mostres horàries · '+points.length+' punts · '+mn.toFixed(1)+'-'+mx.toFixed(1)+' °C');}";
-  html += "function loadTempHistory(){var c=document.getElementById('temp-history-chart');if(!c)return;var hours=parseInt(c.getAttribute('data-hours')||'24',10);if(!isFinite(hours)||hours<1)hours=24;if(hours>168)hours=168;var end=new Date(),start=new Date(end.getTime()-hours*3600000),chunks=[];for(var cursor=new Date(start);cursor<end;){var chunkEnd=new Date(Math.min(end.getTime(),cursor.getTime()+24*3600000));chunks.push({start:new Date(cursor),end:chunkEnd});cursor=chunkEnd;}var points=[];var chain=Promise.resolve();chunks.forEach(function(chunk,index){chain=chain.then(function(){txt('temp-history-note','Carregant historic HA '+(index+1)+'/'+chunks.length+'...');var chunkHours=Math.max(1,Math.ceil((chunk.end-chunk.start)/3600000));return fetch('/ha-history?hours='+chunkHours+'&start='+encodeURIComponent(chunk.start.toISOString())+'&end='+encodeURIComponent(chunk.end.toISOString())).then(function(r){return r.json();}).then(function(j){if(j.error)throw new Error(j.error);points=points.concat(extractHaPoints(j));});});});chain.then(function(){points.sort(function(a,b){return a.t-b.t;});drawTempHistory(points,hours);}).catch(function(error){txt('temp-history-note',error.message||'No puc llegir historial HA. Revisa la configuracio dins HA.');});}";
+  html += "function historyRangeSpec(key){var now=Date.now(),day=86400000;if(key==='31d')return{key:key,start:now-31*day,period:'day',label:'31 dies · resolució diària',hex:'#34d399',rgb:'52,211,153'};if(key==='6m')return{key:key,start:now-183*day,period:'day',label:'6 mesos · resolució diària',hex:'#a78bfa',rgb:'167,139,250'};if(key==='1y')return{key:key,start:now-365*day,period:'day',label:'1 any · resolució diària',hex:'#fb923c',rgb:'251,146,60'};return{key:'48h',start:now-48*3600000,period:'hour',label:'48 hores · resolució horària',hex:'#38bdf8',rgb:'56,189,248'};}";
+  html += "function extractHaStatistics(raw,entity){var root=raw&&raw.service_response?raw.service_response:(raw&&raw.result?raw.result:raw);if(root&&root.statistics)root=root.statistics;var arr=Array.isArray(root)?root:(root&&root[entity]);if(!Array.isArray(arr))return[];var out=[];arr.forEach(function(x){var t=typeof x.start==='number'?x.start:new Date(x.start).getTime();var mean=parseFloat(x.mean),mn=parseFloat(x.min),mx=parseFloat(x.max);if(isFinite(t)&&isFinite(mean)){out.push({t:t,mean:mean,min:isFinite(mn)?mn:mean,max:isFinite(mx)?mx:mean});}});return out;}";
+  html += "function drawStatisticsChart(c,points,spec){if(!c)return;var note=document.getElementById(c.id+'-note');var ctx=c.getContext('2d'),r=c.getBoundingClientRect(),d=devicePixelRatio||1,w=Math.max(1,Math.floor(r.width*d)),h=Math.max(1,Math.floor(r.height*d));if(c.width!==w)c.width=w;if(c.height!==h)c.height=h;ctx.clearRect(0,0,w,h);var host=c.closest('.history-panel')||c.closest('.card');if(host)host.style.setProperty('--range-color',spec.hex);if(!points||points.length<2){if(note)note.textContent='Sense estadístiques HA per aquesta entitat';return;}var low=Math.min.apply(null,points.map(function(p){return p.min;})),high=Math.max.apply(null,points.map(function(p){return p.max;}));if(high-low<0.2){high+=0.1;low-=0.1;}var padY=h*.15,t0=points[0].t,t1=points[points.length-1].t;if(t1<=t0)t1=t0+1;var px=function(p){return(p.t-t0)/(t1-t0)*w;},py=function(v){return h-padY-(v-low)/(high-low)*(h-padY*2);};ctx.beginPath();points.forEach(function(p,i){var x=px(p),y=py(p.max);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});for(var i=points.length-1;i>=0;i--)ctx.lineTo(px(points[i]),py(points[i].min));ctx.closePath();ctx.fillStyle='rgba('+spec.rgb+',.20)';ctx.fill();ctx.lineWidth=Math.max(1,d);ctx.strokeStyle='rgba('+spec.rgb+',.50)';['max','min'].forEach(function(k){ctx.beginPath();points.forEach(function(p,i){if(i)ctx.lineTo(px(p),py(p[k]));else ctx.moveTo(px(p),py(p[k]));});ctx.stroke();});ctx.beginPath();points.forEach(function(p,i){if(i)ctx.lineTo(px(p),py(p.mean));else ctx.moveTo(px(p),py(p.mean));});ctx.lineWidth=Math.max(2,2*d);ctx.strokeStyle='rgba('+spec.rgb+',1)';ctx.stroke();ctx.font=(11*d)+'px sans-serif';ctx.fillStyle='rgba(226,232,240,.9)';ctx.fillText('Màx '+high.toFixed(1),6*d,Math.max(12*d,py(high)+12*d));ctx.fillText('Mín '+low.toFixed(1),6*d,Math.min(h-6*d,py(low)-5*d));if(note)note.textContent=spec.label;if(c.dataset.trend==='water')updateTempTrend(points.map(function(p){return{t:p.t,v:p.mean};}));}";
+  html += "async function loadStatisticsChart(c,key){if(!c||!c.dataset.entity)return;var spec=historyRangeSpec(key||c.dataset.range||'48h'),end=new Date();c.dataset.range=spec.key;var note=document.getElementById(c.id+'-note');if(note)note.textContent='Carregant '+spec.label+'...';document.querySelectorAll('.history-range').forEach(function(b){if(b.dataset.target===c.id){b.classList.toggle('active',b.dataset.range===spec.key);b.style.setProperty('--range-color',spec.hex);}});try{var url='/ha-statistics?entity='+encodeURIComponent(c.dataset.entity)+'&period='+spec.period+'&start='+encodeURIComponent(new Date(spec.start).toISOString())+'&end='+encodeURIComponent(end.toISOString());var response=await fetch(url,{cache:'no-store'}),raw=await response.json();if(raw.error)throw new Error(raw.error);var points=extractHaStatistics(raw,c.dataset.entity);if(points.length<2)throw new Error('Home Assistant encara no té estadístiques per aquesta entitat');drawStatisticsChart(c,points,spec);}catch(error){if(c.dataset.trend==='water'&&spec.key==='48h'){try{var fallback=await fetch('/ha-history?hours=48&start='+encodeURIComponent(new Date(spec.start).toISOString())+'&end='+encodeURIComponent(end.toISOString())),legacy=await fallback.json();if(!legacy.error){var points=extractHaPoints(legacy).map(function(p){return{t:p.t,mean:p.v,min:p.v,max:p.v};});drawStatisticsChart(c,points,spec);return;}}catch(ignore){}}if(note)note.textContent=error.message||'No puc llegir estadístiques HA';}}";
+  html += "function bindHistoryCharts(){document.querySelectorAll('.history-range').forEach(function(b){b.addEventListener('click',function(){loadStatisticsChart(document.getElementById(b.dataset.target),b.dataset.range);});});document.querySelectorAll('canvas.statistics-chart').forEach(function(c){if(c.offsetParent!==null)loadStatisticsChart(c,c.dataset.range||'48h');});}";
   html += "function setOtaModal(active){document.body.classList.toggle('ota-locked',!!active);}function showOtaProgress(source,msg){var card=document.getElementById('ota-progress-card');if(!card)return;sessionStorage.setItem('boiaOtaPending','1');card.classList.remove('hidden','done','error');setOtaModal(true);txt('ota-progress-phase',source+' · iniciant');txt('ota-progress-message',msg||'Preparant actualitzacio');txt('ota-progress-percent','0%');txt('ota-progress-bytes','-- / --');var fill=document.getElementById('ota-progress-fill');if(fill){fill.classList.remove('indeterminate');fill.style.width='0%';}}function dismissOtaProgress(){sessionStorage.removeItem('boiaOtaPending');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('hidden');setOtaModal(false);}";
   html += "function otaUiError(message){sessionStorage.removeItem('boiaOtaPending');txt('ota-progress-message',message);txt('ota-progress-phase','OTA · error');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('error');var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.remove('indeterminate');}";
   html += "function sendFirmwareBlock(buffer,status,offset,end){return new Promise(function(resolve,reject){var local=document.getElementById('ota-local-form');if(!local){reject(new Error('Ruta de pujada OTA no disponible'));return;}var xhr=new XMLHttpRequest();xhr.open('POST',local.action);var sha=status.github_firmware_sha256||status.sha256||'';var size=status.github_firmware_size||status.size||buffer.byteLength;if(sha)xhr.setRequestHeader('X-Firmware-SHA256',sha);xhr.setRequestHeader('X-Firmware-Size',String(size));xhr.setRequestHeader('X-Firmware-Offset',String(offset));xhr.upload.onprogress=function(ev){if(!ev.lengthComputable)return;var sent=offset+ev.loaded;var pct=Math.round(sent*100/buffer.byteLength);var fill=document.getElementById('ota-progress-fill');if(fill)fill.style.width=pct+'%';txt('ota-progress-percent',pct+'%');txt('ota-progress-bytes',bytesHuman(sent)+' / '+bytesHuman(buffer.byteLength));};xhr.onload=function(){if(xhr.status>=200&&xhr.status<300)resolve();else reject(new Error('La boia ha rebutjat el bloc. HTTP '+xhr.status));};xhr.onerror=function(){reject(new Error('Connexio local tallada durant un bloc'));};var data=new FormData();data.append('update',new Blob([buffer.slice(offset,end)],{type:'application/octet-stream'}),'firmware.bin');xhr.send(data);});}";
@@ -230,7 +232,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "async function uploadGithubFirmware(buffer,status){txt('ota-progress-phase','GitHub OTA · pujant a la boia');txt('ota-progress-message','Firmware descarregat. Pujant en blocs recuperables de 64 KiB...');await uploadFirmwareBlocks(buffer,status,'GitHub OTA');}";
   html += "async function installGithubViaBrowser(){showOtaProgress('GitHub OTA','Llegint el manifest publicat');var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.add('indeterminate');try{var check=await fetch('/github-check-update-run',{cache:'no-store'});if(!check.ok)throw new Error('No puc comprovar GitHub. HTTP '+check.status);var status=await check.json();if(!status.github_firmware_url||!status.github_firmware_sha256||!status.github_firmware_size)throw new Error('El manifest no porta URL, SHA-256 o mida valida');txt('ota-progress-phase','GitHub OTA · descarregant al navegador');txt('ota-progress-message','Descarregant '+bytesHuman(status.github_firmware_size)+' des de GitHub...');var separator=status.github_firmware_url.indexOf('?')>=0?'&':'?';var response=await fetch(status.github_firmware_url+separator+'build='+encodeURIComponent(status.github_update_sha||Date.now()),{cache:'no-store'});if(!response.ok)throw new Error('GitHub ha respost HTTP '+response.status);var buffer=await response.arrayBuffer();if(buffer.byteLength!==parseInt(status.github_firmware_size,10))throw new Error('Mida incorrecta: '+buffer.byteLength+' bytes');await uploadGithubFirmware(buffer,status);}catch(error){otaUiError(error.message||'Error OTA GitHub');}}";
   html += "function bindOtaForms(){var local=document.getElementById('ota-local-form');if(local){local.addEventListener('submit',async function(e){e.preventDefault();if(local.getAttribute('data-confirm')&&!confirm(local.getAttribute('data-confirm')))return;var input=document.getElementById('ota-local-file');if(!input||!input.files||!input.files.length){alert('Tria primer un firmware.bin');return;}showOtaProgress('OTA local','Llegint el fitxer i preparant blocs de 64 KiB');try{var buffer=await input.files[0].arrayBuffer();txt('ota-progress-phase','OTA local · pujant a la boia');await uploadFirmwareBlocks(buffer,{size:buffer.byteLength},'OTA local');}catch(error){otaUiError(error.message||'Error pujant firmware local');}});}var gh=document.getElementById('github-install-form');if(gh){gh.addEventListener('submit',function(e){e.preventDefault();if(gh.getAttribute('data-confirm')&&!confirm(gh.getAttribute('data-confirm')))return;installGithubViaBrowser();});}}";
-  html += "window.addEventListener('load',function(){bindConfirms();bindAccordion();applySubpage();startWS();loadTempHistory();bindOtaForms();setTimeout(runOtaAutoChecks,600);});";
+  html += "window.addEventListener('load',function(){bindConfirms();bindAccordion();applySubpage();startWS();bindHistoryCharts();bindOtaForms();setTimeout(runOtaAutoChecks,600);});";
   html += "</script>";
 
   html += "</head>";
@@ -409,6 +411,18 @@ static String floatText(float value, uint8_t decimals) {
   return String(buffer);
 }
 
+static void appendStatisticsHistoryPanel(String& html, const String& id, const String& title, const String& entityId) {
+  html += "<div class='item history-panel'><h3>" + htmlEscape(title) + "</h3>";
+  html += "<canvas id='" + id + "' class='statistics-chart' data-entity='" + htmlEscape(entityId) + "' data-range='48h' aria-hidden='true'></canvas>";
+  html += "<div class='history-toolbar'>";
+  html += "<button class='history-range active' type='button' data-target='" + id + "' data-range='48h'>48 h</button>";
+  html += "<button class='history-range' type='button' data-target='" + id + "' data-range='31d'>31 d</button>";
+  html += "<button class='history-range' type='button' data-target='" + id + "' data-range='6m'>6 mesos</button>";
+  html += "<button class='history-range' type='button' data-target='" + id + "' data-range='1y'>1 any</button></div>";
+  html += "<div class='chart-legend'><span class='legend-item'><i class='legend-line'></i>Mitjana</span><span class='legend-item'><i class='legend-band'></i>Mínim–màxim</span></div>";
+  html += "<div id='" + id + "-note' class='chart-note'>Carregant estadístiques HA...</div></div>";
+}
+
 // ==========================
 // PAGINES
 // ==========================
@@ -420,9 +434,9 @@ static String buildStatusPage() {
   appendPageStart(html, "status", true);
 
   html += "<div class='card temp-card'>";
-  html += "<canvas id='temp-history-chart' data-hours='";
-  html += String(configHaHistoryHours);
-  html += "' aria-hidden='true'></canvas>";
+  html += "<canvas id='temp-history-chart' class='statistics-chart' data-entity='";
+  html += htmlEscape(configHaHistoryEntityId);
+  html += "' data-range='48h' data-trend='water' aria-hidden='true'></canvas>";
   html += "<div class='temp-content'>";
   html += "<h2>Temperatura actual</h2>";
   html += "<div class='temp'><span id='live-temp'>";
@@ -452,90 +466,13 @@ static String buildStatusPage() {
   html += isnan(appState.lastInternalHumidityPercent) ? "Sense dades" : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %";
   html += "</b><span>HR</span></div>";
   html += "</div>";
-  html += "<div id='temp-history-note' class='chart-note'>Carregant històric HA...</div>";
-  html += "</div>";
-
-  html += "<div class='card'>";
-  html += "<h2>Lectures</h2>";
-  html += "<div class='grid'>";
-
-  html += "<div class='item'><div class='label'>Totals</div><div class='value'>";
-  html += String(appState.totalReads);
-  html += "</div></div>";
-
-  html += "<div class='item'><div class='label'>Valides</div><div class='value ok'>";
-  html += String(appState.validReads);
-  html += "</div></div>";
-
-  html += "<div class='item'><div class='label'>Fallides</div><div class='value ";
-  html += appState.failedReads == 0 ? "ok" : "bad";
-  html += "'>";
-  html += String(appState.failedReads);
-  html += "</div></div>";
-
-  html += "<div class='item'><div class='label'>Ultim error</div><div class='value' style='font-size:15px;'>";
-  html += htmlEscape(appState.lastErrorMessage);
-  html += "</div></div>";
-
-  html += "</div>";
-  html += "</div>";
-
-  html += "<div class='card'>";
-  html += "<h2>Comunicacions</h2>";
-  html += "<div class='grid'>";
-
-  html += "<div class='item'><div class='label'>Wi-Fi</div><div class='value ";
-  html += isWifiConnected() ? "ok" : "warn";
-  html += "'>";
-  html += "<span id='live-wifi'>"; html += wifiStatusText(); html += "</span>";
-  html += "</div></div>";
-
-  html += "<div class='item'><div class='label'>IP</div><div class='value'>";
-  html += htmlEscape(wifiStaIpText());
-  html += "</div></div>";
-
-  html += "<div class='item'><div class='label'>MQTT</div><div class='value ";
-  html += configMqttEnabled ? statusClass(isMqttConnected()) : "warn";
-  html += "'>";
-  html += "<span id='live-mqtt'>"; html += mqttStatusText(); html += "</span>";
-  html += "</div></div>";
-
-  html += "<div class='item'><div class='label'>Broker MQTT</div><div class='value'>";
-  html += htmlEscape(configMqttHost);
-  html += ":";
-  html += String(configMqttPort);
-  html += "</div></div>";
-
-  html += "<div class='item'><div class='label'>Topic base</div><div class='value'>";
-  html += htmlEscape(configMqttTopicBase);
-  html += "</div></div>";
-
-  html += "<div class='item'><div class='label'>Interval MQTT</div><div class='value'>";
-  html += String(configMqttPublishIntervalSeconds);
-  html += " s</div></div>";
-
-  html += "<div class='item'><div class='label'>Home Assistant Discovery</div><div class='value ";
-  html += configHaDiscoveryEnabled ? "ok" : "warn";
-  html += "'>";
-  html += enabledText(configHaDiscoveryEnabled);
-  html += "</div></div>";
-
-  html += "<div class='item'><div class='label'>Discovery publicat</div><div class='value ";
-  html += appState.mqttDiscoveryPublished ? "ok" : "warn";
-  html += "'>";
-  html += appState.mqttDiscoveryPublished ? "Si" : "No";
-  html += "</div></div>";
-
-  html += "</div>";
-  html += "</div>";
-
-  html += "<div class='card small'>";
-  html += "Versio firmware: ";
-  html += FIRMWARE_VERSION;
-  html += "<br>Uptime: ";
-  html += String(getUptimeSeconds());
-  html += " segons<br>La pagina rep estat en directe per WebSocket, sense refrescos periòdics del navegador.";
-  html += "</div>";
+  html += "<div class='history-toolbar'>";
+  html += "<button class='history-range active' type='button' data-target='temp-history-chart' data-range='48h'>48 h</button>";
+  html += "<button class='history-range' type='button' data-target='temp-history-chart' data-range='31d'>31 d</button>";
+  html += "<button class='history-range' type='button' data-target='temp-history-chart' data-range='6m'>6 mesos</button>";
+  html += "<button class='history-range' type='button' data-target='temp-history-chart' data-range='1y'>1 any</button></div>";
+  html += "<div class='chart-legend'><span class='legend-item'><i class='legend-line'></i>Mitjana</span><span class='legend-item'><i class='legend-band'></i>Mínim–màxim</span></div>";
+  html += "<div id='temp-history-chart-note' class='chart-note'>Carregant estadístiques HA...</div></div>";
 
   appendPageEnd(html);
   return html;
@@ -578,6 +515,14 @@ static String buildConfigPage() {
   html += String(configTemperatureDecimals);
   html += "'>";
   html += "</div>";
+
+  html += "<h3>Comptadors de lectures</h3><div class='grid'>";
+  html += "<div class='item'><div class='label'>Totals</div><div class='value'>" + String(appState.totalReads) + "</div></div>";
+  html += "<div class='item'><div class='label'>Vàlides</div><div class='value ok'>" + String(appState.validReads) + "</div></div>";
+  html += "<div class='item'><div class='label'>Fallides</div><div class='value ";
+  html += appState.failedReads == 0 ? "ok" : "bad";
+  html += "'>" + String(appState.failedReads) + "</div></div>";
+  html += "<div class='item'><div class='label'>Últim error</div><div class='value' style='font-size:15px'>" + htmlEscape(appState.lastErrorMessage) + "</div></div></div>";
 
   html += "</div>";
 
@@ -995,8 +940,8 @@ static String buildMqttPage() {
   html += "</div>";
 
   html += "<div id='mqtt-ha-api' class='card subpage-extra' data-parent='mqtt-ha'>";
-  html += "<h2>API local de Home Assistant per historial</h2>";
-  html += "<p class='hint'>Aquesta configuració permet que la web de la boia llegeixi l'històric de Home Assistant i dibuixi el gràfic de fons amb les últimes hores configurades sobre la fitxa de temperatura. Necessita un token de llarga durada de Home Assistant.</p>";
+  html += "<h2>Estadístiques de Home Assistant</h2>";
+  html += "<p class='hint'>La web consulta les estadístiques agregades de Home Assistant: mitjana, mínim i màxim. Necessita un token de llarga durada i els Entity ID correctes.</p>";
   html += "<form method='POST' action='/ha-api'>";
   html += "<div><label><input name='ha_api_enabled' type='checkbox' value='1' ";
   html += configHaApiEnabled ? "checked" : "";
@@ -1007,9 +952,16 @@ static String buildMqttPage() {
   html += "<div><div class='label'>Entity ID de temperatura a Home Assistant</div><input name='ha_history_entity' type='text' maxlength='96' value='";
   html += htmlEscape(configHaHistoryEntityId);
   html += "' placeholder='sensor.boia_piscina_temperature'></div>";
-  html += "<div><div class='label'>Hores d'històric a mostrar</div><input name='ha_history_hours' type='number' min='1' max='168' value='";
-  html += String(configHaHistoryHours);
-  html += "'><div class='small'>Màxim recomanat: 168 hores. La boia redueix les dades a una mostra per hora per no carregar massa l'ESP32.</div></div>";
+  html += "<div><div class='label'>Entity ID temperatura interior boia</div><input name='ha_internal_temperature_entity' type='text' maxlength='96' value='";
+  html += htmlEscape(configHaInternalTemperatureEntityId);
+  html += "'></div>";
+  html += "<div><div class='label'>Entity ID humitat interior boia</div><input name='ha_internal_humidity_entity' type='text' maxlength='96' value='";
+  html += htmlEscape(configHaInternalHumidityEntityId);
+  html += "'></div>";
+  html += "<div><div class='label'>Entity ID bateria (futur, opcional)</div><input name='ha_battery_entity' type='text' maxlength='96' value='";
+  html += htmlEscape(configHaBatteryEntityId);
+  html += "' placeholder='sensor.boia_piscina_battery'></div>";
+  html += "<div class='item'><div class='label'>Resolució automàtica</div><div class='small'>48 hores: horària · 31 dies, 6 mesos i 1 any: diària. Cada punt inclou mitjana, mínim i màxim.</div></div>";
   html += "<div><div class='label'>Token Home Assistant</div><div class='password-wrap'><input id='ha_api_token' name='ha_api_token' type='password' maxlength='256' value='";
   html += htmlEscape(configHaApiToken);
   html += "' placeholder='Token de llarga durada'><button class='eye-button' type='button' aria-label='Mostrar token' onclick=\"togglePassword('ha_api_token',this)\">👁️</button></div><div class='small'>Home Assistant → Perfil d'usuari → Tokens de llarga durada. Enganxa només el token, sense escriure Bearer. Si l'enganxes amb Bearer, la boia el neteja automàticament.</div></div>";
@@ -1109,6 +1061,9 @@ static String buildConfigExportJson(bool includePasswords) {
   json += "  \"ha_api_url\": \"" + jsonEscape(configHaApiUrl) + "\",\n";
   if (includePasswords) json += "  \"ha_api_token\": \"" + jsonEscape(configHaApiToken) + "\",\n";
   json += "  \"ha_history_entity_id\": \"" + jsonEscape(configHaHistoryEntityId) + "\",\n";
+  json += "  \"ha_internal_temperature_entity_id\": \"" + jsonEscape(configHaInternalTemperatureEntityId) + "\",\n";
+  json += "  \"ha_internal_humidity_entity_id\": \"" + jsonEscape(configHaInternalHumidityEntityId) + "\",\n";
+  json += "  \"ha_battery_entity_id\": \"" + jsonEscape(configHaBatteryEntityId) + "\",\n";
   json += "  \"ha_history_hours\": " + String(configHaHistoryHours) + ",\n";
   json += "  \"github_ota_enabled\": "; json += (configGithubOtaEnabled ? "true" : "false"); json += ",\n";
   json += "  \"github_manifest_url\": \"" + jsonEscape(configGithubManifestUrl) + "\",\n";
@@ -1747,6 +1702,14 @@ static String buildSystemPage() {
   html += "'>" + (isnan(appState.lastInternalHumidityPercent) ? String("Sense dades") : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %") + "</div></div>";
   html += "<div class='item'><div class='label'>Estat sensor</div><div class='value'>" + htmlEscape(appState.internalEnvStatus) + "</div><div class='small'>" + htmlEscape(appState.internalEnvLastError) + "</div></div>";
   html += "<div class='item'><div class='label'>Bus I2C</div><div class='value'>0x44</div><div class='small'>SDA GPIO6 · SCL GPIO7</div></div></div>";
+  html += "<h3>Històric de l'ambient interior</h3>";
+  appendStatisticsHistoryPanel(html, "internal-temp-history-chart", "Temperatura interior de la boia", configHaInternalTemperatureEntityId);
+  appendStatisticsHistoryPanel(html, "internal-humidity-history-chart", "Humitat interior de la boia", configHaInternalHumidityEntityId);
+  if (configHaBatteryEntityId.length() > 0) {
+    appendStatisticsHistoryPanel(html, "battery-history-chart", "Bateria de la boia", configHaBatteryEntityId);
+  } else {
+    html += "<div class='item'><div class='label'>Històric de bateria · futur</div><div class='small'>El component gràfic ja està preparat. Apareixerà quan hi hagi sensor de bateria i configuris el seu Entity ID a MQTT / HA → Home Assistant.</div></div>";
+  }
   html += "<h3>Configuració de valors i alarmes</h3><form method='POST' action='/internal-env-alarm'><div><label><input name='alarm_enabled' type='checkbox' value='1' ";
   html += configInternalEnvAlarmEnabled ? "checked" : "";
   html += ">Activar alarmes de temperatura i humitat interior de la boia</label></div><div class='grid'>";
@@ -2382,9 +2345,16 @@ static void handleConfigImportPost() {
   if (extractJsonStringValue(json, "ha_api_url", sv)) haApiUrl = sv;
   if (extractJsonStringValue(json, "ha_api_token", sv)) haApiToken = sv;
   if (extractJsonStringValue(json, "ha_history_entity_id", sv)) haHistoryEntity = sv;
+  String haInternalTemperatureEntity = configHaInternalTemperatureEntityId;
+  String haInternalHumidityEntity = configHaInternalHumidityEntityId;
+  String haBatteryEntity = configHaBatteryEntityId;
+  if (extractJsonStringValue(json, "ha_internal_temperature_entity_id", sv)) haInternalTemperatureEntity = sv;
+  if (extractJsonStringValue(json, "ha_internal_humidity_entity_id", sv)) haInternalHumidityEntity = sv;
+  if (extractJsonStringValue(json, "ha_battery_entity_id", sv)) haBatteryEntity = sv;
   uint16_t haHistoryHours = configHaHistoryHours;
   if (extractJsonUInt16Value(json, "ha_history_hours", uv)) haHistoryHours = uv;
   saveHomeAssistantApiConfig(haApiEnabled, haApiUrl, haApiToken, haHistoryEntity, haHistoryHours);
+  saveHomeAssistantStatisticsEntities(haInternalTemperatureEntity, haInternalHumidityEntity, haBatteryEntity);
 
   bool githubEnabled = configGithubOtaEnabled;
   String githubManifest = configGithubManifestUrl;
@@ -2733,9 +2703,13 @@ static void handleHaApiPost() {
   String apiToken = server.hasArg("ha_api_token") ? server.arg("ha_api_token") : "";
   if (apiToken.length() == 0) apiToken = configHaApiToken;
   String entityId = server.hasArg("ha_history_entity") ? server.arg("ha_history_entity") : DEFAULT_HA_HISTORY_ENTITY_ID;
-  uint16_t hours = server.hasArg("ha_history_hours") ? (uint16_t)server.arg("ha_history_hours").toInt() : DEFAULT_HA_HISTORY_HOURS;
+  uint16_t hours = configHaHistoryHours;
+  String internalTemperatureEntityId = server.hasArg("ha_internal_temperature_entity") ? server.arg("ha_internal_temperature_entity") : DEFAULT_HA_INTERNAL_TEMPERATURE_ENTITY_ID;
+  String internalHumidityEntityId = server.hasArg("ha_internal_humidity_entity") ? server.arg("ha_internal_humidity_entity") : DEFAULT_HA_INTERNAL_HUMIDITY_ENTITY_ID;
+  String batteryEntityId = server.hasArg("ha_battery_entity") ? server.arg("ha_battery_entity") : "";
 
   saveHomeAssistantApiConfig(enabled, apiUrl, apiToken, entityId, hours);
+  saveHomeAssistantStatisticsEntities(internalTemperatureEntityId, internalHumidityEntityId, batteryEntityId);
 
   server.send(
     200,
@@ -2826,6 +2800,100 @@ static void handleHaHistoryGet() {
   }
 
   server.send(200, "application/json", compact);
+}
+
+static bool isConfiguredHaStatisticsEntity(const String& entityId) {
+  return entityId == configHaHistoryEntityId ||
+         entityId == configHaInternalTemperatureEntityId ||
+         entityId == configHaInternalHumidityEntityId ||
+         (configHaBatteryEntityId.length() > 0 && entityId == configHaBatteryEntityId);
+}
+
+static void handleHaStatisticsGet() {
+  if (!configHaApiEnabled || !isWifiConnected() || configHaApiToken.length() == 0) {
+    server.send(200, "application/json", "{\"error\":\"Estadístiques HA no disponibles: revisa API, Wi-Fi i token\"}");
+    return;
+  }
+
+  String entityId = server.hasArg("entity") ? server.arg("entity") : "";
+  String startIso = server.hasArg("start") ? server.arg("start") : "";
+  String endIso = server.hasArg("end") ? server.arg("end") : "";
+  String period = server.hasArg("period") ? server.arg("period") : "hour";
+  entityId.trim();
+  startIso.trim();
+  endIso.trim();
+  period.trim();
+
+  if (!isConfiguredHaStatisticsEntity(entityId) || startIso.length() == 0 || endIso.length() == 0) {
+    server.send(400, "application/json", "{\"error\":\"Entitat o interval estadístic no vàlid\"}");
+    return;
+  }
+  if (period != "hour" && period != "day" && period != "week" && period != "month") {
+    server.send(400, "application/json", "{\"error\":\"Resolució estadística no vàlida\"}");
+    return;
+  }
+
+  String url = normalizedHaApiUrl(configHaApiUrl) + "/api/services/recorder/get_statistics?return_response";
+  String request = "{\"statistic_ids\":[\"" + jsonEscape(entityId) + "\"],";
+  request += "\"start_time\":\"" + jsonEscape(startIso) + "\",";
+  request += "\"end_time\":\"" + jsonEscape(endIso) + "\",";
+  request += "\"period\":\"" + period + "\",";
+  request += "\"types\":[\"mean\",\"min\",\"max\"]}";
+
+  HTTPClient http;
+  int code = -1;
+  String payload;
+  if (url.startsWith("https://")) {
+    WiFiClientSecure client;
+    client.setInsecure();
+    if (!http.begin(client, url)) {
+      server.send(200, "application/json", "{\"error\":\"No puc obrir connexió HTTPS amb HA\"}");
+      return;
+    }
+    http.useHTTP10(true);
+    http.setTimeout(25000);
+    http.addHeader("Authorization", "Bearer " + configHaApiToken);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Accept", "application/json");
+    code = http.POST(request);
+    if (code > 0) payload = http.getString();
+    http.end();
+  } else {
+    WiFiClient client;
+    if (!http.begin(client, url)) {
+      server.send(200, "application/json", "{\"error\":\"No puc obrir connexió HTTP amb HA\"}");
+      return;
+    }
+    http.useHTTP10(true);
+    http.setTimeout(25000);
+    http.addHeader("Authorization", "Bearer " + configHaApiToken);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Accept", "application/json");
+    code = http.POST(request);
+    if (code > 0) payload = http.getString();
+    http.end();
+  }
+
+  if (code != 200 || payload.length() == 0) {
+    String error = "{\"error\":\"HA statistics HTTP " + String(code) + "";
+    if (code == 400 || code == 404) error += ": recorder.get_statistics no disponible o entitat sense estadístiques";
+    else if (code == 401) error += ": token no autoritzat";
+    error += "\"}";
+    server.send(200, "application/json", error);
+    return;
+  }
+
+  int statisticsPos = payload.indexOf("\"statistics\"");
+  int entityPos = statisticsPos >= 0 ? payload.indexOf("\"" + entityId + "\"", statisticsPos) : -1;
+  int arrayStart = entityPos >= 0 ? payload.indexOf('[', entityPos) : -1;
+  int arrayEnd = arrayStart >= 0 ? payload.indexOf(']', arrayStart) : -1;
+  if (arrayStart >= 0 && arrayEnd >= arrayStart) {
+    payload.remove(arrayEnd + 1);
+    payload.remove(0, arrayStart);
+  }
+
+  server.sendHeader("Cache-Control", "no-store");
+  server.send(200, "application/json", payload);
 }
 
 static void handleMqttPost() {
@@ -3551,6 +3619,18 @@ static String buildStatusJsonPayload() {
   json += jsonEscape(configHaHistoryEntityId);
   json += "\",";
 
+  json += "\"ha_internal_temperature_entity_id\":\"";
+  json += jsonEscape(configHaInternalTemperatureEntityId);
+  json += "\",";
+
+  json += "\"ha_internal_humidity_entity_id\":\"";
+  json += jsonEscape(configHaInternalHumidityEntityId);
+  json += "\",";
+
+  json += "\"ha_battery_entity_id\":\"";
+  json += jsonEscape(configHaBatteryEntityId);
+  json += "\",";
+
   json += "\"ha_history_hours\":";
   json += String(configHaHistoryHours);
   json += ",";
@@ -3670,6 +3750,7 @@ void setupWebServer() {
   server.on("/mqtt-discovery", HTTP_POST, handleMqttDiscoveryPost);
   server.on("/ha-api", HTTP_POST, handleHaApiPost);
   server.on("/ha-history", HTTP_GET, handleHaHistoryGet);
+  server.on("/ha-statistics", HTTP_GET, handleHaStatisticsGet);
   server.on("/ha-history-settings", HTTP_POST, handleHaHistorySettingsPost);
   server.on("/system", HTTP_GET, handleSystemGet);
   server.on("/maintenance", HTTP_GET, handleMaintenanceGet);

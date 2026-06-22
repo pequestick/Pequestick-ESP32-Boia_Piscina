@@ -127,6 +127,22 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("requestedOffset == localOtaReceivedSize", web)
         self.assertIn("es pot reprendre des del byte", web)
 
+    def test_home_assistant_statistics_cover_all_history_ranges_and_sensors(self):
+        config = Path("src/AppConfig.cpp").read_text(encoding="utf-8")
+        web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+
+        self.assertIn("/api/services/recorder/get_statistics?return_response", web)
+        self.assertIn('request += "\\\"types\\\":[\\\"mean\\\",\\\"min\\\",\\\"max\\\"]}"', web)
+        for history_range in ("48h", "31d", "6m", "1y"):
+            self.assertIn("key==='" + history_range + "'", web)
+        self.assertIn("configHaInternalTemperatureEntityId", web)
+        self.assertIn("configHaInternalHumidityEntityId", web)
+        self.assertIn("configHaBatteryEntityId", web)
+        self.assertIn('preferences.getString("ha_battery"', config)
+        self.assertIn("Mínim–màxim", web)
+        self.assertNotIn("<h2>Lectures</h2>", web)
+        self.assertNotIn("<h2>Comunicacions</h2>", web)
+
 
 if __name__ == "__main__":
     unittest.main()

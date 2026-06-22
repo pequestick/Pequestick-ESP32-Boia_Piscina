@@ -27,6 +27,9 @@ extern const bool DEFAULT_HA_API_ENABLED;
 extern const char* DEFAULT_HA_API_URL;
 extern const char* DEFAULT_HA_API_TOKEN;
 extern const char* DEFAULT_HA_HISTORY_ENTITY_ID;
+extern const char* DEFAULT_HA_INTERNAL_TEMPERATURE_ENTITY_ID;
+extern const char* DEFAULT_HA_INTERNAL_HUMIDITY_ENTITY_ID;
+extern const char* DEFAULT_HA_BATTERY_ENTITY_ID;
 extern const uint16_t DEFAULT_HA_HISTORY_HOURS;
 extern const uint16_t MIN_HA_HISTORY_HOURS;
 extern const uint16_t MAX_HA_HISTORY_HOURS;
@@ -173,6 +176,9 @@ extern bool configHaApiEnabled;
 extern String configHaApiUrl;
 extern String configHaApiToken;
 extern String configHaHistoryEntityId;
+extern String configHaInternalTemperatureEntityId;
+extern String configHaInternalHumidityEntityId;
+extern String configHaBatteryEntityId;
 extern uint16_t configHaHistoryHours;
 
 void loadConfig();
@@ -222,6 +228,7 @@ void saveHomeAssistantConfig(
 
 void resetHomeAssistantConfigToDefaults();
 void saveHomeAssistantApiConfig(bool apiEnabled, const String& apiUrl, const String& apiToken, const String& historyEntityId, uint16_t historyHours);
+void saveHomeAssistantStatisticsEntities(const String& internalTemperatureEntityId, const String& internalHumidityEntityId, const String& batteryEntityId);
 String normalizedHaApiUrl(const String& apiUrl);
 String normalizedHaEntityId(const String& entityId);
 String normalizedHaDiscoveryPrefix(const String& prefix);

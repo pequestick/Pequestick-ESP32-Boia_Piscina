@@ -31,6 +31,9 @@ const bool DEFAULT_HA_API_ENABLED = false;
 const char* DEFAULT_HA_API_URL = "http://homeassistant.local:8123";
 const char* DEFAULT_HA_API_TOKEN = "";
 const char* DEFAULT_HA_HISTORY_ENTITY_ID = "sensor.boia_piscina_temperature";
+const char* DEFAULT_HA_INTERNAL_TEMPERATURE_ENTITY_ID = "sensor.boia_piscina_internal_temperature";
+const char* DEFAULT_HA_INTERNAL_HUMIDITY_ENTITY_ID = "sensor.boia_piscina_internal_humidity";
+const char* DEFAULT_HA_BATTERY_ENTITY_ID = "";
 const uint16_t DEFAULT_HA_HISTORY_HOURS = 168;
 const uint16_t MIN_HA_HISTORY_HOURS = 1;
 const uint16_t MAX_HA_HISTORY_HOURS = 168;
@@ -148,6 +151,9 @@ bool configHaApiEnabled = DEFAULT_HA_API_ENABLED;
 String configHaApiUrl = DEFAULT_HA_API_URL;
 String configHaApiToken = DEFAULT_HA_API_TOKEN;
 String configHaHistoryEntityId = DEFAULT_HA_HISTORY_ENTITY_ID;
+String configHaInternalTemperatureEntityId = DEFAULT_HA_INTERNAL_TEMPERATURE_ENTITY_ID;
+String configHaInternalHumidityEntityId = DEFAULT_HA_INTERNAL_HUMIDITY_ENTITY_ID;
+String configHaBatteryEntityId = DEFAULT_HA_BATTERY_ENTITY_ID;
 uint16_t configHaHistoryHours = DEFAULT_HA_HISTORY_HOURS;
 
 String configDeviceName = DEVICE_NAME;
@@ -400,6 +406,10 @@ void loadConfig() {
   configHaApiUrl = normalizedHaApiUrl(preferences.getString("ha_api_url", DEFAULT_HA_API_URL));
   configHaApiToken = normalizedHaApiToken(preferences.getString("ha_api_tok", DEFAULT_HA_API_TOKEN));
   configHaHistoryEntityId = normalizedHaEntityId(preferences.getString("ha_hist_ent", DEFAULT_HA_HISTORY_ENTITY_ID));
+  configHaInternalTemperatureEntityId = normalizedHaEntityId(preferences.getString("ha_int_temp", DEFAULT_HA_INTERNAL_TEMPERATURE_ENTITY_ID));
+  configHaInternalHumidityEntityId = normalizedHaEntityId(preferences.getString("ha_int_hum", DEFAULT_HA_INTERNAL_HUMIDITY_ENTITY_ID));
+  configHaBatteryEntityId = trimCopy(preferences.getString("ha_battery", DEFAULT_HA_BATTERY_ENTITY_ID));
+  if (configHaBatteryEntityId.length() > 0) configHaBatteryEntityId = normalizedHaEntityId(configHaBatteryEntityId);
   configHaHistoryHours = preferences.getUShort("ha_hist_hrs", DEFAULT_HA_HISTORY_HOURS);
 
   configDeviceName = normalizedDeviceName(preferences.getString("dev_name", DEVICE_NAME));
@@ -628,6 +638,9 @@ void factoryResetConfigAndSetupMode() {
   configHaApiUrl = DEFAULT_HA_API_URL;
   configHaApiToken = DEFAULT_HA_API_TOKEN;
   configHaHistoryEntityId = DEFAULT_HA_HISTORY_ENTITY_ID;
+  configHaInternalTemperatureEntityId = DEFAULT_HA_INTERNAL_TEMPERATURE_ENTITY_ID;
+  configHaInternalHumidityEntityId = DEFAULT_HA_INTERNAL_HUMIDITY_ENTITY_ID;
+  configHaBatteryEntityId = DEFAULT_HA_BATTERY_ENTITY_ID;
 
   configDeviceName = DEVICE_NAME;
   configDeviceHostname = DEFAULT_DEVICE_HOSTNAME;
@@ -811,6 +824,9 @@ void resetHomeAssistantConfigToDefaults() {
   configHaApiUrl = DEFAULT_HA_API_URL;
   configHaApiToken = DEFAULT_HA_API_TOKEN;
   configHaHistoryEntityId = DEFAULT_HA_HISTORY_ENTITY_ID;
+  configHaInternalTemperatureEntityId = DEFAULT_HA_INTERNAL_TEMPERATURE_ENTITY_ID;
+  configHaInternalHumidityEntityId = DEFAULT_HA_INTERNAL_HUMIDITY_ENTITY_ID;
+  configHaBatteryEntityId = DEFAULT_HA_BATTERY_ENTITY_ID;
   configHaHistoryHours = DEFAULT_HA_HISTORY_HOURS;
 
   preferences.begin("boia", false);
@@ -822,6 +838,9 @@ void resetHomeAssistantConfigToDefaults() {
   preferences.remove("ha_api_url");
   preferences.remove("ha_api_tok");
   preferences.remove("ha_hist_ent");
+  preferences.remove("ha_int_temp");
+  preferences.remove("ha_int_hum");
+  preferences.remove("ha_battery");
   preferences.remove("ha_hist_hrs");
   preferences.end();
 }
@@ -840,6 +859,20 @@ void saveHomeAssistantApiConfig(bool apiEnabled, const String& apiUrl, const Str
   preferences.putString("ha_api_tok", configHaApiToken);
   preferences.putString("ha_hist_ent", configHaHistoryEntityId);
   preferences.putUShort("ha_hist_hrs", configHaHistoryHours);
+  preferences.end();
+}
+
+void saveHomeAssistantStatisticsEntities(const String& internalTemperatureEntityId, const String& internalHumidityEntityId, const String& batteryEntityId) {
+  configHaInternalTemperatureEntityId = normalizedHaEntityId(internalTemperatureEntityId);
+  configHaInternalHumidityEntityId = normalizedHaEntityId(internalHumidityEntityId);
+  configHaBatteryEntityId = trimCopy(batteryEntityId);
+  if (configHaBatteryEntityId.length() > 0) configHaBatteryEntityId = normalizedHaEntityId(configHaBatteryEntityId);
+
+  preferences.begin("boia", false);
+  preferences.putString("ha_int_temp", configHaInternalTemperatureEntityId);
+  preferences.putString("ha_int_hum", configHaInternalHumidityEntityId);
+  if (configHaBatteryEntityId.length() > 0) preferences.putString("ha_battery", configHaBatteryEntityId);
+  else preferences.remove("ha_battery");
   preferences.end();
 }
 
