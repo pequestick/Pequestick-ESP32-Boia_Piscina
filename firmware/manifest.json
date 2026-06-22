@@ -1,10 +1,10 @@
 {
   "version": "1.14.0-ota-ui-sht41",
-  "build_sha": "77e2de3890aff717271a7dad8bad2fc3d0d9b8dd",
-  "build_short_sha": "77e2de3890af",
-  "build_date": "2026-06-20T22:36:54Z",
-  "size": 1509072,
-  "sha256": "70ad8bf3c31e102e594d2ce1a1d0bb72233eccd35a2e1729ee277e81f5b734b6",
+  "build_sha": "ba7756b642909465fe95917ef6623dbbeb56722f",
+  "build_short_sha": "ba7756b64290",
+  "build_date": "2026-06-22T07:30:31Z",
+  "size": 1520240,
+  "sha256": "434f05965e62037dad645b1235ac13f9cd9c69f4ba05904bcc50752558b0b97b",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
   "notes": "Assegura el reinici diferit de l'OTA, converteix el progres en modal, reordena el SHT41 i afegeix alarmes persistents i una particio de core dump."
 }
