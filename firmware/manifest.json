@@ -1,10 +1,10 @@
 {
-  "version": "1.18.0-sd-blackbox",
-  "build_sha": "d0f12f7d389b15e83db15989c84f3ec9de1af9df",
-  "build_short_sha": "d0f12f7d389b",
-  "build_date": "2026-06-25T11:36:40Z",
-  "size": 1652416,
-  "sha256": "6161fdc255c79ecd14e3bf41cbd9a3f952c7e476b9af28fbbdba2d4b25b8a10e",
+  "version": "1.19.0-sd-explorer-ui",
+  "build_sha": "821c103f91fccaef4301422a6a40429bbe8bbc20",
+  "build_short_sha": "821c103f91fc",
+  "build_date": "2026-06-25T12:01:32Z",
+  "size": 1664416,
+  "sha256": "86f076f0d5f654546f0864ec2859d18ffeae8b89f66035b6f31ff500e4f0861a",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Converteix la microSD en historics diaris, estadistiques precalculades, logs, blackbox, snapshot de configuracio, buffer MQTT offline i explorador/visor web de fitxers."
+  "notes": "Afegeix explorador SD tipus Windows sense canvi de pagina, visor modal de fitxers, uptime a la pagina inicial, textos min/max a la dreta i linies horitzontals de referencia al grafic."
 }
