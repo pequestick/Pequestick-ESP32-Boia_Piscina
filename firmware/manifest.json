@@ -1,10 +1,10 @@
 {
-  "version": "1.17.0-battery-config",
-  "build_sha": "0f806c8527d61293aa3c7af4080f5d08089bec5e",
-  "build_short_sha": "0f806c8527d6",
-  "build_date": "2026-06-25T10:46:08Z",
-  "size": 1623040,
-  "sha256": "bdef652e55d03b214901b4263ef32c7b903cb4f69148ecd5db73a762499e5d0e",
+  "version": "1.18.0-sd-pinfix",
+  "build_sha": "d5115041a20dc11fb28c05afc7108b44fda151eb",
+  "build_short_sha": "d5115041a20d",
+  "build_date": "2026-06-25T10:59:34Z",
+  "size": 1623184,
+  "sha256": "6a46643aaf8362686c90f8168a1033be5e66c1f9bd00283fcb6a7fd555f3dff2",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Afegeix configuracio web dels volts de bateria buida/plena, percentatge baix i calibratge ADC; tambe ajusta la fitxa inicial per evitar solapaments."
+  "notes": "Canvia la microSD als pins SPI recomanats per ESP32-C6 en Arduino: CS GPIO18, MOSI GPIO19, MISO GPIO20 i CLK GPIO21; baixa la velocitat SPI a 1 MHz per millorar la tolerancia amb cables Dupont."
 }
