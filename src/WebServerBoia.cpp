@@ -92,6 +92,34 @@ static String elapsedText(unsigned long whenMillis) {
   return "fa " + String(ageHour) + " h";
 }
 
+static String uptimeText(unsigned long seconds) {
+  unsigned long days = seconds / 86400UL;
+  seconds %= 86400UL;
+  unsigned long hours = seconds / 3600UL;
+  seconds %= 3600UL;
+  unsigned long minutes = seconds / 60UL;
+  seconds %= 60UL;
+
+  String out = "";
+  if (days > 0) {
+    out += String(days);
+    out += days == 1 ? " dia " : " dies ";
+  }
+  if (hours > 0 || days > 0) {
+    out += String(hours);
+    out += " h ";
+  }
+  if (minutes > 0 || hours > 0 || days > 0) {
+    out += String(minutes);
+    out += " min";
+  } else {
+    out += String(seconds);
+    out += " s";
+  }
+  out.trim();
+  return out;
+}
+
 static void redirectToMaintenanceOta() {
   server.sendHeader("Location", "/maintenance?section=mnt-ota", true);
   server.send(303, "text/plain", "");
@@ -180,7 +208,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "input[type=checkbox]{width:auto;transform:scale(1.2);margin-right:8px;}input[type=file]{padding:9px;}";
   html += ".password-wrap{position:relative;}.password-wrap input{padding-right:52px;}.eye-button{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:#1e293b;color:#e5e7eb;border:1px solid #475569;border-radius:9px;padding:7px 10px;font-size:15px;line-height:1;cursor:pointer;}";
   html += ".wifi-scan-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}.wifi-scan-list{display:grid;gap:7px;margin-top:10px}.wifi-network{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;background:#0b1220;border:1px solid #334155;padding:10px 12px}.wifi-network:hover{border-color:#38bdf8;background:rgba(56,189,248,.10)}.wifi-network-name{font-weight:850;overflow-wrap:anywhere}.wifi-network-meta{color:#94a3b8;font-size:12px;white-space:nowrap}";
-  html += "button,.action-link{display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#2563eb,#1d4ed8);color:white;border:0;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:850;cursor:pointer;text-decoration:none}button.secondary{background:#475569;}button.danger{background:#b91c1c;}.buttons{display:flex;gap:10px;flex-wrap:wrap;}";
+  html += "button,.action-link,.btn{display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#2563eb,#1d4ed8);color:white;border:0;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:850;cursor:pointer;text-decoration:none}button.secondary,.btn.secondary{background:#475569;}button.danger,.btn.danger{background:#b91c1c;}.buttons,.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}";
   html += "hr{border:0;border-top:1px solid #263449;margin:20px 0;}";
   html += ".footer{color:#94a3b8;font-size:12px;text-align:center;padding:16px 0 4px;margin-top:auto;}";
   html += ".tag{display:inline-flex;align-items:center;border:1px solid #334155;border-radius:999px;padding:5px 9px;background:#0b1220;color:#cbd5e1;font-size:12px;font-weight:750;margin:3px 4px 3px 0;}";
@@ -199,13 +227,14 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "button:disabled{opacity:.45;cursor:not-allowed;background:#334155;}";
   html += "pre{white-space:pre-wrap;word-break:break-word;background:#050b14;border:1px solid #334155;border-radius:14px;padding:14px;color:#dbeafe;}";
   html += "table{width:100%;border-collapse:collapse;margin-top:10px;background:#0b1220;border:1px solid #263449;border-radius:12px;overflow:hidden}th,td{padding:9px 10px;border-bottom:1px solid #263449;text-align:left;font-size:13px;vertical-align:top}th{color:#bae6fd;background:#111827;font-weight:900}td{color:#cbd5e1}tr:last-child td{border-bottom:0}code{background:#050b14;border:1px solid #263449;border-radius:6px;padding:2px 5px;color:#dbeafe}.file-preview{max-height:520px;overflow:auto;white-space:pre;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}";
+  html += ".sd-explorer{border:1px solid #263449;border-radius:16px;overflow:hidden;background:#0b1220}.sd-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border-bottom:1px solid #263449;background:#111827}.sd-address{flex:1;min-width:220px;border:1px solid #334155;background:#020617;border-radius:10px;padding:9px 11px;color:#dbeafe;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}.sd-status{font-size:12px;color:#94a3b8;padding:0 10px 10px}.sd-body{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:390px}.sd-tree{border-right:1px solid #263449;background:#0f172a;padding:10px;display:grid;align-content:start;gap:7px}.sd-tree button{justify-content:flex-start;width:100%;padding:9px 10px;background:#182235;border:1px solid #263449}.sd-tree button:hover{border-color:#38bdf8;background:rgba(56,189,248,.10)}.sd-pane{min-width:0}.sd-list-head,.sd-row{display:grid;grid-template-columns:42px minmax(0,1fr) 110px 150px;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #263449}.sd-list-head{color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:950;background:#101827}.sd-row{color:#cbd5e1;cursor:pointer;background:#0b1220}.sd-row:hover{background:rgba(56,189,248,.08)}.sd-row.selected{background:rgba(56,189,248,.16);outline:1px solid rgba(56,189,248,.35);outline-offset:-1px}.sd-icon{font-size:20px;text-align:center}.sd-name{font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sd-meta{font-size:12px;color:#94a3b8}.sd-empty{padding:24px;color:#94a3b8}.sd-modal{position:fixed;inset:0;z-index:2200;background:rgba(2,6,23,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px}.sd-modal.hidden{display:none}.sd-dialog{width:min(1040px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;background:#0f172a;border:1px solid rgba(56,189,248,.35);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.65);overflow:hidden}.sd-dialog-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:14px 16px;border-bottom:1px solid #263449;background:#111827}.sd-dialog-title{font-weight:950;color:#e0f2fe}.sd-dialog-path{font-size:12px;color:#94a3b8;margin-top:4px;word-break:break-all}.sd-dialog-actions{display:flex;gap:8px;flex-wrap:wrap}.sd-preview{margin:0;padding:14px;overflow:auto;white-space:pre;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45;color:#dbeafe;background:#020617;min-height:300px}";
   html += ".temp-card{position:relative;overflow:hidden;min-height:350px;padding-bottom:92px;}";
   html += ".temp-card canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.26;pointer-events:none;}";
-  html += ".temp-card .temp-content{position:relative;z-index:1}.temp-card h2{padding-right:210px}.temp-battery-card{margin-top:16px;max-width:360px;}";
+  html += ".temp-card .temp-content{position:relative;z-index:1}.temp-card h2{padding-right:210px}.temp-metric-row{display:grid;grid-template-columns:repeat(2,minmax(0,360px));gap:12px;margin-top:16px;max-width:760px}.temp-battery-card,.temp-uptime-card{margin-top:0;max-width:none;}";
   html += ".temp-trend{display:inline-block;margin-left:9px;font-size:36px;font-weight:950;line-height:1;vertical-align:7px;text-shadow:0 2px 12px rgba(0,0,0,.35)}.temp-trend.up{color:#22c55e}.temp-trend.down{color:#ef4444}.temp-trend.stable{color:#facc15}.temp-trend.pending{visibility:hidden}";
   html += ".internal-mini{position:absolute;top:0;right:0;display:flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid rgba(125,211,252,.24);border-radius:10px;background:rgba(2,6,23,.58);font-size:11px;color:#94a3b8;white-space:nowrap}.internal-mini b{color:#e0f2fe;font-size:12px}.internal-mini .separator{color:#475569;margin:0 1px}";
   html += ".chart-note{position:absolute;right:18px;bottom:12px;color:#94a3b8;font-size:11px;z-index:2}.history-toolbar{position:absolute;left:18px;bottom:38px;z-index:3;display:flex;gap:5px;flex-wrap:wrap}.history-range{padding:5px 8px;border-radius:999px;background:rgba(15,23,42,.82);border:1px solid #334155;font-size:11px;color:#cbd5e1}.history-range.active{border-color:var(--range-color,#38bdf8);box-shadow:0 0 0 2px color-mix(in srgb,var(--range-color,#38bdf8) 24%,transparent);color:#fff}.chart-legend{position:absolute;left:18px;bottom:12px;z-index:2;display:flex;gap:12px;color:#94a3b8;font-size:11px}.legend-item{display:inline-flex;align-items:center;gap:5px}.legend-line{width:18px;height:2px;background:var(--range-color,#38bdf8)}.legend-band{width:18px;height:8px;border:1px solid var(--range-color,#38bdf8);background:color-mix(in srgb,var(--range-color,#38bdf8) 22%,transparent)}.history-panel{position:relative;overflow:hidden;min-height:270px}.history-panel canvas{position:absolute;inset:48px 0 0;width:100%;height:calc(100% - 48px);opacity:.72;pointer-events:none}.history-panel h3{position:relative;z-index:2;margin:0;padding-right:12px}.history-panel .history-toolbar{top:46px;bottom:auto}.history-panel .chart-note,.history-panel .chart-legend{bottom:10px}";
-  html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.temp-trend{font-size:29px;vertical-align:5px}.temp-card{min-height:390px;padding-bottom:105px}.temp-card h2{padding-right:165px}.temp-battery-card{max-width:none}.internal-mini{font-size:10px;padding:5px 7px;gap:4px}.internal-mini b{font-size:11px}.history-toolbar{left:12px;bottom:40px}.chart-legend{left:12px;gap:8px}.chart-note{right:12px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}}";
+  html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.temp-trend{font-size:29px;vertical-align:5px}.temp-card{min-height:390px;padding-bottom:105px}.temp-card h2{padding-right:165px}.temp-metric-row{grid-template-columns:1fr;max-width:none}.temp-battery-card{max-width:none}.internal-mini{font-size:10px;padding:5px 7px;gap:4px}.internal-mini b{font-size:11px}.history-toolbar{left:12px;bottom:40px}.chart-legend{left:12px;gap:8px}.chart-note{right:12px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}.sd-body{grid-template-columns:1fr}.sd-tree{border-right:0;border-bottom:1px solid #263449;grid-template-columns:repeat(2,minmax(0,1fr))}.sd-list-head,.sd-row{grid-template-columns:34px minmax(0,1fr) 82px}.sd-list-head .sd-col-type,.sd-row .sd-col-type{display:none}}";
   html += "</style>";
 
   html += "<script>";
@@ -214,20 +243,31 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "function txt(id,v){var e=document.getElementById(id);if(e)e.textContent=(v===null||v===undefined)?'--':v;}";
   html += "function cls(id,c){var e=document.getElementById(id);if(e){e.classList.remove('ok','warn','bad');e.classList.add(c);}}";
   html += "function service(id,on,bad,text){var e=document.getElementById(id);if(!e)return;e.classList.remove('ok','warn','bad');e.classList.add(on?'ok':(bad?'bad':'warn'));if(text!==undefined){var sp=e.querySelector('span:last-child');if(sp)sp.textContent=text;}}";
-  html += "function bytesHuman(n){n=parseInt(n||0,10);if(!n)return '--';if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(1)+' KB';return (n/1048576).toFixed(2)+' MB';}";
+  html += "function bytesHuman(n){n=parseInt(n||0,10);if(!n)return '--';if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(1)+' KB';if(n<1073741824)return (n/1048576).toFixed(2)+' MB';return (n/1073741824).toFixed(2)+' GB';}";
+  html += "function uptimeHuman(sec){sec=parseInt(sec||0,10);var d=Math.floor(sec/86400);sec%=86400;var h=Math.floor(sec/3600);sec%=3600;var m=Math.floor(sec/60);if(d>0)return d+' d '+h+' h '+m+' min';if(h>0)return h+' h '+m+' min';if(m>0)return m+' min';return sec+' s';}";
   html += "function updateGithubOtaStatus(d){var internetCls=d.internet_check_done?(d.internet_check_ok?'ok':'bad'):'info';var ghCls=d.github_update_checked?(d.github_update_ok?'ok':'bad'):'info';var updCls='info';if(d.github_update_checked){if(d.github_update_available)updCls='warn';else if(d.github_remote_older)updCls='bad';else if(d.github_update_ok)updCls='ok';}txt('ota-internet-main',d.internet_check_done?d.internet_check_message:'Comprovant...');txt('ota-internet-meta',(d.internet_check_details||'')+(d.internet_resolved_ip?' · DNS '+d.internet_resolved_ip:'')+(d.internet_check_done?' · última prova ara':''));txt('ota-github-main',d.github_update_checked?(d.github_update_ok?'Manifest llegit':'Manifest fallit'):'Comprovant...');txt('ota-github-version',d.github_update_version||'--');txt('ota-github-sha',d.github_update_sha_short||d.github_update_sha||'--');txt('ota-github-date',d.github_update_date||'--');txt('ota-update-main',d.github_update_message||'Encara no comprovat');txt('ota-update-details',d.github_update_details||'');cls('ota-internet-tile',internetCls);cls('ota-github-tile',ghCls);cls('ota-update-tile',updCls);cls('ota-internet-main',internetCls);cls('ota-github-main',ghCls);cls('ota-update-main',updCls);var b=document.getElementById('github-install-button');if(b){b.disabled=!(d.github_update_available||(d.github_remote_same_version&&d.github_allow_same_version_update));}}";
   html += "function updateOtaProgress(d){txt('live-internal-temp',d.internal_temperature_c===null?'Sense dades':d.internal_temperature_c+' °C');txt('live-internal-humidity',d.internal_humidity_percent===null?'Sense dades':d.internal_humidity_percent+' %');var card=document.getElementById('ota-progress-card');if(!card)return;var pct=parseInt(d.ota_progress_percent||0,10);var inProg=!!d.ota_in_progress;var phase=d.ota_progress_phase||'espera';var source=d.ota_progress_source||'cap';var active=(source!=='cap'&&phase!=='espera')||inProg;var interrupted=sessionStorage.getItem('boiaOtaPending')==='1'&&!active;if(interrupted){active=true;source='OTA';phase='interrompuda';}if(phase==='error'||phase==='completada')sessionStorage.removeItem('boiaOtaPending');if(active)card.classList.remove('hidden');else card.classList.add('hidden');setOtaModal(active);var fill=document.getElementById('ota-progress-fill');var pctEl=document.getElementById('ota-progress-percent');var phaseEl=document.getElementById('ota-progress-phase');var msgEl=document.getElementById('ota-progress-message');var bytesEl=document.getElementById('ota-progress-bytes');card.classList.remove('done','error');if(phase==='error'||interrupted)card.classList.add('error');if(phase==='completada')card.classList.add('done');if(fill){fill.classList.remove('indeterminate');if(inProg&&(!pct||pct<1)){fill.classList.add('indeterminate');fill.style.width='38%';}else{fill.style.width=Math.max(0,Math.min(100,pct))+'%';}}if(pctEl)pctEl.textContent=(pct?pct:0)+'%';if(phaseEl)phaseEl.textContent=(source||'OTA')+' · '+phase;if(msgEl)msgEl.textContent=interrupted?'L actualitzacio ha perdut la connexio o la boia ha reiniciat. Comprova la versio i el log abans de repetir-la.':(d.ota_last_message||'Esperant accio OTA');if(bytesEl)bytesEl.textContent=bytesHuman(d.ota_progress_bytes)+' / '+bytesHuman(d.ota_progress_total);var log=document.getElementById('ota-log');if(log&&d.ota_log!==undefined){var atBottom=(log.scrollTop+log.clientHeight+24)>=log.scrollHeight;log.textContent=d.ota_log||'Sense log OTA';if(atBottom)log.scrollTop=log.scrollHeight;}}";
   html += "function runOtaAutoChecks(){if(location.pathname!=='/maintenance'||location.search.indexOf('section=mnt-ota')<0)return;txt('ota-internet-main','Comprovant...');txt('ota-github-main','Comprovant...');fetch('/internet-check-run',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){applyStatus(d);return fetch('/github-check-update-run',{cache:'no-store'});}).then(function(r){return r.json();}).then(function(d){applyStatus(d);}).catch(function(){txt('ota-update-main','No puc actualitzar estat OTA');txt('ota-update-details','La comprovació automàtica ha fallat. Prova els botons manuals.');});}";
-  html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-battery',d.battery_percent===null?'Sense dades':d.battery_percent+' %');txt('live-battery-voltage',d.battery_voltage===null?'Sense dades':d.battery_voltage+' V');txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',d.uptime_seconds+' s');txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-sd',d.sd_mounted,d.sd_enabled&&!d.sd_mounted,d.sd_enabled?(d.sd_mounted?'OK':'Error'):'Off');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateGithubOtaStatus(d);updateOtaProgress(d);}";
+  html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-battery',d.battery_percent===null?'Sense dades':d.battery_percent+' %');txt('live-battery-voltage',d.battery_voltage===null?'Sense dades':d.battery_voltage+' V');txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',uptimeHuman(d.uptime_seconds));txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-sd',d.sd_mounted,d.sd_enabled&&!d.sd_mounted,d.sd_enabled?(d.sd_mounted?'OK':'Error'):'Off');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateGithubOtaStatus(d);updateOtaProgress(d);}";
   html += "function startWS(){if(location.pathname==='/login'||location.pathname==='/change-password')return;try{var ws=new WebSocket('ws://'+location.hostname+':81/');ws.onmessage=function(ev){try{applyStatus(JSON.parse(ev.data));}catch(e){}};ws.onclose=function(){setTimeout(startWS,3000);};ws.onerror=function(){try{ws.close();}catch(e){}};}catch(e){}}";
   html += "function bindConfirms(){document.querySelectorAll('form[data-confirm]').forEach(function(f){if(f.id==='ota-local-form'||f.id==='github-install-form')return;f.addEventListener('submit',function(e){if(!confirm(f.getAttribute('data-confirm'))){e.preventDefault();}});});}";
   html += "function bindAccordion(){document.querySelectorAll('.menu-toggle').forEach(function(btn){btn.addEventListener('click',function(){var g=btn.closest('.menu-group');if(!g)return;var isOpen=g.classList.contains('open');document.querySelectorAll('.menu-group.has-sub').forEach(function(x){x.classList.remove('open');});if(!isOpen)g.classList.add('open');});});}";
   html += "function applySubpage(){var links=[].slice.call(document.querySelectorAll('.subtab'));if(!links.length)return;var params=new URLSearchParams(location.search);var selected=params.get('section');var ids=[];links.forEach(function(a){var u=new URL(a.href,location.href);var id=u.searchParams.get('section');if(id){ids.push(id);}});if(!selected||ids.indexOf(selected)<0)selected=ids[0];ids.forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=(id===selected)?'':'none';});document.querySelectorAll('.subpage-extra').forEach(function(el){el.style.display=(el.getAttribute('data-parent')===selected)?'':'none';});links.forEach(function(a){var u=new URL(a.href,location.href);a.classList.toggle('active',u.searchParams.get('section')===selected);});}";
+  html += "function sdParentPath(path){path=(path||'/boia').replace(/\\\\/g,'/');if(path.length>1&&path.endsWith('/'))path=path.slice(0,-1);var i=path.lastIndexOf('/');return i<=0?'/':path.slice(0,i);}";
+  html += "function sdName(path){path=(path||'').replace(/\\\\/g,'/');var i=path.lastIndexOf('/');return i>=0?path.slice(i+1):path;}";
+  html += "function sdIcon(item){if(item.directory)return '📁';var n=(item.name||'').toLowerCase();if(n.endsWith('.csv'))return '📊';if(n.endsWith('.json')||n.endsWith('.jsonl'))return '🧾';if(n.endsWith('.log')||n.endsWith('.txt'))return '📄';return '📦';}";
+  html += "function sdSetStatus(msg,bad){var e=document.getElementById('sd-explorer-status');if(e){e.textContent=msg||'';e.classList.toggle('bad',!!bad);}}";
+  html += "function sdSelectRow(row,item){document.querySelectorAll('.sd-row.selected').forEach(function(x){x.classList.remove('selected');});if(row)row.classList.add('selected');var b=document.getElementById('sd-download-selected');if(b){b.disabled=!!(item&&item.directory);b.dataset.path=(item&&!item.directory)?item.path:'';}}";
+  html += "function renderSdExplorer(data){var list=document.getElementById('sd-file-list'),addr=document.getElementById('sd-address');if(!list)return;var path=(data&&data.path)||'/boia';if(addr)addr.value=path;list.replaceChildren();if(!data||!data.mounted){list.innerHTML=\"<div class='sd-empty bad'>SD no muntada.</div>\";sdSetStatus('SD no muntada',true);return;}var items=Array.isArray(data.items)?data.items:[];items.sort(function(a,b){if(a.directory!==b.directory)return a.directory?-1:1;return String(a.name).localeCompare(String(b.name));});sdSetStatus(items.length+' elements a '+path,false);if(!items.length){list.innerHTML=\"<div class='sd-empty'>Directori buit</div>\";return;}items.forEach(function(item){var row=document.createElement('div');row.className='sd-row';row.innerHTML=\"<div class='sd-icon'></div><div class='sd-name'></div><div class='sd-meta'></div><div class='sd-meta sd-col-type'></div>\";row.querySelector('.sd-icon').textContent=sdIcon(item);row.querySelector('.sd-name').textContent=item.name||sdName(item.path);row.querySelectorAll('.sd-meta')[0].textContent=item.directory?'--':bytesHuman(item.size);row.querySelector('.sd-col-type').textContent=item.directory?'Directori':'Fitxer';row.addEventListener('click',function(){sdSelectRow(row,item);});row.addEventListener('dblclick',function(){if(item.directory)loadSdExplorer(item.path);else openSdFileModal(item.path,item.name);});list.appendChild(row);});}";
+  html += "async function loadSdExplorer(path){var root=document.getElementById('sd-explorer');if(!root)return;path=path||root.dataset.startPath||'/boia';sdSetStatus('Carregant '+path+'...',false);try{var r=await fetch('/sd-list?path='+encodeURIComponent(path),{cache:'no-store'});var d=await r.json();renderSdExplorer(d);}catch(e){sdSetStatus('No puc llegir el directori: '+e.message,true);}}";
+  html += "async function openSdFileModal(path,name){var modal=document.getElementById('sd-file-modal');if(!modal)return;modal.classList.remove('hidden');txt('sd-modal-title',name||sdName(path));txt('sd-modal-path',path);var dl=document.getElementById('sd-modal-download');if(dl)dl.href='/sd-download?path='+encodeURIComponent(path);var pre=document.getElementById('sd-modal-content');if(pre)pre.textContent='Carregant fitxer...';try{var r=await fetch('/sd-read?path='+encodeURIComponent(path),{cache:'no-store'});var d=await r.json();if(!r.ok||d.error)throw new Error(d.error||('HTTP '+r.status));if(pre)pre.textContent=(d.truncated?'[Vista retallada: descarrega el fitxer per veure-l complet.]\\n\\n':'')+(d.content||'');}catch(e){if(pre)pre.textContent='No puc obrir el fitxer: '+e.message;}}";
+  html += "function closeSdFileModal(){var modal=document.getElementById('sd-file-modal');if(modal)modal.classList.add('hidden');}";
+  html += "function bindSdExplorer(){var root=document.getElementById('sd-explorer');if(!root)return;var addr=document.getElementById('sd-address');var openBtn=document.getElementById('sd-open-address');var upBtn=document.getElementById('sd-up-button');var refreshBtn=document.getElementById('sd-refresh-button');var dlBtn=document.getElementById('sd-download-selected');document.querySelectorAll('[data-sd-path]').forEach(function(b){b.addEventListener('click',function(){loadSdExplorer(b.getAttribute('data-sd-path'));});});if(openBtn)openBtn.addEventListener('click',function(){loadSdExplorer(addr?addr.value:'/boia');});if(addr)addr.addEventListener('keydown',function(e){if(e.key==='Enter')loadSdExplorer(addr.value);});if(upBtn)upBtn.addEventListener('click',function(){loadSdExplorer(sdParentPath(addr?addr.value:'/boia'));});if(refreshBtn)refreshBtn.addEventListener('click',function(){loadSdExplorer(addr?addr.value:'/boia');});if(dlBtn)dlBtn.addEventListener('click',function(){if(dlBtn.dataset.path)location.href='/sd-download?path='+encodeURIComponent(dlBtn.dataset.path);});var close=document.getElementById('sd-modal-close');if(close)close.addEventListener('click',closeSdFileModal);var modal=document.getElementById('sd-file-modal');if(modal)modal.addEventListener('click',function(e){if(e.target===modal)closeSdFileModal();});window.addEventListener('keydown',function(e){if(e.key==='Escape')closeSdFileModal();});loadSdExplorer(root.dataset.startPath||'/boia');}";
   html += "function extractHaPoints(raw){var out=[];try{if(raw&&Array.isArray(raw.points)){raw.points.forEach(function(x){var v=parseFloat(x.v);var tm=x.t;if(isFinite(v)&&tm){out.push({t:new Date(tm).getTime(),v:v});}});return out;}var arr=raw;if(Array.isArray(arr)&&Array.isArray(arr[0]))arr=arr[0];if(!Array.isArray(arr))return out;arr.forEach(function(x){var st=(x.state!==undefined)?x.state:x.s;var tm=x.last_changed||x.last_updated||x.lc||x.lu;var v=parseFloat(st);if(isFinite(v)&&tm){out.push({t:new Date(tm).getTime(),v:v});}});}catch(e){}return out;}";
   html += "function updateTempTrend(points){var e=document.getElementById('temp-trend');if(!e)return;e.className='temp-trend pending';if(!points||points.length<3)return;var lastT=points[points.length-1].t;var sample=points.filter(function(p){return p.t>=lastT-6*3600000;});if(sample.length<3)sample=points.slice(-3);var t0=sample[0].t,n=sample.length,sx=0,sy=0,sxy=0,sxx=0;sample.forEach(function(p){var x=(p.t-t0)/3600000;sx+=x;sy+=p.v;sxy+=x*p.v;sxx+=x*x;});var den=n*sxx-sx*sx;if(!den)return;var slope=(n*sxy-sx*sy)/den;var cls=slope>0.05?'up':(slope<-0.05?'down':'stable');var arrow=cls==='up'?'↑':(cls==='down'?'↓':'→');var label=cls==='up'?'L’aigua s’està escalfant':(cls==='down'?'L’aigua s’està refredant':'Temperatura estable');e.className='temp-trend '+cls;e.textContent=arrow;e.title=label+' · '+(slope>=0?'+':'')+slope.toFixed(2)+' °C/h · últimes '+((lastT-t0)/3600000).toFixed(1)+' h';e.setAttribute('aria-label',e.title);}";
   html += "function historyRangeSpec(key){var now=Date.now(),day=86400000;if(key==='31d')return{key:key,start:now-31*day,period:'day',label:'31 dies · resolució diària',hex:'#34d399',rgb:'52,211,153'};if(key==='6m')return{key:key,start:now-183*day,period:'day',label:'6 mesos · resolució diària',hex:'#a78bfa',rgb:'167,139,250'};if(key==='1y')return{key:key,start:now-365*day,period:'day',label:'1 any · resolució diària',hex:'#fb923c',rgb:'251,146,60'};return{key:'48h',start:now-48*3600000,period:'hour',label:'48 hores · resolució horària',hex:'#38bdf8',rgb:'56,189,248'};}";
   html += "function extractHaStatistics(raw,entity){var root=raw&&raw.service_response?raw.service_response:(raw&&raw.result?raw.result:raw);if(root&&root.statistics)root=root.statistics;var arr=Array.isArray(root)?root:(root&&root[entity]);if(!Array.isArray(arr))return[];var out=[];arr.forEach(function(x){var t=typeof x.start==='number'?x.start:new Date(x.start).getTime();var mean=parseFloat(x.mean),mn=parseFloat(x.min),mx=parseFloat(x.max);if(isFinite(t)&&isFinite(mean)){out.push({t:t,mean:mean,min:isFinite(mn)?mn:mean,max:isFinite(mx)?mx:mean});}});return out;}";
-  html += "function drawStatisticsChart(c,points,spec){if(!c)return;var note=document.getElementById(c.id+'-note');var ctx=c.getContext('2d'),r=c.getBoundingClientRect(),d=devicePixelRatio||1,w=Math.max(1,Math.floor(r.width*d)),h=Math.max(1,Math.floor(r.height*d));if(c.width!==w)c.width=w;if(c.height!==h)c.height=h;ctx.clearRect(0,0,w,h);var host=c.closest('.history-panel')||c.closest('.card');if(host)host.style.setProperty('--range-color',spec.hex);if(!points||points.length<2){if(note)note.textContent='Sense estadístiques HA per aquesta entitat';return;}var low=Math.min.apply(null,points.map(function(p){return p.min;})),high=Math.max.apply(null,points.map(function(p){return p.max;}));if(high-low<0.2){high+=0.1;low-=0.1;}var padY=h*.15,t0=points[0].t,t1=points[points.length-1].t;if(t1<=t0)t1=t0+1;var px=function(p){return(p.t-t0)/(t1-t0)*w;},py=function(v){return h-padY-(v-low)/(high-low)*(h-padY*2);};ctx.beginPath();points.forEach(function(p,i){var x=px(p),y=py(p.max);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});for(var i=points.length-1;i>=0;i--)ctx.lineTo(px(points[i]),py(points[i].min));ctx.closePath();ctx.fillStyle='rgba('+spec.rgb+',.20)';ctx.fill();ctx.lineWidth=Math.max(1,d);ctx.strokeStyle='rgba('+spec.rgb+',.50)';['max','min'].forEach(function(k){ctx.beginPath();points.forEach(function(p,i){if(i)ctx.lineTo(px(p),py(p[k]));else ctx.moveTo(px(p),py(p[k]));});ctx.stroke();});ctx.beginPath();points.forEach(function(p,i){if(i)ctx.lineTo(px(p),py(p.mean));else ctx.moveTo(px(p),py(p.mean));});ctx.lineWidth=Math.max(2,2*d);ctx.strokeStyle='rgba('+spec.rgb+',1)';ctx.stroke();ctx.font=(11*d)+'px sans-serif';ctx.fillStyle='rgba(226,232,240,.9)';ctx.fillText('Màx '+high.toFixed(1),6*d,Math.max(12*d,py(high)+12*d));ctx.fillText('Mín '+low.toFixed(1),6*d,Math.min(h-6*d,py(low)-5*d));if(note)note.textContent=spec.label;if(c.dataset.trend==='water')updateTempTrend(points.map(function(p){return{t:p.t,v:p.mean};}));}";
+  html += "function drawStatisticsChart(c,points,spec){if(!c)return;var note=document.getElementById(c.id+'-note');var ctx=c.getContext('2d'),r=c.getBoundingClientRect(),d=devicePixelRatio||1,w=Math.max(1,Math.floor(r.width*d)),h=Math.max(1,Math.floor(r.height*d));if(c.width!==w)c.width=w;if(c.height!==h)c.height=h;ctx.clearRect(0,0,w,h);var host=c.closest('.history-panel')||c.closest('.card');if(host)host.style.setProperty('--range-color',spec.hex);if(!points||points.length<2){if(note)note.textContent='Sense estadístiques HA per aquesta entitat';return;}var low=Math.min.apply(null,points.map(function(p){return p.min;})),high=Math.max.apply(null,points.map(function(p){return p.max;}));if(high-low<0.2){high+=0.1;low-=0.1;}var padY=h*.15,padL=8*d,padR=78*d,t0=points[0].t,t1=points[points.length-1].t;if(t1<=t0)t1=t0+1;var xMax=Math.max(padL+1,w-padR);var px=function(p){return padL+(p.t-t0)/(t1-t0)*(xMax-padL);},py=function(v){return h-padY-(v-low)/(high-low)*(h-padY*2);};ctx.save();ctx.lineWidth=Math.max(1,d);ctx.strokeStyle='rgba(148,163,184,.18)';ctx.fillStyle='rgba(148,163,184,.78)';ctx.font=(10*d)+'px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';for(var gi=0;gi<=4;gi++){var gv=low+(high-low)*gi/4,gy=py(gv);ctx.beginPath();ctx.moveTo(padL,gy);ctx.lineTo(xMax,gy);ctx.stroke();if(gi>0&&gi<4)ctx.fillText(gv.toFixed(1),xMax+7*d,gy);}ctx.restore();ctx.beginPath();points.forEach(function(p,i){var x=px(p),y=py(p.max);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});for(var i=points.length-1;i>=0;i--)ctx.lineTo(px(points[i]),py(points[i].min));ctx.closePath();ctx.fillStyle='rgba('+spec.rgb+',.20)';ctx.fill();ctx.lineWidth=Math.max(1,d);ctx.strokeStyle='rgba('+spec.rgb+',.50)';['max','min'].forEach(function(k){ctx.beginPath();points.forEach(function(p,i){if(i)ctx.lineTo(px(p),py(p[k]));else ctx.moveTo(px(p),py(p[k]));});ctx.stroke();});ctx.beginPath();points.forEach(function(p,i){if(i)ctx.lineTo(px(p),py(p.mean));else ctx.moveTo(px(p),py(p.mean));});ctx.lineWidth=Math.max(2,2*d);ctx.strokeStyle='rgba('+spec.rgb+',1)';ctx.stroke();ctx.font=(11*d)+'px sans-serif';ctx.fillStyle='rgba(226,232,240,.95)';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('Màx '+high.toFixed(1),xMax+7*d,Math.max(13*d,py(high)+11*d));ctx.fillText('Mín '+low.toFixed(1),xMax+7*d,Math.min(h-8*d,py(low)-8*d));if(note)note.textContent=spec.label;if(c.dataset.trend==='water')updateTempTrend(points.map(function(p){return{t:p.t,v:p.mean};}));}";
   html += "async function loadStatisticsChart(c,key){if(!c||!c.dataset.entity)return;var spec=historyRangeSpec(key||c.dataset.range||'48h'),end=new Date();c.dataset.range=spec.key;var note=document.getElementById(c.id+'-note');if(note)note.textContent='Carregant '+spec.label+'...';document.querySelectorAll('.history-range').forEach(function(b){if(b.dataset.target===c.id){b.classList.toggle('active',b.dataset.range===spec.key);b.style.setProperty('--range-color',spec.hex);}});try{var url='/ha-statistics?entity='+encodeURIComponent(c.dataset.entity)+'&period='+spec.period+'&start='+encodeURIComponent(new Date(spec.start).toISOString())+'&end='+encodeURIComponent(end.toISOString());var response=await fetch(url,{cache:'no-store'}),raw=await response.json();if(raw.error)throw new Error(raw.error);var points=extractHaStatistics(raw,c.dataset.entity);if(points.length<2)throw new Error('Home Assistant encara no té estadístiques per aquesta entitat');drawStatisticsChart(c,points,spec);}catch(error){if(c.dataset.trend==='water'&&spec.key==='48h'){try{var fallback=await fetch('/ha-history?hours=48&start='+encodeURIComponent(new Date(spec.start).toISOString())+'&end='+encodeURIComponent(end.toISOString())),legacy=await fallback.json();if(!legacy.error){var points=extractHaPoints(legacy).map(function(p){return{t:p.t,mean:p.v,min:p.v,max:p.v};});drawStatisticsChart(c,points,spec);return;}}catch(ignore){}}if(note)note.textContent=error.message||'No puc llegir estadístiques HA';}}";
   html += "function bindHistoryCharts(){document.querySelectorAll('.history-range').forEach(function(b){b.addEventListener('click',function(){loadStatisticsChart(document.getElementById(b.dataset.target),b.dataset.range);});});document.querySelectorAll('canvas.statistics-chart').forEach(function(c){if(c.offsetParent!==null)loadStatisticsChart(c,c.dataset.range||'48h');});}";
   html += "function setOtaModal(active){document.body.classList.toggle('ota-locked',!!active);}function showOtaProgress(source,msg){var card=document.getElementById('ota-progress-card');if(!card)return;sessionStorage.setItem('boiaOtaPending','1');card.classList.remove('hidden','done','error');setOtaModal(true);txt('ota-progress-phase',source+' · iniciant');txt('ota-progress-message',msg||'Preparant actualitzacio');txt('ota-progress-percent','0%');txt('ota-progress-bytes','-- / --');var fill=document.getElementById('ota-progress-fill');if(fill){fill.classList.remove('indeterminate');fill.style.width='0%';}}function dismissOtaProgress(){sessionStorage.removeItem('boiaOtaPending');var card=document.getElementById('ota-progress-card');if(card)card.classList.add('hidden');setOtaModal(false);}";
@@ -237,7 +277,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "async function uploadGithubFirmware(buffer,status){txt('ota-progress-phase','GitHub OTA · pujant a la boia');txt('ota-progress-message','Firmware descarregat. Pujant en blocs recuperables de 64 KiB...');await uploadFirmwareBlocks(buffer,status,'GitHub OTA');}";
   html += "async function installGithubViaBrowser(){showOtaProgress('GitHub OTA','Llegint el manifest publicat');var fill=document.getElementById('ota-progress-fill');if(fill)fill.classList.add('indeterminate');try{var check=await fetch('/github-check-update-run',{cache:'no-store'});if(!check.ok)throw new Error('No puc comprovar GitHub. HTTP '+check.status);var status=await check.json();if(!status.github_firmware_url||!status.github_firmware_sha256||!status.github_firmware_size)throw new Error('El manifest no porta URL, SHA-256 o mida valida');txt('ota-progress-phase','GitHub OTA · descarregant al navegador');txt('ota-progress-message','Descarregant '+bytesHuman(status.github_firmware_size)+' des de GitHub...');var separator=status.github_firmware_url.indexOf('?')>=0?'&':'?';var response=await fetch(status.github_firmware_url+separator+'build='+encodeURIComponent(status.github_update_sha||Date.now()),{cache:'no-store'});if(!response.ok)throw new Error('GitHub ha respost HTTP '+response.status);var buffer=await response.arrayBuffer();if(buffer.byteLength!==parseInt(status.github_firmware_size,10))throw new Error('Mida incorrecta: '+buffer.byteLength+' bytes');await uploadGithubFirmware(buffer,status);}catch(error){otaUiError(error.message||'Error OTA GitHub');}}";
   html += "function bindOtaForms(){var local=document.getElementById('ota-local-form');if(local){local.addEventListener('submit',async function(e){e.preventDefault();if(local.getAttribute('data-confirm')&&!confirm(local.getAttribute('data-confirm')))return;var input=document.getElementById('ota-local-file');if(!input||!input.files||!input.files.length){alert('Tria primer un firmware.bin');return;}showOtaProgress('OTA local','Llegint el fitxer i preparant blocs de 64 KiB');try{var buffer=await input.files[0].arrayBuffer();txt('ota-progress-phase','OTA local · pujant a la boia');await uploadFirmwareBlocks(buffer,{size:buffer.byteLength},'OTA local');}catch(error){otaUiError(error.message||'Error pujant firmware local');}});}var gh=document.getElementById('github-install-form');if(gh){gh.addEventListener('submit',function(e){e.preventDefault();if(gh.getAttribute('data-confirm')&&!confirm(gh.getAttribute('data-confirm')))return;installGithubViaBrowser();});}}";
-  html += "window.addEventListener('load',function(){bindConfirms();bindAccordion();applySubpage();startWS();bindHistoryCharts();bindOtaForms();setTimeout(runOtaAutoChecks,600);});";
+  html += "window.addEventListener('load',function(){bindConfirms();bindAccordion();applySubpage();startWS();bindHistoryCharts();bindSdExplorer();bindOtaForms();setTimeout(runOtaAutoChecks,600);});";
   html += "</script>";
 
   html += "</head>";
@@ -476,13 +516,18 @@ static String buildStatusPage() {
   html += "</b><span class='separator'>·</span><b id='live-internal-humidity'>";
   html += isnan(appState.lastInternalHumidityPercent) ? "Sense dades" : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %";
   html += "</b><span>HR</span></div>";
+  html += "<div class='temp-metric-row'>";
   html += "<div class='item temp-battery-card'><div class='label'>Bateria</div><div class='value' id='live-battery'>";
   html += batteryPercentText();
-  html += "</div><div class='small'>";
+  html += "</div><div class='small'><span id='live-battery-voltage'>";
   html += batteryVoltageText();
-  html += " · Estat: ";
+  html += "</span> · Estat: ";
   html += htmlEscape(batteryStatusText());
   html += "</div></div>";
+  html += "<div class='item temp-uptime-card'><div class='label'>Temps engegada</div><div class='value' id='live-uptime'>";
+  html += uptimeText(getUptimeSeconds());
+  html += "</div><div class='small'>Temps des de l'últim reinici de la boia</div></div>";
+  html += "</div>";
   html += "</div>";
   html += "<div class='history-toolbar'>";
   html += "<button class='history-range active' type='button' data-target='temp-history-chart' data-range='48h'>48 h</button>";
@@ -581,8 +626,48 @@ static String buildStoragePage() {
 
   html += "<div class='card'>";
   html += "<h2>Explorador de fitxers</h2>";
-  html += "<p class='hint'>Permet veure i descarregar CSV, JSON, JSONL i logs directament des de la boia. No és per editar fitxers a mà: és diagnòstic i exportació.</p>";
-  html += sdDirectoryListingHtml(browsePath);
+  html += "<p class='hint'>Explorador sense canvi de pàgina: doble clic a una carpeta per entrar-hi, doble clic a un fitxer per veure'l en una finestra modal. La descàrrega continua disponible per CSV, JSON, JSONL i logs.</p>";
+  if (!isSdMounted()) {
+    html += "<p class='hint bad'>SD no muntada. L'explorador s'activarà quan la targeta funcioni.</p>";
+  } else {
+    String cleanBrowse;
+    if (!normalizeSdPath(browsePath, cleanBrowse)) cleanBrowse = SD_BASE_DIR;
+    html += "<div id='sd-explorer' class='sd-explorer' data-start-path='" + htmlEscape(cleanBrowse) + "'>";
+    html += "<div class='sd-toolbar'>";
+    html += "<button id='sd-up-button' class='secondary' type='button'>⬆ Pujar</button>";
+    html += "<button id='sd-refresh-button' class='secondary' type='button'>🔄 Actualitzar</button>";
+    html += "<input id='sd-address' class='sd-address' type='text' value='" + htmlEscape(cleanBrowse) + "' spellcheck='false'>";
+    html += "<button id='sd-open-address' class='secondary' type='button'>Obrir ruta</button>";
+    html += "<button id='sd-download-selected' class='secondary' type='button' disabled>Descarregar seleccionat</button>";
+    html += "</div>";
+    html += "<div id='sd-explorer-status' class='sd-status'>Preparant explorador...</div>";
+    html += "<div class='sd-body'>";
+    html += "<div class='sd-tree'>";
+    html += "<button type='button' data-sd-path='/boia'>🏠 /boia</button>";
+    html += "<button type='button' data-sd-path='/boia/history'>📊 Històric</button>";
+    html += "<button type='button' data-sd-path='/boia/stats'>📈 Stats</button>";
+    html += "<button type='button' data-sd-path='/boia/logs'>📄 Logs</button>";
+    html += "<button type='button' data-sd-path='/boia/mqtt'>📡 Buffer MQTT</button>";
+    html += "<button type='button' data-sd-path='/boia/config'>⚙️ Config</button>";
+    html += "<button type='button' data-sd-path='/boia/blackbox'>🧰 Blackbox</button>";
+    html += "<button type='button' data-sd-path='/boia/system'>ℹ️ Sistema</button>";
+    html += "</div>";
+    html += "<div class='sd-pane'>";
+    html += "<div class='sd-list-head'><div></div><div>Nom</div><div>Mida</div><div class='sd-col-type'>Tipus</div></div>";
+    html += "<div id='sd-file-list'><div class='sd-empty'>Carregant directori...</div></div>";
+    html += "</div>";
+    html += "</div>";
+    html += "</div>";
+    html += "<div id='sd-file-modal' class='sd-modal hidden'>";
+    html += "<div class='sd-dialog'>";
+    html += "<div class='sd-dialog-head'>";
+    html += "<div><div id='sd-modal-title' class='sd-dialog-title'>Fitxer</div><div id='sd-modal-path' class='sd-dialog-path'></div></div>";
+    html += "<div class='sd-dialog-actions'><a id='sd-modal-download' class='btn secondary' href='#'>Descarregar</a><button id='sd-modal-close' class='secondary' type='button'>Tancar</button></div>";
+    html += "</div>";
+    html += "<pre id='sd-modal-content' class='sd-preview'>Carregant...</pre>";
+    html += "</div>";
+    html += "</div>";
+  }
   html += "</div>";
 
   html += "<div class='card'>";
@@ -2335,6 +2420,47 @@ static void handleSdViewGet() {
 static void handleSdDownloadGet() {
   String path = server.arg("path");
   streamSdFilePath(path, "boia_sd_file.dat", true);
+}
+
+static void handleSdReadGet() {
+  if (!isSdMounted()) {
+    server.send(404, "application/json", "{\"error\":\"SD no muntada\"}");
+    return;
+  }
+
+  String path = server.arg("path");
+  String clean;
+  if (!normalizeSdPath(path, clean)) {
+    server.send(400, "application/json", "{\"error\":\"Ruta no valida\"}");
+    return;
+  }
+
+  File file = SD.open(clean.c_str(), FILE_READ);
+  if (!file) {
+    server.send(404, "application/json", "{\"error\":\"Fitxer no trobat\"}");
+    return;
+  }
+  if (file.isDirectory()) {
+    file.close();
+    server.send(400, "application/json", "{\"error\":\"La ruta es un directori\"}");
+    return;
+  }
+  uint64_t fileSize = file.size();
+  file.close();
+
+  bool truncated = false;
+  String content = sdReadTextFileLimited(clean, 32768, truncated);
+  String json = "{\"path\":\"";
+  json += jsonEscape(clean);
+  json += "\",\"size\":";
+  json += String((unsigned long)fileSize);
+  json += ",\"truncated\":";
+  json += truncated ? "true" : "false";
+  json += ",\"content\":\"";
+  json += jsonEscape(content);
+  json += "\"}";
+  server.sendHeader("Cache-Control", "no-store");
+  server.send(200, "application/json", json);
 }
 
 static void handleSdPendingMqttGet() {
@@ -4136,6 +4262,7 @@ void setupWebServer() {
   server.on("/sd-list", HTTP_GET, handleSdListGet);
   server.on("/sd-view", HTTP_GET, handleSdViewGet);
   server.on("/sd-download", HTTP_GET, handleSdDownloadGet);
+  server.on("/sd-read", HTTP_GET, handleSdReadGet);
   server.on("/sd-format", HTTP_POST, handleSdFormatPost);
   server.on("/config", HTTP_GET, handleConfigGet);
   server.on("/config", HTTP_POST, handleConfigPost);

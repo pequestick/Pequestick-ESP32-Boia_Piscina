@@ -734,6 +734,8 @@ String sdDirectoryListingJson(const String& path) {
   File file = root.openNextFile();
   while (file) {
     String itemPath = file.path();
+    if (!itemPath.startsWith("/")) itemPath = clean + "/" + itemPath;
+    else if (clean != "/" && !itemPath.startsWith(clean + "/")) itemPath = clean + itemPath;
     if (!first) json += ",";
     first = false;
     json += "{\"name\":\"" + jsonEscape(fileNameFromPath(itemPath)) + "\",\"path\":\"" + jsonEscape(itemPath) + "\",\"directory\":" + String(file.isDirectory() ? "true" : "false") + ",\"size\":" + u64String(file.size()) + "}";
@@ -779,6 +781,8 @@ String sdDirectoryListingHtml(const String& path) {
   while (file) {
     any = true;
     String itemPath = file.path();
+    if (!itemPath.startsWith("/")) itemPath = clean + "/" + itemPath;
+    else if (clean != "/" && !itemPath.startsWith(clean + "/")) itemPath = clean + itemPath;
     String name = fileNameFromPath(itemPath);
     bool isDir = file.isDirectory();
     html += "<tr><td>" + htmlEscape(name) + "</td><td>" + String(isDir ? "Directori" : "Fitxer") + "</td><td>" + String(isDir ? "-" : bytesHuman(file.size())) + "</td><td>";

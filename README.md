@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.18.0-sd-blackbox
+1.19.0-sd-explorer-ui
 ```
 
 Funcionalitats principals actuals:
@@ -36,7 +36,7 @@ Funcionalitats principals actuals:
 - Sensor intern SHT41 actiu.
 - Lectura de bateria per GPIO1 amb divisor resistiu 100k/100k, tensió estimada i percentatge aproximat.
 - Configuració web dels volts de bateria buida/plena, percentatge LOW i calibratge ADC.
-- microSD per SPI amb pàgina pròpia, estat de muntatge, espai ocupat, descàrrega CSV i neteja lògica.
+- microSD per SPI amb pàgina pròpia, estat de muntatge, espai ocupat, explorador tipus Windows, visor modal, descàrrega CSV i neteja lògica.
 - Guardat local d'històric de lectures separat per dies a `/boia/history/YYYY-MM-DD.csv`.
 - Estadístiques locals precalculades a `/boia/stats/daily_snapshots.csv`.
 - Logs locals a `/boia/logs/YYYY-MM-DD.log`.
@@ -662,6 +662,16 @@ Funcionalitats previstes:
 - Backup/import/export.
 - Centre d'ajuda.
 - Subpàgines i menú lateral.
+
+### v1.19.0
+
+- Canvia l'explorador SD a una interfície tipus Windows sense recarregar pàgina per entrar a carpetes.
+- Obre fitxers en una finestra modal amb endpoint `/sd-read?path=...` i manté la descàrrega directa amb `/sd-download?path=...`.
+- Afegeix botons ràpids per `/boia`, històric, estadístiques, logs, buffer MQTT, config, blackbox i sistema.
+- Mostra el temps engegada / uptime a la pàgina inicial.
+- Mou els textos de mínim i màxim del gràfic cap a la dreta.
+- Afegeix línies horitzontals de referència al gràfic de temperatura.
+- Reforça el llistat JSON de la SD perquè les rutes siguin consistents encara que `file.path()` retorni noms relatius.
 
 ### v1.18.0
 

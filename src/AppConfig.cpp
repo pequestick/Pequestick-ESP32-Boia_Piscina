@@ -44,9 +44,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.18.0-sd-blackbox";
-const char* FIRMWARE_CHANGE_TITLE = "v1.18.0 SD com a caixa negra i buffer";
-const char* FIRMWARE_CHANGE_NOTES = "Converteix la microSD en historics diaris, estadistiques precalculades, logs, blackbox, snapshot de configuracio, buffer MQTT offline i explorador/visor web de fitxers.";
+const char* FIRMWARE_VERSION = "1.19.0-sd-explorer-ui";
+const char* FIRMWARE_CHANGE_TITLE = "v1.19.0 explorador SD i grafics polits";
+const char* FIRMWARE_CHANGE_NOTES = "Afegeix explorador SD tipus Windows sense canvi de pagina, visor modal de fitxers, uptime a la pagina inicial, textos min/max a la dreta i linies horitzontals de referencia al grafic.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
