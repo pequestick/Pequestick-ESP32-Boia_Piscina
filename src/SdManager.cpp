@@ -38,8 +38,9 @@ static String bytesHuman(uint64_t bytes) {
     value /= 1024.0;
     unit++;
   }
-  if (unit == 0) return String((uint32_t)bytes) + " B";
-  return String(value, unit == 1 ? 1 : 2) + " " + units[unit];
+  if (unit == 0) return String((unsigned long)bytes) + " B";
+  unsigned int decimalPlaces = unit == 1 ? 1U : 2U;
+  return String(value, decimalPlaces) + " " + units[unit];
 }
 
 static bool isTimeValid() {
@@ -224,7 +225,8 @@ static void csvField(File& file, const String& value) {
 
 static String floatCsv(float value, uint8_t decimals) {
   if (isnan(value)) return "";
-  return String(value, decimals);
+  unsigned int decimalPlaces = decimals;
+  return String(value, decimalPlaces);
 }
 
 bool appendSdHistoryRecord() {
@@ -249,9 +251,9 @@ bool appendSdHistoryRecord() {
   String iso = isTimeValid() ? isoTimeText() : "";
 
   String fields[13];
-  fields[0] = isTimeValid() ? String((uint32_t)now) : "";
+  fields[0] = isTimeValid() ? String((unsigned long)now) : "";
   fields[1] = iso;
-  fields[2] = String(getUptimeSeconds());
+  fields[2] = String((unsigned long)getUptimeSeconds());
   fields[3] = floatCsv(appState.lastValidTemperatureC, configTemperatureDecimals);
   fields[4] = floatCsv(appState.lastRawTemperatureC, configTemperatureDecimals);
   fields[5] = appState.sensorStatus;
@@ -284,7 +286,7 @@ bool appendSdHistoryRecord() {
   refreshSdInfo();
 
   Serial.print("SD historic: registre escrit #");
-  Serial.println(appState.sdHistoryWriteCount);
+  Serial.println((unsigned long)appState.sdHistoryWriteCount);
   return true;
 }
 
@@ -376,7 +378,8 @@ String sdFreeText() {
 String sdUsedPercentText() {
   if (!isSdMounted() || appState.sdTotalBytes == 0) return "Sense dades";
   double pct = ((double)appState.sdUsedBytes / (double)appState.sdTotalBytes) * 100.0;
-  return String(pct, 1) + " %";
+  unsigned int decimalPlaces = 1U;
+  return String(pct, decimalPlaces) + " %";
 }
 
 String sdHistoryPathText() {
@@ -409,14 +412,14 @@ String sdInfoJson() {
   json += jsonEscape(sdHistoryPathText());
   json += "\"";
   json += ",\"history_writes\":";
-  json += String(appState.sdHistoryWriteCount);
+  json += String((unsigned long)appState.sdHistoryWriteCount);
   json += ",\"history_write_fails\":";
-  json += String(appState.sdHistoryWriteFailCount);
+  json += String((unsigned long)appState.sdHistoryWriteFailCount);
   json += ",\"last_error\":\"";
   json += jsonEscape(sdLastErrorText());
   json += "\"";
   json += ",\"last_write_uptime_seconds\":";
-  json += appState.sdLastWriteMillis == 0 ? String("null") : String(appState.sdLastWriteMillis / 1000UL);
+  json += appState.sdLastWriteMillis == 0 ? String("null") : String((unsigned long)(appState.sdLastWriteMillis / 1000UL));
   json += "}";
   return json;
 }
