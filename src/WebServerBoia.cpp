@@ -234,7 +234,9 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += ".temp-trend{display:inline-block;margin-left:9px;font-size:36px;font-weight:950;line-height:1;vertical-align:7px;text-shadow:0 2px 12px rgba(0,0,0,.35)}.temp-trend.up{color:#22c55e}.temp-trend.down{color:#ef4444}.temp-trend.stable{color:#facc15}.temp-trend.pending{visibility:hidden}";
   html += ".internal-mini{position:absolute;top:0;right:0;display:flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid rgba(125,211,252,.24);border-radius:10px;background:rgba(2,6,23,.58);font-size:11px;color:#94a3b8;white-space:nowrap}.internal-mini b{color:#e0f2fe;font-size:12px}.internal-mini .separator{color:#475569;margin:0 1px}";
   html += ".chart-note{position:absolute;right:18px;bottom:12px;color:#94a3b8;font-size:11px;z-index:2}.history-toolbar{position:absolute;left:18px;bottom:38px;z-index:3;display:flex;gap:5px;flex-wrap:wrap}.history-range{padding:5px 8px;border-radius:999px;background:rgba(15,23,42,.82);border:1px solid #334155;font-size:11px;color:#cbd5e1}.history-range.active{border-color:var(--range-color,#38bdf8);box-shadow:0 0 0 2px color-mix(in srgb,var(--range-color,#38bdf8) 24%,transparent);color:#fff}.chart-legend{position:absolute;left:18px;bottom:12px;z-index:2;display:flex;gap:12px;color:#94a3b8;font-size:11px}.legend-item{display:inline-flex;align-items:center;gap:5px}.legend-line{width:18px;height:2px;background:var(--range-color,#38bdf8)}.legend-band{width:18px;height:8px;border:1px solid var(--range-color,#38bdf8);background:color-mix(in srgb,var(--range-color,#38bdf8) 22%,transparent)}.history-panel{position:relative;overflow:hidden;min-height:270px}.history-panel canvas{position:absolute;inset:48px 0 0;width:100%;height:calc(100% - 48px);opacity:.72;pointer-events:none}.history-panel h3{position:relative;z-index:2;margin:0;padding-right:12px}.history-panel .history-toolbar{top:46px;bottom:auto}.history-panel .chart-note,.history-panel .chart-legend{bottom:10px}";
+  html += ".temp-card{padding-bottom:76px}.temp-chart-footer{position:absolute;left:18px;right:18px;bottom:12px;z-index:4;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:center;pointer-events:none}.temp-chart-footer>*{pointer-events:auto}.temp-card .history-toolbar{position:static;justify-content:center}.temp-card .chart-note{position:static;justify-self:end;white-space:nowrap}.chart-footer-right{display:flex;justify-content:flex-end;align-items:center;gap:10px;min-width:0}.temp-card .chart-legend{position:static;justify-self:auto;display:flex;gap:10px}.temp-card .temp-metric-row{display:flex;gap:7px;align-items:center;justify-content:flex-start;flex-wrap:wrap;margin:0;max-width:none}.temp-battery-card,.temp-uptime-card{margin:0!important;max-width:none!important;padding:5px 8px!important;border-radius:999px!important;background:rgba(15,23,42,.80)!important;border:1px solid rgba(148,163,184,.22)!important;display:flex;align-items:center;gap:5px;white-space:nowrap;box-shadow:none}.temp-battery-card .label,.temp-uptime-card .label{font-size:10px;margin:0;text-transform:none;letter-spacing:.02em;color:#94a3b8}.temp-battery-card .value,.temp-uptime-card .value{font-size:12px;font-weight:950;word-break:normal}.temp-battery-card .small,.temp-uptime-card .small{font-size:10px;margin:0;color:#94a3b8}.temp-battery-card .small span{font-size:10px}";
   html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.temp-trend{font-size:29px;vertical-align:5px}.temp-card{min-height:390px;padding-bottom:105px}.temp-card h2{padding-right:165px}.temp-metric-row{grid-template-columns:1fr;max-width:none}.temp-battery-card{max-width:none}.internal-mini{font-size:10px;padding:5px 7px;gap:4px}.internal-mini b{font-size:11px}.history-toolbar{left:12px;bottom:40px}.chart-legend{left:12px;gap:8px}.chart-note{right:12px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}.sd-body{grid-template-columns:1fr}.sd-tree{border-right:0;border-bottom:1px solid #263449;grid-template-columns:repeat(2,minmax(0,1fr))}.sd-list-head,.sd-row{grid-template-columns:34px minmax(0,1fr) 82px}.sd-list-head .sd-col-type,.sd-row .sd-col-type{display:none}}";
+  html += "@media(max-width:920px){.temp-card{padding-bottom:134px}.temp-chart-footer{left:12px;right:12px;bottom:12px;grid-template-columns:1fr;gap:7px;align-items:center}.temp-card .temp-metric-row{justify-content:center}.temp-card .history-toolbar{justify-content:center}.chart-footer-right{justify-content:center}.temp-card .chart-note{justify-self:center}.temp-card .chart-legend{display:none}.temp-battery-card .small,.temp-uptime-card .small{display:none}}";
   html += "</style>";
 
   html += "<script>";
@@ -309,9 +311,16 @@ static void appendTabs(String& html, const String& active) {
   html += "<a class='tab "; html += active == "status" ? "active" : ""; html += "' href='/'>📊 Estat</a>";
   html += "</div>";
 
-  html += "<div class='menu-group'>";
-  html += "<a class='tab "; html += active == "storage" ? "active" : ""; html += "' href='/storage'>💾 SD / Històric</a>";
-  html += "</div>";
+  html += "<div class='menu-group has-sub "; html += active == "storage" ? "open" : ""; html += "'>";
+  html += "<button class='tab menu-toggle "; html += active == "storage" ? "active" : ""; html += "' type='button'>💾 SD / Històric <span class='chev'>▶</span></button>";
+  html += "<div class='subnav'>";
+  html += "<a class='"; html += (active == "storage" && (section == "" || section == "sd-summary")) ? "active" : ""; html += "' href='/storage?section=sd-summary'>Estat</a>";
+  html += "<a class='"; html += (active == "storage" && section == "sd-stats") ? "active" : ""; html += "' href='/storage?section=sd-stats'>Dades</a>";
+  html += "<a class='"; html += (active == "storage" && section == "sd-map") ? "active" : ""; html += "' href='/storage?section=sd-map'>Mapa fitxers</a>";
+  html += "<a class='"; html += (active == "storage" && section == "sd-last") ? "active" : ""; html += "' href='/storage?section=sd-last'>Últim registre</a>";
+  html += "<a class='"; html += (active == "storage" && section == "sd-browser") ? "active" : ""; html += "' href='/storage?section=sd-browser'>Explorador</a>";
+  html += "<a class='"; html += (active == "storage" && section == "sd-maintenance") ? "active" : ""; html += "' href='/storage?section=sd-maintenance'>Manteniment</a>";
+  html += "</div></div>";
 
   html += "<div class='menu-group has-sub "; html += active == "config" ? "open" : ""; html += "'>";
   html += "<button class='tab menu-toggle "; html += active == "config" ? "active" : ""; html += "' type='button'>🌡️ Temperatura <span class='chev'>▶</span></button>";
@@ -516,26 +525,25 @@ static String buildStatusPage() {
   html += "</b><span class='separator'>·</span><b id='live-internal-humidity'>";
   html += isnan(appState.lastInternalHumidityPercent) ? "Sense dades" : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %";
   html += "</b><span>HR</span></div>";
+  html += "</div>";
+  html += "<div class='temp-chart-footer'>";
   html += "<div class='temp-metric-row'>";
-  html += "<div class='item temp-battery-card'><div class='label'>Bateria</div><div class='value' id='live-battery'>";
+  html += "<div class='item temp-battery-card'><div class='label'>🔋</div><div class='value' id='live-battery'>";
   html += batteryPercentText();
   html += "</div><div class='small'><span id='live-battery-voltage'>";
   html += batteryVoltageText();
-  html += "</span> · Estat: ";
-  html += htmlEscape(batteryStatusText());
-  html += "</div></div>";
-  html += "<div class='item temp-uptime-card'><div class='label'>Temps engegada</div><div class='value' id='live-uptime'>";
+  html += "</span></div></div>";
+  html += "<div class='item temp-uptime-card'><div class='label'>⏱</div><div class='value' id='live-uptime'>";
   html += uptimeText(getUptimeSeconds());
-  html += "</div><div class='small'>Temps des de l'últim reinici de la boia</div></div>";
-  html += "</div>";
+  html += "</div></div>";
   html += "</div>";
   html += "<div class='history-toolbar'>";
   html += "<button class='history-range active' type='button' data-target='temp-history-chart' data-range='48h'>48 h</button>";
   html += "<button class='history-range' type='button' data-target='temp-history-chart' data-range='31d'>31 d</button>";
   html += "<button class='history-range' type='button' data-target='temp-history-chart' data-range='6m'>6 mesos</button>";
   html += "<button class='history-range' type='button' data-target='temp-history-chart' data-range='1y'>1 any</button></div>";
-  html += "<div class='chart-legend'><span class='legend-item'><i class='legend-line'></i>Mitjana</span><span class='legend-item'><i class='legend-band'></i>Mínim–màxim</span></div>";
-  html += "<div id='temp-history-chart-note' class='chart-note'>Carregant estadístiques HA...</div></div>";
+  html += "<div class='chart-footer-right'><div class='chart-legend'><span class='legend-item'><i class='legend-line'></i>Mitjana</span><span class='legend-item'><i class='legend-band'></i>Mínim–màxim</span></div>";
+  html += "<div id='temp-history-chart-note' class='chart-note'>Carregant estadístiques HA...</div></div></div></div>";
 
   appendPageEnd(html);
   return html;
@@ -550,7 +558,11 @@ static String buildStoragePage() {
   String html = "";
   appendPageStart(html, "storage", false);
 
-  html += "<div class='card'>";
+  static const char* sdLabels[] = {"Estat", "Dades", "Mapa", "Últim registre", "Explorador", "Manteniment"};
+  static const char* sdAnchors[] = {"sd-summary", "sd-stats", "sd-map", "sd-last", "sd-browser", "sd-maintenance"};
+  appendSubTabs(html, "SD", sdLabels, sdAnchors, 6);
+
+  html += "<div id='sd-summary' class='card'>";
   html += "<h2>microSD / Històric local / Buffer HA</h2>";
   html += "<p class='hint'>Aquesta pàgina converteix la microSD en caixa negra local: històric per dies, estadístiques precalculades, logs, snapshot de configuració, blackbox d'arrencada, buffer MQTT offline i explorador de fitxers. Si no hi ha SD, la boia continua funcionant igual, però perd aquesta capa local.</p>";
 
@@ -572,17 +584,6 @@ static String buildStoragePage() {
   html += "</div></div>";
   html += "</div>";
 
-  html += "<h3>Estadística precalculada del dia</h3>";
-  html += "<div class='grid3'>";
-  html += "<div class='item'><div class='label'>Dia</div><div class='value'>" + htmlEscape(appState.sdStatsDay) + "</div><div class='small'>Registres: " + String((unsigned long)appState.sdDailyRecordCount) + "</div></div>";
-  html += "<div class='item'><div class='label'>Temperatura min / mitjana / max</div><div class='value'>";
-  html += isnan(appState.sdDailyTempMin) ? "Sense dades" : formatTemperature(appState.sdDailyTempMin, 2) + " / " + formatTemperature(appState.sdDailyTempAvg, 2) + " / " + formatTemperature(appState.sdDailyTempMax, 2) + " °C";
-  html += "</div></div>";
-  html += "<div class='item'><div class='label'>Bateria min / mitjana / max</div><div class='value'>";
-  html += isnan(appState.sdDailyBatteryMin) ? "Sense dades" : formatTemperature(appState.sdDailyBatteryMin, 3) + " / " + formatTemperature(appState.sdDailyBatteryAvg, 3) + " / " + formatTemperature(appState.sdDailyBatteryMax, 3) + " V";
-  html += "</div><div class='small'>Errors del dia: " + String((unsigned long)appState.sdDailyErrorCount) + "</div></div>";
-  html += "</div>";
-
   html += "<h3>Cablejat configurat al firmware</h3>";
   html += "<div class='grid'>";
   html += "<div class='item'><div class='label'>CS</div><div class='value'>GPIO" + String(SD_SPI_CS_PIN) + "</div></div>";
@@ -592,17 +593,38 @@ static String buildStoragePage() {
   html += "</div>";
 
   html += "<div class='actions' style='margin-top:16px'>";
-  html += "<a class='btn secondary' href='/storage'>Recarregar estat</a>";
+  html += "<a class='btn secondary' href='/storage?section=sd-summary'>Recarregar estat</a>";
   html += "<a class='btn secondary' href='/sd-info'>JSON SD</a>";
   if (isSdMounted()) {
     html += "<a class='btn secondary' href='/sd-history.csv'>CSV d'avui</a>";
     html += "<a class='btn secondary' href='/sd-daily-stats.csv'>Estadístiques</a>";
-    html += "<a class='btn secondary' href='/sd-view?path=" + htmlEscape(sdSystemLogPathText()) + "'>Log actual</a>";
+    html += "<a class='btn secondary' href='/storage?section=sd-browser'>Anar a l'explorador</a>";
   }
   html += "</div>";
   html += "</div>";
 
-  html += "<div class='card'>";
+  html += "<div id='sd-stats' class='card'>";
+  html += "<h2>Dades i estadística precalculada del dia</h2>";
+  html += "<p class='hint'>Aquesta secció mostra el resum que la boia manté a la SD per no haver de rellegir tot el detall cada vegada.</p>";
+  html += "<div class='grid3'>";
+  html += "<div class='item'><div class='label'>Dia</div><div class='value'>" + htmlEscape(appState.sdStatsDay) + "</div><div class='small'>Registres: " + String((unsigned long)appState.sdDailyRecordCount) + "</div></div>";
+  html += "<div class='item'><div class='label'>Temperatura min / mitjana / max</div><div class='value'>";
+  html += isnan(appState.sdDailyTempMin) ? "Sense dades" : formatTemperature(appState.sdDailyTempMin, 2) + " / " + formatTemperature(appState.sdDailyTempAvg, 2) + " / " + formatTemperature(appState.sdDailyTempMax, 2) + " °C";
+  html += "</div></div>";
+  html += "<div class='item'><div class='label'>Bateria min / mitjana / max</div><div class='value'>";
+  html += isnan(appState.sdDailyBatteryMin) ? "Sense dades" : formatTemperature(appState.sdDailyBatteryMin, 3) + " / " + formatTemperature(appState.sdDailyBatteryAvg, 3) + " / " + formatTemperature(appState.sdDailyBatteryMax, 3) + " V";
+  html += "</div><div class='small'>Errors del dia: " + String((unsigned long)appState.sdDailyErrorCount) + "</div></div>";
+  html += "</div>";
+  html += "<div class='actions' style='margin-top:16px'>";
+  if (isSdMounted()) {
+    html += "<a class='btn secondary' href='/sd-history.csv'>Descarregar detall d'avui</a>";
+    html += "<a class='btn secondary' href='/sd-daily-stats.csv'>Descarregar estadístiques</a>";
+    html += "<a class='btn secondary' href='/sd-pending-mqtt.jsonl'>Buffer MQTT pendent</a>";
+  }
+  html += "</div>";
+  html += "</div>";
+
+  html += "<div id='sd-map' class='card'>";
   html += "<h2>Mapa de fitxers locals</h2>";
   html += "<div class='grid'>";
   html += "<div class='item'><div class='label'>Històric detall</div><div class='value' style='font-size:15px'>/boia/history/YYYY-MM-DD.csv</div><div class='small'>Una fila per lectura real.</div></div>";
@@ -614,7 +636,7 @@ static String buildStoragePage() {
   html += "</div>";
   html += "</div>";
 
-  html += "<div class='card'>";
+  html += "<div id='sd-last' class='card'>";
   html += "<h2>Últim registre guardat</h2>";
   if (appState.sdLastHistoryLine.length() == 0) {
     html += "<p class='hint'>Encara no s'ha escrit cap registre en aquesta arrencada. Quan es faci la pròxima lectura, la boia intentarà afegir una línia al CSV diari.</p>";
@@ -624,7 +646,7 @@ static String buildStoragePage() {
   html += "<p class='small'>Columnes: unix_time, iso_time, uptime_seconds, water_temperature_c, raw_temperature_c, water_sensor_status, internal_temperature_c, internal_humidity_percent, internal_env_status, battery_voltage_v, battery_percent, battery_status, wifi_rssi_dbm.</p>";
   html += "</div>";
 
-  html += "<div class='card'>";
+  html += "<div id='sd-browser' class='card'>";
   html += "<h2>Explorador de fitxers</h2>";
   html += "<p class='hint'>Explorador sense canvi de pàgina: doble clic a una carpeta per entrar-hi, doble clic a un fitxer per veure'l en una finestra modal. La descàrrega continua disponible per CSV, JSON, JSONL i logs.</p>";
   if (!isSdMounted()) {
@@ -670,7 +692,7 @@ static String buildStoragePage() {
   }
   html += "</div>";
 
-  html += "<div class='card'>";
+  html += "<div id='sd-maintenance' class='card'>";
   html += "<h2>Formatar / netejar SD</h2>";
   html += "<p class='hint'>El botó següent fa una neteja lògica: esborra tots els fitxers de la microSD i recrea l'estructura <code>/boia</code>. Això no reparticiona ni refà el FAT físic. Si la targeta està corrupta de veritat, formata-la al PC en FAT32.</p>";
   html += "<form method='POST' action='/sd-format' data-confirm='Això esborrarà TOTS els fitxers de la microSD. Segur?'>";

@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.19.0-sd-explorer-ui
+1.20.0-sd-subpages-ui
 ```
 
 Funcionalitats principals actuals:
@@ -36,8 +36,9 @@ Funcionalitats principals actuals:
 - Sensor intern SHT41 actiu.
 - Lectura de bateria per GPIO1 amb divisor resistiu 100k/100k, tensió estimada i percentatge aproximat.
 - Configuració web dels volts de bateria buida/plena, percentatge LOW i calibratge ADC.
-- microSD per SPI amb pàgina pròpia, estat de muntatge, espai ocupat, explorador tipus Windows, visor modal, descàrrega CSV i neteja lògica.
+- microSD per SPI amb pàgina pròpia separada en subpàgines, estat de muntatge, espai ocupat, explorador tipus Windows, visor modal, descàrrega CSV i neteja lògica.
 - Guardat local d'històric de lectures separat per dies a `/boia/history/YYYY-MM-DD.csv`.
+- Pàgina inicial amb bateria i uptime en format compacte dins el footer del gràfic per no tapar la visualització.
 - Estadístiques locals precalculades a `/boia/stats/daily_snapshots.csv`.
 - Logs locals a `/boia/logs/YYYY-MM-DD.log`.
 - Buffer MQTT offline a `/boia/mqtt/pending.jsonl`, pensat perquè Home Assistant no perdi lectures quan la xarxa o el broker cauen.
@@ -113,7 +114,7 @@ const char* SD_DAILY_STATS_FILE = "/boia/stats/daily_snapshots.csv";
 const char* SD_MQTT_PENDING_FILE = "/boia/mqtt/pending.jsonl";
 ```
 
-La web afegeix la pàgina **SD / Històric**, on es pot veure estat, tipus de targeta, espai total, espai ocupat, espai lliure, descarregar CSV, veure estadístiques precalculades, consultar logs, revisar el buffer MQTT pendent i navegar pels fitxers de la targeta.
+La web afegeix la pàgina **SD / Històric** separada en subpàgines: **Estat**, **Dades**, **Mapa fitxers**, **Últim registre**, **Explorador** i **Manteniment**. Des d'aquí es pot veure l'estat, l'espai ocupat, descarregar CSV, consultar estadístiques precalculades, revisar logs, veure el buffer MQTT pendent i navegar pels fitxers de la targeta.
 
 El botó de neteja no és un format físic complet: esborra els fitxers de la microSD i recrea l'estructura `/boia`. Si la targeta està corrupta, format FAT32 al PC i prou romanços.
 
@@ -662,6 +663,14 @@ Funcionalitats previstes:
 - Backup/import/export.
 - Centre d'ajuda.
 - Subpàgines i menú lateral.
+
+### v1.20.0
+
+- Separa la pàgina **SD / Històric** en subpàgines amb submenú lateral: Estat, Dades, Mapa fitxers, Últim registre, Explorador i Manteniment.
+- Manté l'explorador tipus Windows dins la subpàgina **Explorador**, sense canviar de pàgina per entrar a carpetes i amb visor modal per fitxers.
+- Compacta les etiquetes de bateria i uptime de la pàgina inicial perquè no tapin el gràfic.
+- Mou bateria i uptime al footer del gràfic, a l'esquerra dels botons de resolució/rang, deixant els botons centrats.
+- Manté les línies horitzontals de referència i els textos de mínim/màxim a la dreta del gràfic.
 
 ### v1.19.0
 
