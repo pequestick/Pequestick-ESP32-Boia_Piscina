@@ -117,12 +117,12 @@ extern const uint16_t WEB_SERVER_PORT;
 #define INTERNAL_ENV_I2C_ADDRESS 0x44
 #define BATTERY_VOLTAGE_ADC_PIN 1
 
-// Bus SPI dedicat a microSD. Pins triats lliures respecte DS18B20, SHT41,
-// bateria, LED intern, LED extern i boto de reset.
-#define SD_SPI_MOSI_PIN 18
-#define SD_SPI_CLK_PIN 19
+// Bus SPI dedicat a microSD. Assignacio alineada amb Arduino-ESP32 per ESP32-C6.
+// Pins lliures respecte DS18B20, SHT41, bateria, LED intern, LED extern i boto.
+#define SD_SPI_CS_PIN 18
+#define SD_SPI_MOSI_PIN 19
 #define SD_SPI_MISO_PIN 20
-#define SD_SPI_CS_PIN 23
+#define SD_SPI_CLK_PIN 21
 
 #define SOLAR_VOLTAGE_ADC_PIN -1
 #define CHARGER_STATUS_PIN -1

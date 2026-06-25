@@ -104,7 +104,7 @@ bool refreshSdInfo() {
   if (!attemptSdBegin()) {
     appState.sdMounted = false;
     appState.sdStatus = "ERROR";
-    appState.sdLastError = "SD no muntada";
+    appState.sdLastError = "SD no muntada. Revisa FAT32 i cablejat: CS18 MOSI19 CLK21 MISO20.";
     return false;
   }
 
@@ -177,7 +177,7 @@ void initSdManager() {
   if (!attemptSdBegin() || SD.cardType() == CARD_NONE) {
     appState.sdMounted = false;
     appState.sdStatus = "NO_CARD";
-    appState.sdLastError = "No detecto la microSD. Revisa cablejat, format FAT32 i alimentacio 3V3.";
+    appState.sdLastError = "No detecto la microSD. Revisa cablejat CS18/MOSI19/CLK21/MISO20, format FAT32 i alimentacio 3V3.";
     Serial.print("SD ERROR: ");
     Serial.println(appState.sdLastError);
     return;

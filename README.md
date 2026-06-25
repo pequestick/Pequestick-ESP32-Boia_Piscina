@@ -80,9 +80,9 @@ Connexió recomanada del mòdul de la foto:
 Mòdul microSD  -> ESP32-C6
 3V3 / VCC      -> 3V3
 GND            -> GND
-CS             -> GPIO23
-MOSI           -> GPIO18
-CLK / SCK      -> GPIO19
+CS             -> GPIO18
+MOSI           -> GPIO19
+CLK / SCK      -> GPIO21
 MISO           -> GPIO20
 ```
 
@@ -97,14 +97,16 @@ Punts importants:
 Constants principals:
 
 ```cpp
-#define SD_SPI_MOSI_PIN 18
-#define SD_SPI_CLK_PIN 19
+#define SD_SPI_CS_PIN 18
+#define SD_SPI_MOSI_PIN 19
 #define SD_SPI_MISO_PIN 20
-#define SD_SPI_CS_PIN 23
+#define SD_SPI_CLK_PIN 21
 const bool SD_CARD_ENABLED = true;
-const uint32_t SD_SPI_FREQUENCY_HZ = 4000000;
+const uint32_t SD_SPI_FREQUENCY_HZ = 1000000;
 const char* SD_HISTORY_FILE = "/boia/history.csv";
 ```
+
+Aquesta assignació segueix els pins SPI recomanats per Arduino-ESP32 en ESP32-C6. La primera proposta feia servir una assignació estil SDIO i pot donar `SD no muntada` en alguns builds Arduino/PlatformIO.
 
 La web afegeix la pàgina **SD / Històric**, on es pot veure estat, tipus de targeta, espai total, espai ocupat, espai lliure, descarregar el CSV i fer una neteja lògica de la targeta.
 
@@ -696,3 +698,11 @@ No pujar mai al repo:
 - Credencials personals.
 
 Les credencials han de quedar guardades a la memòria de l'ESP32 mitjançant la web local, no dins del codi font.
+
+
+### v1.18.0-sd-pinfix
+
+- Corregeix assignació de pins microSD per ESP32-C6 en Arduino/PlatformIO.
+- Nou cablejat: CS GPIO18, MOSI GPIO19, CLK/SCK GPIO21, MISO GPIO20.
+- Baixa SPI SD a 1 MHz per ser més tolerant amb cables Dupont curts.
+- Missatges d’error SD més clars.

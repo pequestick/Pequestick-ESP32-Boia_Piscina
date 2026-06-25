@@ -44,9 +44,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.17.0-battery-config";
-const char* FIRMWARE_CHANGE_TITLE = "v1.17.0 bateria configurable";
-const char* FIRMWARE_CHANGE_NOTES = "Afegeix configuracio web dels volts de bateria buida/plena, percentatge baix i calibratge ADC; tambe ajusta la fitxa inicial per evitar solapaments.";
+const char* FIRMWARE_VERSION = "1.18.0-sd-pinfix";
+const char* FIRMWARE_CHANGE_TITLE = "v1.18.0 pins microSD corregits";
+const char* FIRMWARE_CHANGE_NOTES = "Canvia la microSD als pins SPI recomanats per ESP32-C6 en Arduino: CS GPIO18, MOSI GPIO19, MISO GPIO20 i CLK GPIO21; baixa la velocitat SPI a 1 MHz per millorar la tolerancia amb cables Dupont.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
@@ -86,7 +86,7 @@ const uint8_t BATTERY_ADC_SAMPLES = 16;
 // microSD SPI. El modul de la foto porta pins 3V3/CS/MOSI/CLK/MISO/GND.
 // Es fa servir SPI a baixa velocitat per ser tolerant amb cables Dupont curts.
 const bool SD_CARD_ENABLED = true;
-const uint32_t SD_SPI_FREQUENCY_HZ = 4000000;
+const uint32_t SD_SPI_FREQUENCY_HZ = 1000000;
 const char* SD_HISTORY_DIR = "/boia";
 const char* SD_HISTORY_FILE = "/boia/history.csv";
 
