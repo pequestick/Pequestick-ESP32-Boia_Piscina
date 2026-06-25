@@ -337,6 +337,7 @@ static void appendTabs(String& html, const String& active) {
   html += "<a class='"; html += (active == "wifi" && (section == "" || section == "wifi-status")) ? "active" : ""; html += "' href='/wifi?section=wifi-status'>Estat</a>";
   html += "<a class='"; html += (active == "wifi" && section == "wifi-credentials") ? "active" : ""; html += "' href='/wifi?section=wifi-credentials'>Credencials</a>";
   html += "<a class='"; html += (active == "wifi" && section == "wifi-network") ? "active" : ""; html += "' href='/wifi?section=wifi-network'>Xarxa avançada</a>";
+  html += "<a class='"; html += (active == "wifi" && section == "wifi-power") ? "active" : ""; html += "' href='/wifi?section=wifi-power'>Rendiment</a>";
   html += "<a class='"; html += (active == "wifi" && section == "wifi-recovery") ? "active" : ""; html += "' href='/wifi?section=wifi-recovery'>Rescat</a>";
   html += "</div></div>";
 
@@ -868,9 +869,9 @@ static String buildWifiPage() {
   String html = "";
   appendPageStart(html, "wifi", false);
 
-  static const char* labels[] = {"Estat", "Credencials", "Xarxa avançada", "Rescat"};
-  static const char* anchors[] = {"wifi-status", "wifi-credentials", "wifi-network", "wifi-recovery"};
-  appendSubTabs(html, "Wi-Fi", labels, anchors, 4);
+  static const char* labels[] = {"Estat", "Credencials", "Xarxa avançada", "Rendiment", "Rescat"};
+  static const char* anchors[] = {"wifi-status", "wifi-credentials", "wifi-network", "wifi-power", "wifi-recovery"};
+  appendSubTabs(html, "Wi-Fi", labels, anchors, 5);
 
   html += "<div id='wifi-status' class='card'>";
   html += "<h2>Estat Wi-Fi</h2>";
@@ -916,6 +917,12 @@ static String buildWifiPage() {
 
   html += "<div class='item'><div class='label'>RSSI</div><div class='value'>";
   html += isWifiConnected() ? String(WiFi.RSSI()) + " dBm" : "Sense senyal";
+  html += "</div></div>";
+
+  html += "<div class='item'><div class='label'>Energia Wi-Fi</div><div class='value'>";
+  html += htmlEscape(wifiPowerModeText());
+  html += "</div><div class='small'>";
+  html += configWifiPowerSaveEnabled ? "Modem sleep activat" : "Sleep desactivat";
   html += "</div></div>";
 
   html += "<div class='item'><div class='label'>AP de rescat</div><div class='value'>";
@@ -999,6 +1006,29 @@ static String buildWifiPage() {
   html += "<button type='submit'>Guardar configuració de xarxa</button>";
   html += "</div>";
 
+  html += "</form>";
+  html += "</div>";
+
+  html += "<div id='wifi-power' class='card'>";
+  html += "<h2>Rendiment / bateria Wi-Fi</h2>";
+  html += "<p class='hint'>Aixo no apaga el Wi-Fi. Només canvia si la ràdio Wi-Fi pot entrar en modem sleep entre transmissions.</p>";
+  html += "<form method='POST' action='/wifi-power'>";
+
+  html += "<div class='grid'>";
+
+  html += "<label class='item' style='display:block;cursor:pointer;'><div class='label'><input name='wifi_power_save' type='radio' value='0' ";
+  html += configWifiPowerSaveEnabled ? "" : "checked";
+  html += "> Màxim rendiment</div><div class='value'>Web més reactiva</div><div class='small'>Menys latència, millor estabilitat amb senyal just, més consum. Recomanat mentre estem provant.</div></label>";
+
+  html += "<label class='item' style='display:block;cursor:pointer;'><div class='label'><input name='wifi_power_save' type='radio' value='1' ";
+  html += configWifiPowerSaveEnabled ? "checked" : "";
+  html += "> Estalvi bateria Wi-Fi</div><div class='value'>Menys consum</div><div class='small'>Activa sleep del Wi-Fi. Pot fer la web una mica menys immediata i pot anar pitjor amb RSSI dolent.</div></label>";
+
+  html += "</div>";
+
+  html += "<div class='buttons'>";
+  html += "<button type='submit'>Guardar mode Wi-Fi</button>";
+  html += "</div>";
   html += "</form>";
   html += "</div>";
 
@@ -1307,6 +1337,7 @@ static String buildConfigExportJson(bool includePasswords) {
   json += "  \"wifi_ssid\": \"" + jsonEscape(configWifiSsid) + "\",\n";
   if (includePasswords) json += "  \"wifi_password\": \"" + jsonEscape(configWifiPassword) + "\",\n";
   json += "  \"wifi_use_static_ip\": "; json += (configWifiUseStaticIp ? "true" : "false"); json += ",\n";
+  json += "  \"wifi_power_save_enabled\": "; json += (configWifiPowerSaveEnabled ? "true" : "false"); json += ",\n";
   json += "  \"wifi_static_ip\": \"" + jsonEscape(configWifiStaticIp) + "\",\n";
   json += "  \"wifi_gateway\": \"" + jsonEscape(configWifiGateway) + "\",\n";
   json += "  \"wifi_subnet\": \"" + jsonEscape(configWifiSubnet) + "\",\n";
@@ -2782,7 +2813,9 @@ static void handleConfigImportPost() {
   String subnet = configWifiSubnet;
   String dns1 = configWifiDns1;
   String dns2 = configWifiDns2;
+  bool wifiPowerSave = configWifiPowerSaveEnabled;
   if (extractJsonBoolValue(json, "wifi_use_static_ip", bv)) useStatic = bv;
+  if (extractJsonBoolValue(json, "wifi_power_save_enabled", bv)) wifiPowerSave = bv;
   if (extractJsonStringValue(json, "wifi_static_ip", sv)) staticIp = sv;
   if (extractJsonStringValue(json, "wifi_gateway", sv)) gateway = sv;
   if (extractJsonStringValue(json, "wifi_subnet", sv)) subnet = sv;
@@ -2790,6 +2823,7 @@ static void handleConfigImportPost() {
   if (extractJsonStringValue(json, "wifi_dns2", sv)) dns2 = sv;
   if (wifiSsid.length() > 0) saveWifiConfig(wifiSsid, wifiPassword);
   saveNetworkConfig(useStatic, staticIp, gateway, subnet, dns1, dns2);
+  saveWifiPowerConfig(wifiPowerSave);
 
   bool mqttEnabled = configMqttEnabled;
   String mqttHost = configMqttHost;
@@ -2945,6 +2979,23 @@ static void handleWifiNetworkPost() {
 
   delay(800);
   restartWifiWithCurrentConfig();
+}
+
+static void handleWifiPowerPost() {
+  bool powerSaveEnabled = server.hasArg("wifi_power_save") && server.arg("wifi_power_save") == "1";
+
+  saveWifiPowerConfig(powerSaveEnabled);
+  applyWifiPowerMode();
+
+  server.send(
+    200,
+    "text/html",
+    buildSavedPage(
+      "Mode Wi-Fi guardat",
+      powerSaveEnabled ? "S'ha activat l'estalvi bateria Wi-Fi. La connexio continua activa, però la web pot respondre una mica menys immediatament." : "S'ha activat el mode de maxim rendiment Wi-Fi. La web i MQTT prioritzen latencia i estabilitat per sobre del consum.",
+      false
+    )
+  );
 }
 
 static void handleWifiResetPost() {
@@ -3898,6 +3949,14 @@ static String buildStatusJsonPayload() {
   json += jsonEscape(wifiModeText());
   json += "\",";
 
+  json += "\"wifi_power_save_enabled\":";
+  json += configWifiPowerSaveEnabled ? "true" : "false";
+  json += ",";
+
+  json += "\"wifi_power_mode\":\"";
+  json += jsonEscape(wifiPowerModeText());
+  json += "\",";
+
   json += "\"configured_ssid\":\"";
   json += jsonEscape(configWifiSsid);
   json += "\",";
@@ -4303,6 +4362,7 @@ void setupWebServer() {
   server.on("/wifi", HTTP_GET, handleWifiGet);
   server.on("/wifi", HTTP_POST, handleWifiPost);
   server.on("/wifi-network", HTTP_POST, handleWifiNetworkPost);
+  server.on("/wifi-power", HTTP_POST, handleWifiPowerPost);
   server.on("/wifi-scan", HTTP_GET, handleWifiScanGet);
   server.on("/wifi-reset", HTTP_POST, handleWifiResetPost);
   server.on("/wifi-network-reset", HTTP_POST, handleWifiNetworkResetPost);

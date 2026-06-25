@@ -98,6 +98,7 @@ extern const char* FUTURE_EXPANSION_BUS;
 
 // Xarxa avançada per defecte
 extern const bool DEFAULT_WIFI_USE_STATIC_IP;
+extern const bool DEFAULT_WIFI_POWER_SAVE_ENABLED;
 extern const char* DEFAULT_WIFI_STATIC_IP;
 extern const char* DEFAULT_WIFI_GATEWAY;
 extern const char* DEFAULT_WIFI_SUBNET;
@@ -198,6 +199,7 @@ extern float configMaxValidTempC;
 // Configuracio persistent: Wi-Fi
 extern String configWifiSsid;
 extern String configWifiPassword;
+extern bool configWifiPowerSaveEnabled;
 
 // Configuracio persistent: xarxa avançada
 extern bool configWifiUseStaticIp;
@@ -241,6 +243,7 @@ void resetSensorConfigToDefaults();
 
 void saveWifiConfig(const String& ssid, const String& password);
 void resetWifiConfigToDefaults();
+void saveWifiPowerConfig(bool powerSaveEnabled);
 void forceWifiSetupMode();
 void factoryResetConfigAndSetupMode();
 bool hasWifiConfig();

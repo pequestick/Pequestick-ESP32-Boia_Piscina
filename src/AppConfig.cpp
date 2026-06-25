@@ -44,9 +44,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.21.0-header-actions";
-const char* FIRMWARE_CHANGE_TITLE = "v1.21.0 accions header i guardar lectura";
-const char* FIRMWARE_CHANGE_NOTES = "Separa la pantalla SD en subpagines amb submenu lateral, compacta bateria i uptime en el footer del grafic inicial i deixa els controls de resolucio centrats.";
+const char* FIRMWARE_VERSION = "1.22.0-wifi-power-mode";
+const char* FIRMWARE_CHANGE_TITLE = "v1.22.0 mode energia Wi-Fi";
+const char* FIRMWARE_CHANGE_NOTES = "Afegeix una subpagina Wi-Fi / Rendiment per triar entre maxim rendiment i estalvi bateria Wi-Fi sense apagar la connexio.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
@@ -114,6 +114,7 @@ const char* FUTURE_EXPANSION_BUS = "I2C intern reservat per sensors ambientals";
 
 // Xarxa avançada per defecte. DHCP per defecte: és el més segur.
 const bool DEFAULT_WIFI_USE_STATIC_IP = false;
+const bool DEFAULT_WIFI_POWER_SAVE_ENABLED = false;
 const char* DEFAULT_WIFI_STATIC_IP = "192.168.5.180";
 const char* DEFAULT_WIFI_GATEWAY = "192.168.5.1";
 const char* DEFAULT_WIFI_SUBNET = "255.255.255.0";
@@ -174,6 +175,7 @@ float configMaxValidTempC = DEFAULT_MAX_VALID_TEMP_C;
 
 String configWifiSsid = DEFAULT_WIFI_SSID;
 String configWifiPassword = DEFAULT_WIFI_PASSWORD;
+bool configWifiPowerSaveEnabled = DEFAULT_WIFI_POWER_SAVE_ENABLED;
 static bool configWifiForceSetupAp = false;
 
 bool configWifiUseStaticIp = DEFAULT_WIFI_USE_STATIC_IP;
@@ -434,6 +436,7 @@ void loadConfig() {
   configWifiForceSetupAp = preferences.getBool("wifi_force", false);
   configWifiSsid = trimCopy(preferences.getString("wifi_ssid", DEFAULT_WIFI_SSID));
   configWifiPassword = preferences.getString("wifi_pass", DEFAULT_WIFI_PASSWORD);
+  configWifiPowerSaveEnabled = preferences.getBool("wifi_ps", DEFAULT_WIFI_POWER_SAVE_ENABLED);
 
   configWifiUseStaticIp = preferences.getBool("wifi_static", DEFAULT_WIFI_USE_STATIC_IP);
   configWifiStaticIp = trimCopy(preferences.getString("wifi_ip", DEFAULT_WIFI_STATIC_IP));
@@ -649,6 +652,14 @@ void resetWifiConfigToDefaults() {
   preferences.end();
 }
 
+void saveWifiPowerConfig(bool powerSaveEnabled) {
+  configWifiPowerSaveEnabled = powerSaveEnabled;
+
+  preferences.begin("boia", false);
+  preferences.putBool("wifi_ps", configWifiPowerSaveEnabled);
+  preferences.end();
+}
+
 void forceWifiSetupMode() {
   configWifiSsid = "";
   configWifiPassword = "";
@@ -681,6 +692,7 @@ void factoryResetConfigAndSetupMode() {
   configWifiSsid = "";
   configWifiPassword = "";
   configWifiForceSetupAp = true;
+  configWifiPowerSaveEnabled = DEFAULT_WIFI_POWER_SAVE_ENABLED;
   configWifiUseStaticIp = DEFAULT_WIFI_USE_STATIC_IP;
   configWifiStaticIp = DEFAULT_WIFI_STATIC_IP;
   configWifiGateway = DEFAULT_WIFI_GATEWAY;

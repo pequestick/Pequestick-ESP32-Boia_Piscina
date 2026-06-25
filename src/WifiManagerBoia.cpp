@@ -111,6 +111,21 @@ String wifiConfiguredSsidText() {
   return configWifiSsid;
 }
 
+String wifiPowerModeText() {
+  return configWifiPowerSaveEnabled ? "Estalvi bateria Wi-Fi" : "Màxim rendiment Wi-Fi";
+}
+
+bool wifiPowerSaveEnabled() {
+  return configWifiPowerSaveEnabled;
+}
+
+void applyWifiPowerMode() {
+  WiFi.setSleep(configWifiPowerSaveEnabled);
+
+  Serial.print("Mode energia Wi-Fi: ");
+  Serial.println(wifiPowerModeText());
+}
+
 static void startSetupAccessPoint() {
   if (setupApActive) {
     return;
@@ -120,6 +135,7 @@ static void startSetupAccessPoint() {
   Serial.println("Iniciant AP de configuracio...");
 
   WiFi.mode(WIFI_AP_STA);
+  applyWifiPowerMode();
 
   String apPassword = setupAccessPointPassword();
   bool ok = WiFi.softAP(WIFI_AP_SSID, apPassword.c_str());
@@ -145,6 +161,7 @@ static void stopSetupAccessPoint() {
   WiFi.softAPdisconnect(true);
   setupApActive = false;
   WiFi.mode(WIFI_STA);
+  applyWifiPowerMode();
 
   Serial.println("AP de configuracio aturat.");
 }
@@ -180,6 +197,9 @@ void printWifiStatus() {
 
     Serial.print("Tipus IP: ");
     Serial.println(configWifiUseStaticIp ? "Fixa" : "DHCP");
+
+    Serial.print("Energia Wi-Fi: ");
+    Serial.println(wifiPowerModeText());
 
     Serial.print("Gateway: ");
     Serial.println(WiFi.gatewayIP());
@@ -229,6 +249,7 @@ void connectWifi() {
   }
 
   applyWifiIpConfiguration();
+  applyWifiPowerMode();
 
   WiFi.setHostname(configDeviceHostname.c_str());
   Serial.print("Hostname Wi-Fi: ");

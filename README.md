@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.21.0-header-actions
+1.22.0-wifi-power-mode
 ```
 
 Funcionalitats principals actuals:
@@ -19,6 +19,7 @@ Funcionalitats principals actuals:
 - ESP32-C6 amb web de configuració local.
 - Lectura de temperatura d'aigua amb DS18B20.
 - Wi-Fi configurable des de la web.
+- Mode d'energia Wi-Fi configurable: **màxim rendiment** o **estalvi bateria Wi-Fi**, sense apagar la connexió.
 - Cercador de xarxes Wi-Fi properes amb selecció d'SSID, intensitat de senyal i estat de seguretat.
 - Retorn automàtic a DHCP quan es canvia l'SSID, evitant heretar una IP fixa de la xarxa anterior.
 - Botons independents per guardar les credencials Wi-Fi i la configuració avançada de xarxa.
@@ -320,7 +321,16 @@ La interfície utilitza WebSocket per actualitzar estat en directe quan és poss
 
 ---
 
-## Wi-Fi i AP de rescat
+## Wi-Fi, rendiment i AP de rescat
+
+La pàgina **Wi-Fi** queda separada en subpàgines: **Estat**, **Credencials**, **Xarxa avançada**, **Rendiment** i **Rescat**.
+
+A **Wi-Fi / Rendiment** es pot triar el comportament energètic de la ràdio Wi-Fi:
+
+- **Màxim rendiment Wi-Fi**: desactiva el sleep del Wi-Fi. La web i MQTT responen amb menys latència i és el mode més estable mentre fem proves. Consumeix més.
+- **Estalvi bateria Wi-Fi**: activa el sleep del Wi-Fi. La connexió continua viva, però la web pot respondre una mica més lenta i amb RSSI dolent pot ser menys estable.
+
+Això **no desactiva la Wi-Fi** i no és deep sleep de l'ESP32. Només permet al Wi-Fi entrar en mode d'estalvi entre transmissions.
 
 Si la boia no pot connectar a la xarxa configurada, entra en mode AP de rescat.
 
@@ -665,6 +675,13 @@ Funcionalitats previstes:
 - Backup/import/export.
 - Centre d'ajuda.
 - Subpàgines i menú lateral.
+
+### v1.22.0
+
+- Afegeix la subpàgina **Wi-Fi / Rendiment**.
+- Permet triar entre **Màxim rendiment Wi-Fi** i **Estalvi bateria Wi-Fi** sense apagar la connexió.
+- Guarda el mode a NVS i l'aplica immediatament amb `WiFi.setSleep(...)`.
+- Afegeix el mode energia Wi-Fi a l'estat, export/import de configuració i JSON `/status`.
 
 ### v1.21.0
 

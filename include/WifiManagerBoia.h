@@ -13,6 +13,9 @@ String wifiModeText();
 String wifiStaIpText();
 String wifiApIpText();
 String wifiConfiguredSsidText();
+String wifiPowerModeText();
+bool wifiPowerSaveEnabled();
+void applyWifiPowerMode();
 
 void restartWifiWithCurrentConfig();
 void resetWifiAndRestart();
