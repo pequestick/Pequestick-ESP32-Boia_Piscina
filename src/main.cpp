@@ -8,6 +8,7 @@
 #include "WebServerBoia.h"
 #include "HardwareManager.h"
 #include "InternalEnvSensor.h"
+#include "BatteryMonitor.h"
 
 // ==========================
 // ESTAT GLOBAL
@@ -24,8 +25,8 @@ void printHeader() {
   Serial.println("================================");
   Serial.print("BOIA PISCINA - ");
   Serial.println(FIRMWARE_VERSION);
-  Serial.println("ESP32-C6 + DS18B20 + SHT41 + Wi-Fi + MQTT + HA + OTA");
-  Serial.println("v1.8 - autenticacio web i OTA verificada");
+  Serial.println("ESP32-C6 + DS18B20 + SHT41 + bateria GPIO1 + Wi-Fi + MQTT + HA + OTA");
+  Serial.println("v1.15 - bateria GPIO1 amb divisor 100k/100k");
   Serial.println("================================");
 
   Serial.print("GPIO sonda DS18B20: GPIO");
@@ -35,6 +36,11 @@ void printHeader() {
   Serial.print(INTERNAL_ENV_I2C_SDA_PIN);
   Serial.print(" · SCL GPIO");
   Serial.println(INTERNAL_ENV_I2C_SCL_PIN);
+
+  Serial.print("ADC bateria: GPIO");
+  Serial.print(BATTERY_VOLTAGE_ADC_PIN);
+  Serial.print(" · divisor x");
+  Serial.println(BATTERY_DIVIDER_RATIO, 2);
 
   Serial.print("GPIO boto fisic: ");
   Serial.println(RESET_BUTTON_ENABLED ? ("GPIO" + String(RESET_BUTTON_PIN)) : "desactivat");
@@ -117,6 +123,7 @@ void setup() {
   initTemperatureSensor();
   initHardwareManager();
   initInternalEnvSensor();
+  initBatteryMonitor();
 
   connectWifi();
 
@@ -149,6 +156,7 @@ void loop() {
     appState.lastReadMillis = now;
     performTemperatureRead();
     performInternalEnvRead();
+    performBatteryRead();
   }
 
   if (configMqttEnabled && (now - appState.lastMqttPublishMillis >= (unsigned long)configMqttPublishIntervalSeconds * 1000UL || appState.lastMqttPublishMillis == 0)) {

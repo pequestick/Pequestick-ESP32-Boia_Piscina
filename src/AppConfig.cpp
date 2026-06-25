@@ -33,7 +33,7 @@ const char* DEFAULT_HA_API_TOKEN = "";
 const char* DEFAULT_HA_HISTORY_ENTITY_ID = "sensor.boia_piscina_temperature";
 const char* DEFAULT_HA_INTERNAL_TEMPERATURE_ENTITY_ID = "sensor.boia_piscina_internal_temperature";
 const char* DEFAULT_HA_INTERNAL_HUMIDITY_ENTITY_ID = "sensor.boia_piscina_internal_humidity";
-const char* DEFAULT_HA_BATTERY_ENTITY_ID = "";
+const char* DEFAULT_HA_BATTERY_ENTITY_ID = "sensor.boia_piscina_battery";
 const uint16_t DEFAULT_HA_HISTORY_HOURS = 168;
 const uint16_t MIN_HA_HISTORY_HOURS = 1;
 const uint16_t MAX_HA_HISTORY_HOURS = 168;
@@ -44,9 +44,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.14.0-ota-ui-sht41";
-const char* FIRMWARE_CHANGE_TITLE = "v1.14.0 OTA modal i gestio SHT41";
-const char* FIRMWARE_CHANGE_NOTES = "Assegura el reinici diferit de l'OTA, converteix el progres en modal, reordena el SHT41 i afegeix alarmes persistents i una particio de core dump.";
+const char* FIRMWARE_VERSION = "1.15.0-battery-gpio1";
+const char* FIRMWARE_CHANGE_TITLE = "v1.15.0 bateria per GPIO1";
+const char* FIRMWARE_CHANGE_NOTES = "Activa la lectura de bateria amb divisor 100k/100k al GPIO1, mostra volts i percentatge a la web i publica sensors MQTT/Home Assistant.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
@@ -57,9 +57,18 @@ const bool DEFAULT_INTERNAL_ENV_ALARM_ENABLED = true;
 const float DEFAULT_INTERNAL_TEMP_ALARM_C = 50.0f;
 const float DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT = 80.0f;
 
+// Bateria: BAT+ -> 100k -> GPIO1 -> 100k -> GND.
+// Pensat per una bateria Li-Ion/LiPo 1S. El percentatge és una estimació lineal.
+const float BATTERY_DIVIDER_RATIO = 2.0f;
+const float BATTERY_CALIBRATION_FACTOR = 1.0f;
+const float BATTERY_EMPTY_VOLTAGE = 3.20f;
+const float BATTERY_FULL_VOLTAGE = 4.20f;
+const float BATTERY_LOW_PERCENT = 20.0f;
+const uint8_t BATTERY_ADC_SAMPLES = 16;
+
 // Ampliacions futures. Documentades a la web, no actives encara.
 const char* FUTURE_INTERNAL_ENV_SENSOR = "SHT41 actiu per temperatura i humitat interna";
-const char* FUTURE_BATTERY_MONITOR = "Lectura tensio bateria via divisor resistiu + ADC";
+const char* FUTURE_BATTERY_MONITOR = "Lectura activa de tensio bateria via divisor 100k/100k + ADC GPIO1";
 const char* FUTURE_SOLAR_CHARGER = "Placa solar + carregador Li-Ion/LiFePO4 amb proteccio";
 const char* FUTURE_EXPANSION_BUS = "I2C intern reservat per sensors ambientals";
 

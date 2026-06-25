@@ -50,6 +50,12 @@ extern const bool DEFAULT_BOARD_LED_MIRROR_STATUS;
 extern const bool DEFAULT_INTERNAL_ENV_ALARM_ENABLED;
 extern const float DEFAULT_INTERNAL_TEMP_ALARM_C;
 extern const float DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT;
+extern const float BATTERY_DIVIDER_RATIO;
+extern const float BATTERY_CALIBRATION_FACTOR;
+extern const float BATTERY_EMPTY_VOLTAGE;
+extern const float BATTERY_FULL_VOLTAGE;
+extern const float BATTERY_LOW_PERCENT;
+extern const uint8_t BATTERY_ADC_SAMPLES;
 
 // Ampliacions futures preparades/documentades
 extern const char* FUTURE_INTERNAL_ENV_SENSOR;
@@ -91,7 +97,7 @@ extern const uint16_t WEB_SERVER_PORT;
 #define INTERNAL_ENV_I2C_SDA_PIN 6
 #define INTERNAL_ENV_I2C_SCL_PIN 7
 #define INTERNAL_ENV_I2C_ADDRESS 0x44
-#define BATTERY_VOLTAGE_ADC_PIN -1
+#define BATTERY_VOLTAGE_ADC_PIN 1
 #define SOLAR_VOLTAGE_ADC_PIN -1
 #define CHARGER_STATUS_PIN -1
 

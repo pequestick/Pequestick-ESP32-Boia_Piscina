@@ -31,6 +31,17 @@ struct AppState {
   String internalEnvStatus = "UNKNOWN";
   String internalEnvLastError = "Encara no s'ha fet cap lectura";
 
+  unsigned long batteryLastReadMillis = 0;
+  uint32_t batteryTotalReads = 0;
+  uint32_t batteryValidReads = 0;
+  uint32_t batteryFailedReads = 0;
+  float lastBatteryVoltage = NAN;
+  float lastBatteryPercent = NAN;
+  float lastBatteryAdcMilliVolts = NAN;
+  float lastBatteryRawAdc = NAN;
+  String batteryStatus = "UNKNOWN";
+  String batteryLastError = "Encara no s'ha fet cap lectura";
+
   bool mqttDiscoveryPublished = false;
   bool mqttRestartRequested = false;
   bool mqttDiscoveryRequested = false;

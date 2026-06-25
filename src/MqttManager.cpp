@@ -6,6 +6,7 @@
 #include "AppConfig.h"
 #include "AppState.h"
 #include "Utils.h"
+#include "BatteryMonitor.h"
 
 // ==========================
 // OBJECTES MQTT
@@ -352,6 +353,17 @@ void publishHomeAssistantDiscovery() {
   humidityExtra += "\"device_class\":\"humidity\",";
   humidityExtra += "\"state_class\":\"measurement\"";
 
+  String batteryVoltageExtra = "";
+  batteryVoltageExtra += "\"unit_of_measurement\":\"V\",";
+  batteryVoltageExtra += "\"device_class\":\"voltage\",";
+  batteryVoltageExtra += "\"state_class\":\"measurement\",";
+  batteryVoltageExtra += "\"entity_category\":\"diagnostic\"";
+
+  String batteryPercentExtra = "";
+  batteryPercentExtra += "\"unit_of_measurement\":\"%\",";
+  batteryPercentExtra += "\"device_class\":\"battery\",";
+  batteryPercentExtra += "\"state_class\":\"measurement\"";
+
   String rssiExtra = "";
   rssiExtra += "\"unit_of_measurement\":\"dBm\",";
   rssiExtra += "\"device_class\":\"signal_strength\",";
@@ -426,6 +438,16 @@ void publishHomeAssistantDiscovery() {
   ok &= mqttPublishRetained(
     discoveryTopic("sensor", "internal_humidity"),
     buildBaseSensorConfig("Humitat interior de la boia", deviceId + "_internal_humidity", mqttTopic("internal_humidity"), humidityExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "battery_voltage"),
+    buildBaseSensorConfig("Tensio bateria", deviceId + "_battery_voltage", mqttTopic("battery_voltage"), batteryVoltageExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "battery"),
+    buildBaseSensorConfig("Bateria", deviceId + "_battery", mqttTopic("battery_percent"), batteryPercentExtra)
   );
 
   String internalTempAlarmExtra = "\"device_class\":\"heat\",\"icon\":\"mdi:thermometer-alert\"";
@@ -972,6 +994,13 @@ void publishMqttTelemetry() {
       formatTemperatureForJson(appState.lastInternalHumidityPercent, 1)
     );
   }
+  if (!isnan(appState.lastBatteryVoltage)) {
+    mqttPublishRetained(mqttTopic("battery_voltage"), floatPayload(appState.lastBatteryVoltage, 3));
+  }
+  if (!isnan(appState.lastBatteryPercent)) {
+    mqttPublishRetained(mqttTopic("battery_percent"), floatPayload(appState.lastBatteryPercent, 0));
+  }
+  mqttPublishRetained(mqttTopic("battery_status"), appState.batteryStatus);
   mqttPublishRetained(mqttTopic("internal_env_status"), appState.internalEnvStatus);
   bool internalTempAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalTemperatureC) && appState.lastInternalTemperatureC >= configInternalTempAlarmC;
   bool internalHumidityAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalHumidityPercent) && appState.lastInternalHumidityPercent >= configInternalHumidityAlarmPercent;
@@ -1001,6 +1030,18 @@ void publishMqttTelemetry() {
   telemetry += "\"internal_humidity_percent\":";
   telemetry += formatTemperatureForJson(appState.lastInternalHumidityPercent, 1);
   telemetry += ",";
+
+  telemetry += "\"battery_voltage\":";
+  telemetry += isnan(appState.lastBatteryVoltage) ? String("null") : floatPayload(appState.lastBatteryVoltage, 3);
+  telemetry += ",";
+
+  telemetry += "\"battery_percent\":";
+  telemetry += isnan(appState.lastBatteryPercent) ? String("null") : floatPayload(appState.lastBatteryPercent, 0);
+  telemetry += ",";
+
+  telemetry += "\"battery_status\":\"";
+  telemetry += jsonEscape(appState.batteryStatus);
+  telemetry += "\",";
 
   telemetry += "\"internal_env_status\":\"";
   telemetry += jsonEscape(appState.internalEnvStatus);

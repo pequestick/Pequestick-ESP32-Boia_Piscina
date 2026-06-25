@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.13.1-resumable-browser-ota
+1.15.0-battery-gpio1
 ```
 
 Funcionalitats principals actuals:
@@ -33,7 +33,8 @@ Funcionalitats principals actuals:
 - OTA GitHub assistida pel navegador, amb descàrrega ràpida, pujada local i verificació SHA-256 a la boia.
 - Web amb menú lateral, subpàgines i estructura més professional.
 - Configuració exportable/importable.
-- Sensor intern SHT41 actiu i preparació per a futura gestió energètica.
+- Sensor intern SHT41 actiu.
+- Lectura de bateria per GPIO1 amb divisor resistiu 100k/100k, tensió estimada i percentatge aproximat.
 - Accés web protegit amb usuari i contrasenya persistents.
 - Lectura pública de temperatura i estat de sensors des de la pantalla d'accés.
 - Sessió web persistent de set dies amb cookie versionada per navegar sense reautenticacions constants.
@@ -68,7 +69,24 @@ Les credencials Wi-Fi, MQTT i Home Assistant introduïdes des de la web també e
 
 ### Energia
 
-De moment es treballa amb alimentació USB / externa.
+De moment es treballa amb alimentació USB / externa, però el firmware ja pot llegir la tensió real de bateria si es connecta el punt BAT+ al GPIO1 mitjançant divisor resistiu.
+
+Connexió de mesura de bateria implementada:
+
+```text
+BAT+ bateria ----[ 100 kΩ ]----+---- GPIO1 / ADC bateria
+                               |
+                             [ 100 kΩ ]
+                               |
+GND bateria -------------------+---- GND ESP32
+```
+
+Punts importants, perquè aquí no hi ha marge per fer el bèstia:
+
+- No connectis mai BAT+ directament al GPIO1.
+- Amb dues resistències iguals de 100 kΩ el divisor és x2: l'ESP32 veu aproximadament la meitat de la tensió de bateria.
+- El càlcul de percentatge està pensat per una bateria Li-Ion/LiPo 1S: 3.20 V = 0 %, 4.20 V = 100 %. És una estimació lineal, no un indicador perfecte d'estat de càrrega.
+- Si el muntatge final és 2S, 5 V boost, LiFePO4 o una altra química, caldrà canviar constants i possiblement el divisor. No ho barregis sense revisar-ho.
 
 Preparació prevista:
 
@@ -112,6 +130,30 @@ SCL -> GPIO9
 ```
 
 Això encara s'haurà de validar amb el pinout real de la placa final.
+
+---
+
+## Mesura de bateria per GPIO1
+
+El firmware llegeix la bateria al **GPIO1**. La lectura es fa amb `analogReadMilliVolts()`, mitjana de 16 mostres i atenuació `ADC_11db`. Després aplica el factor del divisor:
+
+```text
+voltatge_bateria = voltatge_gpio1 * 2.0
+```
+
+Constants principals a `src/AppConfig.cpp` / `include/AppConfig.h`:
+
+```cpp
+#define BATTERY_VOLTAGE_ADC_PIN 1
+const float BATTERY_DIVIDER_RATIO = 2.0f;
+const float BATTERY_CALIBRATION_FACTOR = 1.0f;
+const float BATTERY_EMPTY_VOLTAGE = 3.20f;
+const float BATTERY_FULL_VOLTAGE = 4.20f;
+const float BATTERY_LOW_PERCENT = 20.0f;
+const uint8_t BATTERY_ADC_SAMPLES = 16;
+```
+
+La web mostra bateria a la pantalla d'estat, al login públic, al diagnòstic i al mapa de hardware. MQTT publica `battery_voltage`, `battery_percent` i `battery_status`, i Home Assistant Discovery crea les entitats corresponents.
 
 ---
 
@@ -164,6 +206,9 @@ Topics habituals amb `topic_base = boia_piscina`:
 ```text
 boia_piscina/availability
 boia_piscina/temperature
+boia_piscina/battery_voltage
+boia_piscina/battery_percent
+boia_piscina/battery_status
 boia_piscina/rssi
 boia_piscina/uptime
 boia_piscina/ip
@@ -185,6 +230,10 @@ Entitats principals:
 
 ```text
 sensor.boia_piscina_temperature
+sensor.boia_piscina_internal_temperature
+sensor.boia_piscina_internal_humidity
+sensor.boia_piscina_battery_voltage
+sensor.boia_piscina_battery
 sensor.boia_piscina_rssi
 sensor.boia_piscina_uptime
 sensor.boia_piscina_ip

@@ -18,6 +18,7 @@
 #include "HardwareManager.h"
 #include "GitHubOta.h"
 #include "AuthManager.h"
+#include "BatteryMonitor.h"
 
 // ==========================
 // OBJECTE WEB SERVER
@@ -213,7 +214,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "function updateGithubOtaStatus(d){var internetCls=d.internet_check_done?(d.internet_check_ok?'ok':'bad'):'info';var ghCls=d.github_update_checked?(d.github_update_ok?'ok':'bad'):'info';var updCls='info';if(d.github_update_checked){if(d.github_update_available)updCls='warn';else if(d.github_remote_older)updCls='bad';else if(d.github_update_ok)updCls='ok';}txt('ota-internet-main',d.internet_check_done?d.internet_check_message:'Comprovant...');txt('ota-internet-meta',(d.internet_check_details||'')+(d.internet_resolved_ip?' · DNS '+d.internet_resolved_ip:'')+(d.internet_check_done?' · última prova ara':''));txt('ota-github-main',d.github_update_checked?(d.github_update_ok?'Manifest llegit':'Manifest fallit'):'Comprovant...');txt('ota-github-version',d.github_update_version||'--');txt('ota-github-sha',d.github_update_sha_short||d.github_update_sha||'--');txt('ota-github-date',d.github_update_date||'--');txt('ota-update-main',d.github_update_message||'Encara no comprovat');txt('ota-update-details',d.github_update_details||'');cls('ota-internet-tile',internetCls);cls('ota-github-tile',ghCls);cls('ota-update-tile',updCls);cls('ota-internet-main',internetCls);cls('ota-github-main',ghCls);cls('ota-update-main',updCls);var b=document.getElementById('github-install-button');if(b){b.disabled=!(d.github_update_available||(d.github_remote_same_version&&d.github_allow_same_version_update));}}";
   html += "function updateOtaProgress(d){txt('live-internal-temp',d.internal_temperature_c===null?'Sense dades':d.internal_temperature_c+' °C');txt('live-internal-humidity',d.internal_humidity_percent===null?'Sense dades':d.internal_humidity_percent+' %');var card=document.getElementById('ota-progress-card');if(!card)return;var pct=parseInt(d.ota_progress_percent||0,10);var inProg=!!d.ota_in_progress;var phase=d.ota_progress_phase||'espera';var source=d.ota_progress_source||'cap';var active=(source!=='cap'&&phase!=='espera')||inProg;var interrupted=sessionStorage.getItem('boiaOtaPending')==='1'&&!active;if(interrupted){active=true;source='OTA';phase='interrompuda';}if(phase==='error'||phase==='completada')sessionStorage.removeItem('boiaOtaPending');if(active)card.classList.remove('hidden');else card.classList.add('hidden');setOtaModal(active);var fill=document.getElementById('ota-progress-fill');var pctEl=document.getElementById('ota-progress-percent');var phaseEl=document.getElementById('ota-progress-phase');var msgEl=document.getElementById('ota-progress-message');var bytesEl=document.getElementById('ota-progress-bytes');card.classList.remove('done','error');if(phase==='error'||interrupted)card.classList.add('error');if(phase==='completada')card.classList.add('done');if(fill){fill.classList.remove('indeterminate');if(inProg&&(!pct||pct<1)){fill.classList.add('indeterminate');fill.style.width='38%';}else{fill.style.width=Math.max(0,Math.min(100,pct))+'%';}}if(pctEl)pctEl.textContent=(pct?pct:0)+'%';if(phaseEl)phaseEl.textContent=(source||'OTA')+' · '+phase;if(msgEl)msgEl.textContent=interrupted?'L actualitzacio ha perdut la connexio o la boia ha reiniciat. Comprova la versio i el log abans de repetir-la.':(d.ota_last_message||'Esperant accio OTA');if(bytesEl)bytesEl.textContent=bytesHuman(d.ota_progress_bytes)+' / '+bytesHuman(d.ota_progress_total);var log=document.getElementById('ota-log');if(log&&d.ota_log!==undefined){var atBottom=(log.scrollTop+log.clientHeight+24)>=log.scrollHeight;log.textContent=d.ota_log||'Sense log OTA';if(atBottom)log.scrollTop=log.scrollHeight;}}";
   html += "function runOtaAutoChecks(){if(location.pathname!=='/maintenance'||location.search.indexOf('section=mnt-ota')<0)return;txt('ota-internet-main','Comprovant...');txt('ota-github-main','Comprovant...');fetch('/internet-check-run',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){applyStatus(d);return fetch('/github-check-update-run',{cache:'no-store'});}).then(function(r){return r.json();}).then(function(d){applyStatus(d);}).catch(function(){txt('ota-update-main','No puc actualitzar estat OTA');txt('ota-update-details','La comprovació automàtica ha fallat. Prova els botons manuals.');});}";
-  html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',d.uptime_seconds+' s');txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateGithubOtaStatus(d);updateOtaProgress(d);}";
+  html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-battery',d.battery_percent===null?'Sense dades':d.battery_percent+' %');txt('live-battery-voltage',d.battery_voltage===null?'Sense dades':d.battery_voltage+' V');txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',d.uptime_seconds+' s');txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateGithubOtaStatus(d);updateOtaProgress(d);}";
   html += "function startWS(){if(location.pathname==='/login'||location.pathname==='/change-password')return;try{var ws=new WebSocket('ws://'+location.hostname+':81/');ws.onmessage=function(ev){try{applyStatus(JSON.parse(ev.data));}catch(e){}};ws.onclose=function(){setTimeout(startWS,3000);};ws.onerror=function(){try{ws.close();}catch(e){}};}catch(e){}}";
   html += "function bindConfirms(){document.querySelectorAll('form[data-confirm]').forEach(function(f){if(f.id==='ota-local-form'||f.id==='github-install-form')return;f.addEventListener('submit',function(e){if(!confirm(f.getAttribute('data-confirm'))){e.preventDefault();}});});}";
   html += "function bindAccordion(){document.querySelectorAll('.menu-toggle').forEach(function(btn){btn.addEventListener('click',function(){var g=btn.closest('.menu-group');if(!g)return;var isOpen=g.classList.contains('open');document.querySelectorAll('.menu-group.has-sub').forEach(function(x){x.classList.remove('open');});if(!isOpen)g.classList.add('open');});});}";
@@ -465,6 +466,13 @@ static String buildStatusPage() {
   html += "</b><span class='separator'>·</span><b id='live-internal-humidity'>";
   html += isnan(appState.lastInternalHumidityPercent) ? "Sense dades" : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %";
   html += "</b><span>HR</span></div>";
+  html += "<div class='item' style='margin-top:12px;max-width:360px'><div class='label'>Bateria</div><div class='value' id='live-battery'>";
+  html += batteryPercentText();
+  html += "</div><div class='small'>";
+  html += batteryVoltageText();
+  html += " · Estat: ";
+  html += htmlEscape(batteryStatusText());
+  html += "</div></div>";
   html += "</div>";
   html += "<div class='history-toolbar'>";
   html += "<button class='history-range active' type='button' data-target='temp-history-chart' data-range='48h'>48 h</button>";
@@ -958,7 +966,7 @@ static String buildMqttPage() {
   html += "<div><div class='label'>Entity ID humitat interior boia</div><input name='ha_internal_humidity_entity' type='text' maxlength='96' value='";
   html += htmlEscape(configHaInternalHumidityEntityId);
   html += "'></div>";
-  html += "<div><div class='label'>Entity ID bateria (futur, opcional)</div><input name='ha_battery_entity' type='text' maxlength='96' value='";
+  html += "<div><div class='label'>Entity ID bateria</div><input name='ha_battery_entity' type='text' maxlength='96' value='";
   html += htmlEscape(configHaBatteryEntityId);
   html += "' placeholder='sensor.boia_piscina_battery'></div>";
   html += "<div class='item'><div class='label'>Resolució automàtica</div><div class='small'>48 hores: horària · 31 dies, 6 mesos i 1 any: diària. Cada punt inclou mitjana, mínim i màxim.</div></div>";
@@ -1177,6 +1185,8 @@ static void appendDiagnosticsSection(String& html) {
   appendChecklistItem(html, "Home Assistant Discovery", boolBadge(discoveryOk, "OK", "PENDENT"), String(configHaDiscoveryEnabled ? "Activat" : "Desactivat") + " · publicat: " + String(appState.mqttDiscoveryPublished ? "si" : "no"));
   appendChecklistItem(html, "Sonda DS18B20", boolBadge(sensorOk, "OK", "ERROR"), String("Estat: ") + appState.sensorStatus + " · errors consecutius: " + String(appState.consecutiveSensorErrors));
   appendChecklistItem(html, "Sensor intern SHT41", boolBadge(internalEnvOk, "OK", "ERROR"), String("Estat: ") + appState.internalEnvStatus + " · " + appState.internalEnvLastError);
+  bool batteryOk = appState.batteryStatus == "OK" || appState.batteryStatus == "LOW" || appState.batteryStatus == "UNKNOWN";
+  appendChecklistItem(html, "Bateria GPIO1", boolBadge(batteryOk, batteryStatusText(), "ERROR"), batteryVoltageText() + " · " + batteryPercentText() + " · ADC: " + (isnan(appState.lastBatteryAdcMilliVolts) ? String("sense dades") : String(appState.lastBatteryAdcMilliVolts, 0) + " mV"));
 
   String tempValue = tempOk ? formatTemperature(appState.lastValidTemperatureC, configTemperatureDecimals) + " ºC" : String("Encara cap");
   appendChecklistItem(html, "Última temperatura vàlida", htmlEscape(tempValue), String("Últim error: ") + appState.lastErrorMessage);
@@ -1377,17 +1387,17 @@ static void appendFutureExpansionSection(String& html) {
   html += "<div class='grid'>";
   html += "<div class='item'><div class='label'>Temperatura interna</div><div class='value'>SHT41 actiu</div><div class='small'>Mesura la temperatura dins del tub per separat de l'aigua.</div></div>";
   html += "<div class='item'><div class='label'>Humitat interna</div><div class='value'>SHT41 actiu</div><div class='small'>Permet detectar condensació o entrada d'aigua abans que afecti l'electrònica.</div></div>";
-  html += "<div class='item'><div class='label'>Bateria</div><div class='value'>Preparada</div><div class='small'>Futur monitoratge de tensió, percentatge estimat, estat de càrrega i alarma de bateria baixa.</div></div>";
+  html += "<div class='item'><div class='label'>Bateria</div><div class='value'>Activa GPIO1</div><div class='small'>Lectura de tensió amb divisor 100k/100k, percentatge estimat i publicació MQTT/HA.</div></div>";
   html += "<div class='item'><div class='label'>Placa solar</div><div class='value'>Preparada</div><div class='small'>Futur control de tensió solar, estat de càrrega i diagnòstic de si realment està carregant.</div></div>";
   html += "</div></div>";
 
   html += "<div class='card'>";
   html += "<h2>GPIO reservats per ampliacions</h2>";
-  html += "<p class='hint'>Els pins del bus ambiental ja estan assignats. Els pins d'energia continuen reservats fins definir el hardware de bateria i càrrega.</p>";
+  html += "<p class='hint'>Els pins del bus ambiental ja estan assignats. La bateria ja queda activa a GPIO1; solar i carregador continuen reservats fins definir el hardware final.</p>";
   html += "<div class='grid'>";
   html += "<div class='item'><div class='label'>I2C SDA intern</div><div class='value'>" + htmlEscape(futurePinText(INTERNAL_ENV_I2C_SDA_PIN)) + "</div><div class='small'>SHT41 actiu, adreça 0x44.</div></div>";
   html += "<div class='item'><div class='label'>I2C SCL intern</div><div class='value'>" + htmlEscape(futurePinText(INTERNAL_ENV_I2C_SCL_PIN)) + "</div><div class='small'>Mateix bus I2C intern.</div></div>";
-  html += "<div class='item'><div class='label'>ADC bateria</div><div class='value'>" + htmlEscape(futurePinText(BATTERY_VOLTAGE_ADC_PIN)) + "</div><div class='small'>Lectura de bateria sempre amb divisor resistiu. Mai posar tensió de bateria directa a l'ESP32.</div></div>";
+  html += "<div class='item'><div class='label'>ADC bateria</div><div class='value'>GPIO" + String(BATTERY_VOLTAGE_ADC_PIN) + "</div><div class='small'>BAT+ -> 100 kΩ -> GPIO" + String(BATTERY_VOLTAGE_ADC_PIN) + " -> 100 kΩ -> GND. Mesura estimada: " + batteryVoltageText() + " / " + batteryPercentText() + ". Mai posar BAT+ directe a l'ESP32.</div></div>";
   html += "<div class='item'><div class='label'>ADC solar</div><div class='value'>" + htmlEscape(futurePinText(SOLAR_VOLTAGE_ADC_PIN)) + "</div><div class='small'>Per saber si la placa solar està donant tensió útil.</div></div>";
   html += "<div class='item'><div class='label'>Estat carregador</div><div class='value'>" + htmlEscape(futurePinText(CHARGER_STATUS_PIN)) + "</div><div class='small'>Opcional: pin CHG/STDBY/FAULT si el mòdul carregador ho exposa.</div></div>";
   html += "</div></div>";
@@ -1395,7 +1405,7 @@ static void appendFutureExpansionSection(String& html) {
   html += "<div class='card'>";
   html += "<h2>Arquitectura futura d'energia</h2>";
   html += "<div class='grid'>";
-  appendChecklistItem(html, "Bateria", htmlEscape("Li-Ion o LiFePO4"), "Cal triar química i carregador abans d'escriure codi. LiFePO4 és més segura; Li-Ion té més densitat. No barregem carregadors.");
+  appendChecklistItem(html, "Bateria", htmlEscape("Li-Ion/LiPo 1S"), "El percentatge actual assumeix 3.20 V buit i 4.20 V ple. Si canvies química o tensió, revisa constants i divisor.");
   appendChecklistItem(html, "Càrrega solar", htmlEscape("Carregador dedicat"), "La placa solar no ha d'anar directa a la bateria. Necessita mòdul carregador/protecció adequat.");
   appendChecklistItem(html, "Mesura tensió", htmlEscape("Divisor resistiu"), "L'ADC de l'ESP32 no pot rebre tensions altes. Cal divisor i calibratge.");
   appendChecklistItem(html, "Mode energia", htmlEscape("Futur"), "Quan hi hagi bateria real, tindrà sentit deep sleep, intervals més llargs i telemetria d'energia.");
@@ -1906,7 +1916,13 @@ static String buildAuthPage(
   html += "<div class='item'><div class='label'>Humitat interior</div><div class='value'>";
   html += isnan(appState.lastInternalHumidityPercent) ? "Sense dades" : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %";
   html += "</div><div class='small'>SHT41 a 0x44</div></div>";
-  html += "<div class='item'><div class='label'>Energia</div><div class='value'>Properament</div><div class='small'>Bateria i càrrega solar</div></div>";
+  html += "<div class='item'><div class='label'>Bateria</div><div class='value'>";
+  html += batteryPercentText();
+  html += "</div><div class='small'>";
+  html += batteryVoltageText();
+  html += " · ";
+  html += htmlEscape(batteryStatusText());
+  html += "</div></div>";
   html += "</div></div>";
   html += "</div></div></body></html>";
   return html;
@@ -3328,6 +3344,22 @@ static String buildStatusJsonPayload() {
 
   json += "\"internal_humidity_percent\":";
   json += formatTemperatureForJson(appState.lastInternalHumidityPercent, 1);
+  json += ",";
+
+  json += "\"battery_voltage\":";
+  json += isnan(appState.lastBatteryVoltage) ? String("null") : String(appState.lastBatteryVoltage, 3);
+  json += ",";
+
+  json += "\"battery_percent\":";
+  json += isnan(appState.lastBatteryPercent) ? String("null") : String(appState.lastBatteryPercent, 0);
+  json += ",";
+
+  json += "\"battery_status\":\"";
+  json += jsonEscape(appState.batteryStatus);
+  json += "\",";
+
+  json += "\"battery_adc_mv\":";
+  json += isnan(appState.lastBatteryAdcMilliVolts) ? String("null") : String(appState.lastBatteryAdcMilliVolts, 0);
   json += ",";
 
   json += "\"internal_env_status\":\"";
