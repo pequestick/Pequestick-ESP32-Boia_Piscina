@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.23.0-battery-autonomy
+1.24.0-web-reordered
 ```
 
 Funcionalitats principals actuals:
@@ -32,7 +32,7 @@ Funcionalitats principals actuals:
 - Comprovació d'accés a Internet des de la boia.
 - Pantalla OTA millorada amb estat Internet, GitHub, versió remota i actualització disponible.
 - OTA GitHub assistida pel navegador, amb descàrrega ràpida, pujada local i verificació SHA-256 a la boia.
-- Web amb menú lateral, subpàgines i estructura més professional.
+- Web reordenada en grans blocs: Inici, Sensors, Comunicacions, SD / Històric, OTA / Firmware, Sistema, Manteniment i Ajuda.
 - Botons globals al header per reiniciar la boia i sortir/tancar sessió.
 - Botó de guardar independent a la secció de lectura de la sonda.
 - Configuració exportable/importable.
@@ -40,7 +40,7 @@ Funcionalitats principals actuals:
 - Lectura de bateria per GPIO1 amb divisor resistiu 100k/100k, tensió estimada i percentatge aproximat.
 - Estimació orientativa d'autonomia restant de bateria, mostrada al footer del gràfic inicial i a **Sistema / Bateria** quan hi ha prou mostra de descàrrega.
 - Configuració web dels volts de bateria buida/plena, percentatge LOW i calibratge ADC.
-- microSD per SPI amb pàgina pròpia separada en subpàgines, estat de muntatge, espai ocupat, explorador tipus Windows, visor modal, descàrrega CSV i neteja lògica.
+- microSD per SPI amb pàgina pròpia separada en subpàgines: Estat, Dades, Estadístiques, Buffer MQTT, Logs, Blackbox, Mapa fitxers, Últim registre, Explorador tipus Windows i Manteniment SD.
 - Guardat local d'històric de lectures separat per dies a `/boia/history/YYYY-MM-DD.csv`.
 - Pàgina inicial amb bateria i uptime en format compacte dins el footer del gràfic per no tapar la visualització.
 - Estadístiques locals precalculades a `/boia/stats/daily_snapshots.csv`.
@@ -118,7 +118,7 @@ const char* SD_DAILY_STATS_FILE = "/boia/stats/daily_snapshots.csv";
 const char* SD_MQTT_PENDING_FILE = "/boia/mqtt/pending.jsonl";
 ```
 
-La web afegeix la pàgina **SD / Històric** separada en subpàgines: **Estat**, **Dades**, **Mapa fitxers**, **Últim registre**, **Explorador** i **Manteniment**. Des d'aquí es pot veure l'estat, l'espai ocupat, descarregar CSV, consultar estadístiques precalculades, revisar logs, veure el buffer MQTT pendent i navegar pels fitxers de la targeta.
+La web afegeix la pàgina **SD / Històric** separada en subpàgines: **Estat**, **Dades**, **Estadístiques**, **Buffer MQTT**, **Logs**, **Blackbox**, **Mapa fitxers**, **Últim registre**, **Explorador** i **Manteniment**. Des d'aquí es pot veure l'estat, l'espai ocupat, descarregar CSV, consultar estadístiques precalculades, revisar logs, veure el buffer MQTT pendent, obrir la blackbox i navegar pels fitxers de la targeta.
 
 El botó de neteja no és un format físic complet: esborra els fitxers de la microSD i recrea l'estructura `/boia`. Si la targeta està corrupta, format FAT32 al PC i prou romanços.
 
@@ -303,6 +303,81 @@ La pàgina **SD / Històric** inclou un explorador senzill. Permet:
 No és un gestor de fitxers complet. No edita fitxers, no fa base de dades i no ha de ser crític per arrencar. La SD és una capa extra: si falla, la boia ha de seguir viva.
 
 ## Web local
+
+### Estructura actual de navegació
+
+La web queda ordenada així per evitar una pàgina gegant i inmanejable:
+
+```text
+Inici
+├── Estat ràpid
+├── Gràfic principal
+└── Footer compacte: bateria, autonomia, uptime i rang/resolució
+
+Sensors
+├── Temperatura aigua
+├── Ambient intern SHT41
+├── Bateria GPIO1
+├── Calibratge sonda
+└── Reset temperatura
+
+Comunicacions
+├── Wi-Fi estat
+├── Wi-Fi credencials
+├── Xarxa IP
+├── Rendiment Wi-Fi
+├── MQTT estat
+├── MQTT broker
+├── Home Assistant
+├── Accions MQTT/HA
+└── Rescat Wi-Fi
+
+SD / Històric
+├── Estat SD
+├── Dades diàries
+├── Estadístiques
+├── Buffer MQTT
+├── Logs
+├── Blackbox
+├── Mapa fitxers
+├── Últim registre
+├── Explorador
+└── Manteniment SD
+
+OTA / Firmware
+├── Estat OTA
+├── Buscar actualització
+├── Actualitzar firmware
+├── Log OTA
+└── Changelog
+
+Sistema
+├── Estat sistema
+├── Hardware / pins
+├── Configuració
+├── Mode
+├── LEDs
+├── Seguretat / sessió
+└── Diagnòstic
+
+Manteniment
+├── Salut
+├── Accions ràpides
+├── Backup / importar
+├── Rescat
+└── Reset / destructives
+
+Ajuda
+├── Connexions / pinatge
+├── Formats fitxer
+├── MQTT topics
+├── Notes versió
+├── Ampliacions futures
+└── Rescat
+```
+
+Les pàgines internes conserven els endpoints antics (`/config`, `/wifi`, `/mqtt`, `/system`, `/maintenance`, `/storage`, `/help`) perquè no es trenquin enllaços ni formularis, però el menú lateral les presenta agrupades per funció real.
+
 
 La boia exposa una web local a la IP assignada pel router.
 
@@ -676,6 +751,14 @@ Funcionalitats previstes:
 - Backup/import/export.
 - Centre d'ajuda.
 - Subpàgines i menú lateral.
+
+### v1.24.0
+
+- Reordena el menú lateral en grans blocs funcionals: Inici, Sensors, Comunicacions, SD / Històric, OTA / Firmware, Sistema, Manteniment i Ajuda.
+- Manté tots els apartats existents, però agrupats pel seu ús real i no pel nom tècnic de la ruta.
+- Afegeix subpàgines SD específiques per **Dades diàries**, **Estadístiques**, **Buffer MQTT**, **Logs** i **Blackbox**.
+- Afegeix a **Ajuda** les pàgines **Formats fitxer** i **MQTT topics** perquè la documentació crítica també sigui consultable des de la web de la boia.
+- Conserva els endpoints antics (`/config`, `/wifi`, `/mqtt`, `/system`, `/maintenance`, `/storage`, `/help`) per no trencar formularis ni enllaços interns.
 
 ### v1.23.0
 

@@ -44,9 +44,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.23.0-battery-autonomy";
-const char* FIRMWARE_CHANGE_TITLE = "v1.23.0 estimacio autonomia bateria";
-const char* FIRMWARE_CHANGE_NOTES = "Afegeix una estimacio aproximada de dies, hores o mesos restants de bateria al footer inicial i a Sistema / Bateria, calculada quan hi ha prou mostra de descarrega.";
+const char* FIRMWARE_VERSION = "1.24.0-web-reordered";
+const char* FIRMWARE_CHANGE_TITLE = "v1.24.0 web reordenada";
+const char* FIRMWARE_CHANGE_NOTES = "Reordena el menu lateral en blocs funcionals, amplia SD / Historic amb dades, estadistiques, buffer MQTT, logs i blackbox, i afegeix ajuda local de formats i MQTT topics.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;

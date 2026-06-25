@@ -305,80 +305,105 @@ static void appendServicePill(String& html, const String& id, const String& icon
 
 static void appendTabs(String& html, const String& active) {
   String section = server.arg("section");
-  html += "<div class='menu-title'>MENU</div>";
+  String path = server.arg("path");
+
+  bool sensorsOpen = active == "config" || (active == "system" && (section == "sys-internal-env" || section == "sys-battery"));
+  bool commsOpen = active == "wifi" || active == "mqtt";
+  bool sdOpen = active == "storage";
+  bool otaOpen = active == "maintenance" && section == "mnt-ota";
+  bool systemOpen = (active == "system" && !(section == "sys-internal-env" || section == "sys-battery")) || (active == "maintenance" && section == "mnt-diagnostics") || active == "hardware";
+  bool maintenanceOpen = active == "maintenance" && !(section == "mnt-ota" || section == "mnt-diagnostics");
+  bool helpOpen = active == "help";
+
+  bool sdBrowserMqtt = active == "storage" && section == "sd-browser" && path.startsWith("/boia/mqtt");
+  bool sdBrowserLogs = active == "storage" && section == "sd-browser" && path.startsWith("/boia/logs");
+  bool sdBrowserBlackbox = active == "storage" && section == "sd-browser" && path.startsWith("/boia/blackbox");
+
+  html += "<div class='menu-title'>BOIA</div>";
   html += "<div class='tabs'>";
 
   html += "<div class='menu-group'>";
-  html += "<a class='tab "; html += active == "status" ? "active" : ""; html += "' href='/'>📊 Estat</a>";
+  html += "<a class='tab "; html += active == "status" ? "active" : ""; html += "' href='/'>🏠 Inici</a>";
   html += "</div>";
 
-  html += "<div class='menu-group has-sub "; html += active == "storage" ? "open" : ""; html += "'>";
-  html += "<button class='tab menu-toggle "; html += active == "storage" ? "active" : ""; html += "' type='button'>💾 SD / Històric <span class='chev'>▶</span></button>";
+  html += "<div class='menu-group has-sub "; html += sensorsOpen ? "open" : ""; html += "'>";
+  html += "<button class='tab menu-toggle "; html += sensorsOpen ? "active" : ""; html += "' type='button'>🌡️ Sensors <span class='chev'>▶</span></button>";
   html += "<div class='subnav'>";
-  html += "<a class='"; html += (active == "storage" && (section == "" || section == "sd-summary")) ? "active" : ""; html += "' href='/storage?section=sd-summary'>Estat</a>";
-  html += "<a class='"; html += (active == "storage" && section == "sd-stats") ? "active" : ""; html += "' href='/storage?section=sd-stats'>Dades</a>";
+  html += "<a class='"; html += (active == "config" && (section == "" || section == "temp-reading")) ? "active" : ""; html += "' href='/config?section=temp-reading'>Temperatura aigua</a>";
+  html += "<a class='"; html += (active == "system" && section == "sys-internal-env") ? "active" : ""; html += "' href='/system?section=sys-internal-env'>Ambient intern</a>";
+  html += "<a class='"; html += (active == "system" && section == "sys-battery") ? "active" : ""; html += "' href='/system?section=sys-battery'>Bateria</a>";
+  html += "<a class='"; html += (active == "config" && section == "temp-calibration") ? "active" : ""; html += "' href='/config?section=temp-calibration'>Calibratge sonda</a>";
+  html += "<a class='"; html += (active == "config" && section == "temp-reset") ? "active" : ""; html += "' href='/config?section=temp-reset'>Reset temperatura</a>";
+  html += "</div></div>";
+
+  html += "<div class='menu-group has-sub "; html += commsOpen ? "open" : ""; html += "'>";
+  html += "<button class='tab menu-toggle "; html += commsOpen ? "active" : ""; html += "' type='button'>📡 Comunicacions <span class='chev'>▶</span></button>";
+  html += "<div class='subnav'>";
+  html += "<a class='"; html += (active == "wifi" && (section == "" || section == "wifi-status")) ? "active" : ""; html += "' href='/wifi?section=wifi-status'>Wi-Fi estat</a>";
+  html += "<a class='"; html += (active == "wifi" && section == "wifi-credentials") ? "active" : ""; html += "' href='/wifi?section=wifi-credentials'>Wi-Fi credencials</a>";
+  html += "<a class='"; html += (active == "wifi" && section == "wifi-network") ? "active" : ""; html += "' href='/wifi?section=wifi-network'>Xarxa IP</a>";
+  html += "<a class='"; html += (active == "wifi" && section == "wifi-power") ? "active" : ""; html += "' href='/wifi?section=wifi-power'>Rendiment Wi-Fi</a>";
+  html += "<a class='"; html += (active == "mqtt" && (section == "" || section == "mqtt-status")) ? "active" : ""; html += "' href='/mqtt?section=mqtt-status'>MQTT estat</a>";
+  html += "<a class='"; html += (active == "mqtt" && section == "mqtt-broker") ? "active" : ""; html += "' href='/mqtt?section=mqtt-broker'>MQTT broker</a>";
+  html += "<a class='"; html += (active == "mqtt" && section == "mqtt-ha") ? "active" : ""; html += "' href='/mqtt?section=mqtt-ha'>Home Assistant</a>";
+  html += "<a class='"; html += (active == "mqtt" && section == "mqtt-actions") ? "active" : ""; html += "' href='/mqtt?section=mqtt-actions'>Accions MQTT/HA</a>";
+  html += "<a class='"; html += (active == "wifi" && section == "wifi-recovery") ? "active" : ""; html += "' href='/wifi?section=wifi-recovery'>Rescat Wi-Fi</a>";
+  html += "</div></div>";
+
+  html += "<div class='menu-group has-sub "; html += sdOpen ? "open" : ""; html += "'>";
+  html += "<button class='tab menu-toggle "; html += sdOpen ? "active" : ""; html += "' type='button'>💾 SD / Històric <span class='chev'>▶</span></button>";
+  html += "<div class='subnav'>";
+  html += "<a class='"; html += (active == "storage" && (section == "" || section == "sd-summary")) ? "active" : ""; html += "' href='/storage?section=sd-summary'>Estat SD</a>";
+  html += "<a class='"; html += (active == "storage" && section == "sd-data") ? "active" : ""; html += "' href='/storage?section=sd-data'>Dades diàries</a>";
+  html += "<a class='"; html += (active == "storage" && section == "sd-stats") ? "active" : ""; html += "' href='/storage?section=sd-stats'>Estadístiques</a>";
+  html += "<a class='"; html += (active == "storage" && (section == "sd-buffer" || sdBrowserMqtt)) ? "active" : ""; html += "' href='/storage?section=sd-buffer'>Buffer MQTT</a>";
+  html += "<a class='"; html += (active == "storage" && (section == "sd-logs" || sdBrowserLogs)) ? "active" : ""; html += "' href='/storage?section=sd-logs'>Logs</a>";
+  html += "<a class='"; html += (active == "storage" && (section == "sd-blackbox" || sdBrowserBlackbox)) ? "active" : ""; html += "' href='/storage?section=sd-blackbox'>Blackbox</a>";
   html += "<a class='"; html += (active == "storage" && section == "sd-map") ? "active" : ""; html += "' href='/storage?section=sd-map'>Mapa fitxers</a>";
   html += "<a class='"; html += (active == "storage" && section == "sd-last") ? "active" : ""; html += "' href='/storage?section=sd-last'>Últim registre</a>";
-  html += "<a class='"; html += (active == "storage" && section == "sd-browser") ? "active" : ""; html += "' href='/storage?section=sd-browser'>Explorador</a>";
-  html += "<a class='"; html += (active == "storage" && section == "sd-maintenance") ? "active" : ""; html += "' href='/storage?section=sd-maintenance'>Manteniment</a>";
+  html += "<a class='"; html += (active == "storage" && section == "sd-browser" && !sdBrowserMqtt && !sdBrowserLogs && !sdBrowserBlackbox) ? "active" : ""; html += "' href='/storage?section=sd-browser'>Explorador</a>";
+  html += "<a class='"; html += (active == "storage" && section == "sd-maintenance") ? "active" : ""; html += "' href='/storage?section=sd-maintenance'>Manteniment SD</a>";
   html += "</div></div>";
 
-  html += "<div class='menu-group has-sub "; html += active == "config" ? "open" : ""; html += "'>";
-  html += "<button class='tab menu-toggle "; html += active == "config" ? "active" : ""; html += "' type='button'>🌡️ Temperatura <span class='chev'>▶</span></button>";
+  html += "<div class='menu-group has-sub "; html += otaOpen ? "open" : ""; html += "'>";
+  html += "<button class='tab menu-toggle "; html += otaOpen ? "active" : ""; html += "' type='button'>⬆️ OTA / Firmware <span class='chev'>▶</span></button>";
   html += "<div class='subnav'>";
-  html += "<a class='"; html += (active == "config" && (section == "" || section == "temp-reading")) ? "active" : ""; html += "' href='/config?section=temp-reading'>Lectura</a>";
-  html += "<a class='"; html += (active == "config" && section == "temp-calibration") ? "active" : ""; html += "' href='/config?section=temp-calibration'>Calibratge</a>";
-  html += "<a class='"; html += (active == "config" && section == "temp-reset") ? "active" : ""; html += "' href='/config?section=temp-reset'>Reset</a>";
+  html += "<a class='"; html += otaOpen ? "active" : ""; html += "' href='/maintenance?section=mnt-ota'>Estat OTA</a>";
+  html += "<a href='/maintenance?section=mnt-ota'>Buscar actualització</a>";
+  html += "<a href='/maintenance?section=mnt-ota'>Actualitzar firmware</a>";
+  html += "<a href='/maintenance?section=mnt-ota'>Log OTA</a>";
+  html += "<a class='"; html += (active == "help" && section == "help-firmware") ? "active" : ""; html += "' href='/help?section=help-firmware'>Changelog</a>";
   html += "</div></div>";
 
-  html += "<div class='menu-group has-sub "; html += active == "wifi" ? "open" : ""; html += "'>";
-  html += "<button class='tab menu-toggle "; html += active == "wifi" ? "active" : ""; html += "' type='button'>📶 Wi-Fi <span class='chev'>▶</span></button>";
+  html += "<div class='menu-group has-sub "; html += systemOpen ? "open" : ""; html += "'>";
+  html += "<button class='tab menu-toggle "; html += systemOpen ? "active" : ""; html += "' type='button'>⚙️ Sistema <span class='chev'>▶</span></button>";
   html += "<div class='subnav'>";
-  html += "<a class='"; html += (active == "wifi" && (section == "" || section == "wifi-status")) ? "active" : ""; html += "' href='/wifi?section=wifi-status'>Estat</a>";
-  html += "<a class='"; html += (active == "wifi" && section == "wifi-credentials") ? "active" : ""; html += "' href='/wifi?section=wifi-credentials'>Credencials</a>";
-  html += "<a class='"; html += (active == "wifi" && section == "wifi-network") ? "active" : ""; html += "' href='/wifi?section=wifi-network'>Xarxa avançada</a>";
-  html += "<a class='"; html += (active == "wifi" && section == "wifi-power") ? "active" : ""; html += "' href='/wifi?section=wifi-power'>Rendiment</a>";
-  html += "<a class='"; html += (active == "wifi" && section == "wifi-recovery") ? "active" : ""; html += "' href='/wifi?section=wifi-recovery'>Rescat</a>";
-  html += "</div></div>";
-
-  html += "<div class='menu-group has-sub "; html += active == "mqtt" ? "open" : ""; html += "'>";
-  html += "<button class='tab menu-toggle "; html += active == "mqtt" ? "active" : ""; html += "' type='button'>📡 MQTT / HA <span class='chev'>▶</span></button>";
-  html += "<div class='subnav'>";
-  html += "<a class='"; html += (active == "mqtt" && (section == "" || section == "mqtt-status")) ? "active" : ""; html += "' href='/mqtt?section=mqtt-status'>Estat</a>";
-  html += "<a class='"; html += (active == "mqtt" && section == "mqtt-broker") ? "active" : ""; html += "' href='/mqtt?section=mqtt-broker'>Broker</a>";
-  html += "<a class='"; html += (active == "mqtt" && section == "mqtt-ha") ? "active" : ""; html += "' href='/mqtt?section=mqtt-ha'>Home Assistant</a>";
-  html += "<a class='"; html += (active == "mqtt" && section == "mqtt-actions") ? "active" : ""; html += "' href='/mqtt?section=mqtt-actions'>Accions</a>";
-  html += "</div></div>";
-
-  html += "<div class='menu-group has-sub "; html += active == "system" ? "open" : ""; html += "'>";
-  html += "<button class='tab menu-toggle "; html += active == "system" ? "active" : ""; html += "' type='button'>⚙️ Sistema <span class='chev'>▶</span></button>";
-  html += "<div class='subnav'>";
-  html += "<a class='"; html += (active == "system" && (section == "" || section == "sys-summary")) ? "active" : ""; html += "' href='/system?section=sys-summary'>Resum</a>";
-  html += "<a class='"; html += (active == "system" && section == "sys-internal-env") ? "active" : ""; html += "' href='/system?section=sys-internal-env'>Interior boia / alarmes</a>";
-  html += "<a class='"; html += (active == "system" && section == "sys-battery") ? "active" : ""; html += "' href='/system?section=sys-battery'>Bateria</a>";
-  html += "<a class='"; html += (active == "system" && section == "sys-identity") ? "active" : ""; html += "' href='/system?section=sys-identity'>Identitat</a>";
+  html += "<a class='"; html += (active == "system" && (section == "" || section == "sys-summary")) ? "active" : ""; html += "' href='/system?section=sys-summary'>Estat sistema</a>";
+  html += "<a class='"; html += (active == "help" && section == "help-hardware") ? "active" : ""; html += "' href='/help?section=help-hardware'>Hardware / pins</a>";
+  html += "<a class='"; html += (active == "system" && section == "sys-identity") ? "active" : ""; html += "' href='/system?section=sys-identity'>Configuració</a>";
   html += "<a class='"; html += (active == "system" && section == "sys-mode") ? "active" : ""; html += "' href='/system?section=sys-mode'>Mode</a>";
   html += "<a class='"; html += (active == "system" && section == "sys-leds") ? "active" : ""; html += "' href='/system?section=sys-leds'>LEDs</a>";
-  html += "<a class='"; html += (active == "system" && section == "sys-users") ? "active" : ""; html += "' href='/system?section=sys-users'>Usuaris</a>";
+  html += "<a class='"; html += (active == "system" && section == "sys-users") ? "active" : ""; html += "' href='/system?section=sys-users'>Seguretat / sessió</a>";
+  html += "<a class='"; html += (active == "maintenance" && section == "mnt-diagnostics") ? "active" : ""; html += "' href='/maintenance?section=mnt-diagnostics'>Diagnòstic</a>";
   html += "</div></div>";
 
-  html += "<div class='menu-group has-sub "; html += active == "maintenance" ? "open" : ""; html += "'>";
-  html += "<button class='tab menu-toggle "; html += active == "maintenance" ? "active" : ""; html += "' type='button'>🛠️ Manteniment <span class='chev'>▶</span></button>";
+  html += "<div class='menu-group has-sub "; html += maintenanceOpen ? "open" : ""; html += "'>";
+  html += "<button class='tab menu-toggle "; html += maintenanceOpen ? "active" : ""; html += "' type='button'>🛠️ Manteniment <span class='chev'>▶</span></button>";
   html += "<div class='subnav'>";
   html += "<a class='"; html += (active == "maintenance" && (section == "" || section == "mnt-health")) ? "active" : ""; html += "' href='/maintenance?section=mnt-health'>Salut</a>";
-  html += "<a class='"; html += (active == "maintenance" && section == "mnt-diagnostics") ? "active" : ""; html += "' href='/maintenance?section=mnt-diagnostics'>Diagnòstic</a>";
-  html += "<a class='"; html += (active == "maintenance" && section == "mnt-actions") ? "active" : ""; html += "' href='/maintenance?section=mnt-actions'>Accions</a>";
-  html += "<a class='"; html += (active == "maintenance" && section == "mnt-ota") ? "active" : ""; html += "' href='/maintenance?section=mnt-ota'>OTA</a>";
-  html += "<a class='"; html += (active == "maintenance" && section == "mnt-backup") ? "active" : ""; html += "' href='/maintenance?section=mnt-backup'>Backup</a>";
+  html += "<a class='"; html += (active == "maintenance" && section == "mnt-actions") ? "active" : ""; html += "' href='/maintenance?section=mnt-actions'>Accions ràpides</a>";
+  html += "<a class='"; html += (active == "maintenance" && section == "mnt-backup") ? "active" : ""; html += "' href='/maintenance?section=mnt-backup'>Backup / importar</a>";
   html += "<a class='"; html += (active == "maintenance" && section == "mnt-recovery") ? "active" : ""; html += "' href='/maintenance?section=mnt-recovery'>Rescat</a>";
-  html += "<a class='"; html += (active == "maintenance" && section == "mnt-danger") ? "active" : ""; html += "' href='/maintenance?section=mnt-danger'>Destructives</a>";
+  html += "<a class='"; html += (active == "maintenance" && section == "mnt-danger") ? "active" : ""; html += "' href='/maintenance?section=mnt-danger'>Reset / destructives</a>";
   html += "</div></div>";
 
-  html += "<div class='menu-group has-sub "; html += active == "help" ? "open" : ""; html += "'>";
-  html += "<button class='tab menu-toggle "; html += active == "help" ? "active" : ""; html += "' type='button'>❔ Centre d'ajuda <span class='chev'>▶</span></button>";
+  html += "<div class='menu-group has-sub "; html += helpOpen ? "open" : ""; html += "'>";
+  html += "<button class='tab menu-toggle "; html += helpOpen ? "active" : ""; html += "' type='button'>❔ Ajuda <span class='chev'>▶</span></button>";
   html += "<div class='subnav'>";
-  html += "<a class='"; html += (active == "help" && (section == "" || section == "help-firmware")) ? "active" : ""; html += "' href='/help?section=help-firmware'>Firmware</a>";
-  html += "<a class='"; html += (active == "help" && section == "help-hardware") ? "active" : ""; html += "' href='/help?section=help-hardware'>Hardware / GPIO</a>";
+  html += "<a class='"; html += (active == "help" && (section == "" || section == "help-hardware")) ? "active" : ""; html += "' href='/help?section=help-hardware'>Connexions / pinatge</a>";
+  html += "<a class='"; html += (active == "help" && section == "help-files") ? "active" : ""; html += "' href='/help?section=help-files'>Formats fitxer</a>";
+  html += "<a class='"; html += (active == "help" && section == "help-mqtt") ? "active" : ""; html += "' href='/help?section=help-mqtt'>MQTT topics</a>";
+  html += "<a class='"; html += (active == "help" && section == "help-firmware") ? "active" : ""; html += "' href='/help?section=help-firmware'>Notes versió</a>";
   html += "<a class='"; html += (active == "help" && section == "help-future") ? "active" : ""; html += "' href='/help?section=help-future'>Ampliacions futures</a>";
   html += "<a class='"; html += (active == "help" && section == "help-recovery") ? "active" : ""; html += "' href='/help?section=help-recovery'>Rescat</a>";
   html += "</div></div>";
@@ -392,6 +417,7 @@ static void appendTabs(String& html, const String& active) {
   html += "</div>";
 
 }
+
 
 
 static void appendSubTabs(String& html, const String& title, const char* const labels[], const char* const anchors[], size_t count) {
@@ -572,9 +598,9 @@ static String buildStoragePage() {
   String html = "";
   appendPageStart(html, "storage", false);
 
-  static const char* sdLabels[] = {"Estat", "Dades", "Mapa", "Últim registre", "Explorador", "Manteniment"};
-  static const char* sdAnchors[] = {"sd-summary", "sd-stats", "sd-map", "sd-last", "sd-browser", "sd-maintenance"};
-  appendSubTabs(html, "SD", sdLabels, sdAnchors, 6);
+  static const char* sdLabels[] = {"Estat", "Dades", "Estadístiques", "Buffer MQTT", "Logs", "Blackbox", "Mapa", "Últim registre", "Explorador", "Manteniment"};
+  static const char* sdAnchors[] = {"sd-summary", "sd-data", "sd-stats", "sd-buffer", "sd-logs", "sd-blackbox", "sd-map", "sd-last", "sd-browser", "sd-maintenance"};
+  appendSubTabs(html, "SD / Històric", sdLabels, sdAnchors, 10);
 
   html += "<div id='sd-summary' class='card'>";
   html += "<h2>microSD / Històric local / Buffer HA</h2>";
@@ -617,9 +643,30 @@ static String buildStoragePage() {
   html += "</div>";
   html += "</div>";
 
+  html += "<div id='sd-data' class='card'>";
+  html += "<h2>Dades diàries guardades a la SD</h2>";
+  html += "<p class='hint'>Aquí tens el detall de lectures que la boia desa per dies. És la base local perquè Home Assistant pugui caure sense perdre dades.</p>";
+  html += "<div class='grid'>";
+  html += "<div class='item'><div class='label'>Fitxer CSV d'avui</div><div class='value' style='font-size:15px'>" + htmlEscape(sdHistoryPathText()) + "</div><div class='small'>Un fitxer per dia dins /boia/history.</div></div>";
+  html += "<div class='item'><div class='label'>Última escriptura</div><div class='value'>";
+  html += appState.sdLastWriteMillis == 0 ? "Mai" : elapsedText(appState.sdLastWriteMillis);
+  html += "</div><div class='small'>Registres escrits: " + String((unsigned long)appState.sdHistoryWriteCount) + " · errors: " + String((unsigned long)appState.sdHistoryWriteFailCount) + "</div></div>";
+  html += "<div class='item'><div class='label'>Últim registre en memòria</div><div class='value'>";
+  html += appState.sdLastHistoryLine.length() == 0 ? "Encara cap" : "Disponible";
+  html += "</div><div class='small'>El detall complet es pot veure a Últim registre o a l'explorador.</div></div>";
+  html += "</div>";
+  html += "<div class='actions' style='margin-top:16px'>";
+  if (isSdMounted()) {
+    html += "<a class='btn secondary' href='/sd-history.csv'>Descarregar CSV d'avui</a>";
+    html += "<a class='btn secondary' href='/storage?section=sd-browser&path=/boia/history'>Obrir carpeta history</a>";
+    html += "<a class='btn secondary' href='/storage?section=sd-last'>Veure últim registre</a>";
+  }
+  html += "</div>";
+  html += "</div>";
+
   html += "<div id='sd-stats' class='card'>";
-  html += "<h2>Dades i estadística precalculada del dia</h2>";
-  html += "<p class='hint'>Aquesta secció mostra el resum que la boia manté a la SD per no haver de rellegir tot el detall cada vegada.</p>";
+  html += "<h2>Estadístiques precalculades del dia</h2>";
+  html += "<p class='hint'>Aquesta secció mostra el resum que la boia manté a la SD per no haver de rellegir tot el CSV de detall cada vegada.</p>";
   html += "<div class='grid3'>";
   html += "<div class='item'><div class='label'>Dia</div><div class='value'>" + htmlEscape(appState.sdStatsDay) + "</div><div class='small'>Registres: " + String((unsigned long)appState.sdDailyRecordCount) + "</div></div>";
   html += "<div class='item'><div class='label'>Temperatura min / mitjana / max</div><div class='value'>";
@@ -636,6 +683,63 @@ static String buildStoragePage() {
     html += "<a class='btn secondary' href='/sd-pending-mqtt.jsonl'>Buffer MQTT pendent</a>";
   }
   html += "</div>";
+  html += "</div>";
+
+  html += "<div id='sd-buffer' class='card'>";
+  html += "<h2>Buffer MQTT offline</h2>";
+  html += "<p class='hint'>Quan Wi-Fi o MQTT fallen, la boia guarda telemetria pendent aquí. Quan MQTT torna, intenta buidar el buffer cap al topic de telemetria buffer.</p>";
+  html += "<div class='grid'>";
+  html += "<div class='item'><div class='label'>Fitxer buffer</div><div class='value' style='font-size:15px'>" + htmlEscape(sdPendingMqttPathText()) + "</div><div class='small'>Format JSONL, una línia per lectura pendent.</div></div>";
+  html += "<div class='item'><div class='label'>Pendents</div><div class='value ";
+  html += appState.sdMqttPendingCount == 0 ? "ok" : "warn";
+  html += "'>" + String((unsigned long)appState.sdMqttPendingCount) + "</div><div class='small'>Enviats des de buffer: " + String((unsigned long)appState.sdMqttFlushCount) + "</div></div>";
+  html += "<div class='item'><div class='label'>Topic sortida</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("telemetry_buffer")) + "</div><div class='small'>Home Assistant pot usar-lo com a font de recuperació.</div></div>";
+  html += "</div>";
+  if (isSdMounted()) {
+    bool truncated = false;
+    String preview = sdReadTextFileLimited(sdPendingMqttPathText(), 8192, truncated);
+    html += "<h3>Vista ràpida</h3>";
+    if (preview.length()) html += String("<pre>") + htmlEscape(preview) + "</pre>";
+    else html += "<p class='hint'>Buffer buit o encara no creat.</p>";
+    if (truncated) html += "<p class='small warn'>Vista retallada. Descarrega el fitxer per veure'l complet.</p>";
+    html += "<div class='actions'><a class='btn secondary' href='/sd-pending-mqtt.jsonl'>Descarregar pending.jsonl</a><a class='btn secondary' href='/storage?section=sd-browser&path=/boia/mqtt'>Obrir carpeta mqtt</a></div>";
+  }
+  html += "</div>";
+
+  html += "<div id='sd-logs' class='card'>";
+  html += "<h2>Logs locals</h2>";
+  html += "<p class='hint'>Logs per dia amb BOOT, Wi-Fi, MQTT, SD, OTA i errors importants. Això és el primer lloc a mirar quan alguna cosa fa el tonto.</p>";
+  html += "<div class='grid'>";
+  html += "<div class='item'><div class='label'>Log del dia</div><div class='value' style='font-size:15px'>" + htmlEscape(sdSystemLogPathText()) + "</div><div class='small'>Una línia per esdeveniment important.</div></div>";
+  html += "<div class='item'><div class='label'>Últim error SD</div><div class='value' style='font-size:15px'>" + htmlEscape(sdLastErrorText()) + "</div></div>";
+  html += "</div>";
+  if (isSdMounted()) {
+    bool truncated = false;
+    String preview = sdReadTextFileLimited(sdSystemLogPathText(), 12288, truncated);
+    html += "<h3>Vista ràpida del log actual</h3>";
+    if (preview.length()) html += String("<pre>") + htmlEscape(preview) + "</pre>";
+    else html += "<p class='hint'>Log buit o encara no creat.</p>";
+    if (truncated) html += "<p class='small warn'>Vista retallada. Obre'l a l'explorador per veure més.</p>";
+    html += "<div class='actions'><a class='btn secondary' href='/storage?section=sd-browser&path=/boia/logs'>Obrir carpeta logs</a></div>";
+  }
+  html += "</div>";
+
+  html += "<div id='sd-blackbox' class='card'>";
+  html += "<h2>Blackbox d'arrencada</h2>";
+  html += "<p class='hint'>Fitxer de caixa negra amb l'última arrencada. Serveix per saber versió, reset, estat inicial i context si la boia reinicia sola.</p>";
+  html += "<div class='grid'>";
+  html += "<div class='item'><div class='label'>Fitxer blackbox</div><div class='value' style='font-size:15px'>" + htmlEscape(String(SD_BOOT_BLACKBOX_FILE)) + "</div><div class='small'>Es reescriu en cada arrencada.</div></div>";
+  html += "<div class='item'><div class='label'>Versió firmware</div><div class='value'>" + htmlEscape(String(FIRMWARE_VERSION)) + "</div></div>";
+  html += "</div>";
+  if (isSdMounted()) {
+    bool truncated = false;
+    String preview = sdReadTextFileLimited(String(SD_BOOT_BLACKBOX_FILE), 12288, truncated);
+    html += "<h3>Últim last_boot.json</h3>";
+    if (preview.length()) html += String("<pre>") + htmlEscape(preview) + "</pre>";
+    else html += "<p class='hint'>Blackbox encara no creat.</p>";
+    if (truncated) html += "<p class='small warn'>Vista retallada.</p>";
+    html += "<div class='actions'><a class='btn secondary' href='/storage?section=sd-browser&path=/boia/blackbox'>Obrir carpeta blackbox</a><a class='btn secondary' href='/sd-download?path=/boia/blackbox/last_boot.json'>Descarregar last_boot.json</a></div>";
+  }
   html += "</div>";
 
   html += "<div id='sd-map' class='card'>";
@@ -750,12 +854,12 @@ static String buildConfigPage() {
   String html = "";
   appendPageStart(html, "config", false);
 
-  static const char* labels[] = {"Lectura", "Calibratge", "Reset"};
+  static const char* labels[] = {"Temperatura aigua", "Calibratge sonda", "Reset temperatura"};
   static const char* anchors[] = {"temp-reading", "temp-calibration", "temp-reset"};
-  appendSubTabs(html, "Temperatura", labels, anchors, 3);
+  appendSubTabs(html, "Sensors", labels, anchors, 3);
 
   html += "<div id='temp-reading' class='card'>";
-  html += "<h2>Configuracio de temperatura</h2>";
+  html += "<h2>Temperatura aigua · DS18B20</h2>";
   html += "<form method='POST' action='/config'>";
 
   html += "<div>";
@@ -800,7 +904,7 @@ static String buildConfigPage() {
   html += "</div>";
 
   html += "<div id='temp-calibration' class='card'>";
-  html += "<h2>Calibratge i proteccio de la sonda</h2>";
+  html += "<h2>Calibratge i protecció de la sonda DS18B20</h2>";
   html += "<p class='hint'>L'offset s'aplica a la lectura abans de publicar-la. Els valors fora del rang logic es descarten. Les lectures tipiques dolentes de DS18B20, -127 C i 85 C, tambe es descarten.</p>";
   html += "<form method='POST' action='/config'>";
 
@@ -1571,6 +1675,11 @@ static void appendFirmwareSection(String& html) {
 
   html += "<div class='card'>";
   html += "<h2>Actualitzacions</h2>";
+  html += "<div class='item'><div class='label'>v1.24.0-web-reordered</div><div class='value'>Web reordenada</div><div class='small'>Menú lateral reorganitzat en Inici, Sensors, Comunicacions, SD / Històric, OTA / Firmware, Sistema, Manteniment i Ajuda. Afegeix subpàgines SD per dades, estadístiques, buffer MQTT, logs i blackbox.</div></div>";
+  html += "<div class='item'><div class='label'>v1.23.0-battery-autonomy</div><div class='value'>Autonomia bateria</div><div class='small'>Estimació orientativa de dies/hores restants segons baixada real de bateria, visible al footer del gràfic i a Sistema / Bateria.</div></div>";
+  html += "<div class='item'><div class='label'>v1.22.0-wifi-power-mode</div><div class='value'>Mode energia Wi-Fi</div><div class='small'>Subpàgina Wi-Fi / Rendiment amb màxim rendiment o estalvi bateria Wi-Fi sense apagar la connexió.</div></div>";
+  html += "<div class='item'><div class='label'>v1.21.0-header-actions</div><div class='value'>Accions al header</div><div class='small'>Botons globals per reiniciar la boia i sortir de sessió, i botó independent per guardar la freqüència de lectura de la sonda.</div></div>";
+  html += "<div class='item'><div class='label'>v1.20.0-sd-subpages-ui</div><div class='value'>SD en subpàgines</div><div class='small'>SD / Històric separada en subpàgines i footer del gràfic inicial més discret.</div></div>";
   html += "<div class='item'><div class='label'>v1.18.0-sd-blackbox</div><div class='value'>SD caixa negra i buffer</div><div class='small'>Històrics diaris, estadístiques precalculades, logs, blackbox, snapshot de configuració, buffer MQTT offline i explorador/visor web de fitxers.</div></div>";
   html += "<div class='item'><div class='label'>v1.17.0-battery-config</div><div class='value'>Bateria configurable</div><div class='small'>Afegeix Sistema / Bateria amb volts buit/ple, percentatge LOW, calibratge ADC i ajust visual de la fitxa inicial.</div></div>";
   html += "<div class='item'><div class='label'>v1.16.0-sd-history</div><div class='value'>microSD i històric local</div><div class='small'>Afegeix suport SPI per microSD, pàgina SD / Històric, espai ocupat, descàrrega CSV, neteja lògica i guardat local de lectures a /boia/history/YYYY-MM-DD.csv.</div></div>";
@@ -1729,7 +1838,7 @@ static String buildMaintenancePage() {
   String html = "";
   appendPageStart(html, "maintenance", false);
 
-  static const char* labels[] = {"Salut", "Diagnòstic", "Accions", "OTA", "Backup", "Rescat", "Destructives"};
+  static const char* labels[] = {"Salut", "Diagnòstic", "Accions ràpides", "OTA", "Backup / importar", "Rescat", "Reset / destructives"};
   static const char* anchors[] = {"mnt-health", "mnt-diagnostics", "mnt-actions", "mnt-ota", "mnt-backup", "mnt-recovery", "mnt-danger"};
   appendSubTabs(html, "Manteniment", labels, anchors, 7);
 
@@ -1949,7 +2058,7 @@ static String buildSystemPage() {
   String html = "";
   appendPageStart(html, "system", false);
 
-  static const char* labels[] = {"Resum", "Interior boia", "Bateria", "Identitat", "Mode", "LEDs", "Usuaris"};
+  static const char* labels[] = {"Estat sistema", "Ambient intern", "Bateria", "Configuració", "Mode", "LEDs", "Seguretat"};
   static const char* anchors[] = {"sys-summary", "sys-internal-env", "sys-battery", "sys-identity", "sys-mode", "sys-leds", "sys-users"};
   appendSubTabs(html, "Sistema", labels, anchors, 7);
   bool tempAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalTemperatureC) && appState.lastInternalTemperatureC >= configInternalTempAlarmC;
@@ -2138,9 +2247,9 @@ static String buildHelpPage() {
   String html = "";
   appendPageStart(html, "help", false);
 
-  static const char* labels[] = {"Firmware", "Hardware / GPIO", "Ampliacions futures", "Rescat"};
-  static const char* anchors[] = {"help-firmware", "help-hardware", "help-future", "help-recovery"};
-  appendSubTabs(html, "Centre d'ajuda", labels, anchors, 4);
+  static const char* labels[] = {"Connexions / pinatge", "Formats fitxer", "MQTT topics", "Notes versió", "Ampliacions futures", "Rescat"};
+  static const char* anchors[] = {"help-hardware", "help-files", "help-mqtt", "help-firmware", "help-future", "help-recovery"};
+  appendSubTabs(html, "Ajuda", labels, anchors, 6);
 
   html += "<div id='help-firmware'>";
   appendFirmwareSection(html);
@@ -2149,6 +2258,32 @@ static String buildHelpPage() {
   html += "<div id='help-hardware'>";
   appendHardwareSection(html);
   html += "</div>";
+
+  html += "<div id='help-files' class='card'>";
+  html += "<h2>Formats de fitxer SD</h2>";
+  html += "<p class='hint'>Aquests són els fitxers locals que fa servir la boia quan hi ha microSD. Si la SD no existeix, la boia continua funcionant, però no tindrà aquesta caixa negra local.</p>";
+  html += "<div class='grid'>";
+  html += "<div class='item'><div class='label'>Històric detall</div><div class='value' style='font-size:15px'>/boia/history/YYYY-MM-DD.csv</div><div class='small'>Lectures d'aigua, ambient intern, bateria, estat sensors i RSSI. Una fila per lectura.</div></div>";
+  html += "<div class='item'><div class='label'>Estadística diària</div><div class='value' style='font-size:15px'>" + htmlEscape(sdDailyStatsPathText()) + "</div><div class='small'>Snapshots amb min, max, mitjana i errors del dia.</div></div>";
+  html += "<div class='item'><div class='label'>Buffer MQTT</div><div class='value' style='font-size:15px'>" + htmlEscape(sdPendingMqttPathText()) + "</div><div class='small'>JSONL amb telemetria pendent d'enviar quan MQTT cau.</div></div>";
+  html += "<div class='item'><div class='label'>Logs</div><div class='value' style='font-size:15px'>/boia/logs/YYYY-MM-DD.log</div><div class='small'>Arrencades, errors i esdeveniments importants.</div></div>";
+  html += "<div class='item'><div class='label'>Config snapshot</div><div class='value' style='font-size:15px'>/boia/config/config_snapshot.json</div><div class='small'>Còpia llegible de configuració activa.</div></div>";
+  html += "<div class='item'><div class='label'>Blackbox</div><div class='value' style='font-size:15px'>/boia/blackbox/last_boot.json</div><div class='small'>Última arrencada, versió i estat inicial.</div></div>";
+  html += "</div></div>";
+
+  html += "<div id='help-mqtt' class='card'>";
+  html += "<h2>MQTT topics principals</h2>";
+  html += "<p class='hint'>Topics que publica o escolta la boia. El topic base actual és <b>" + htmlEscape(configMqttTopicBase) + "</b>.</p>";
+  html += "<div class='grid'>";
+  html += "<div class='item'><div class='label'>Temperatura aigua</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("temperature")) + "</div></div>";
+  html += "<div class='item'><div class='label'>Ambient intern</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("internal_temperature")) + "<br>" + htmlEscape(mqttTopic("internal_humidity")) + "</div></div>";
+  html += "<div class='item'><div class='label'>Bateria</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("battery_voltage")) + "<br>" + htmlEscape(mqttTopic("battery_percent")) + "<br>" + htmlEscape(mqttTopic("battery_status")) + "</div></div>";
+  html += "<div class='item'><div class='label'>Sistema</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("rssi")) + "<br>" + htmlEscape(mqttTopic("uptime")) + "<br>" + htmlEscape(mqttTopic("sensor_status")) + "</div></div>";
+  html += "<div class='item'><div class='label'>SD</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("sd_status")) + "<br>" + htmlEscape(mqttTopic("sd_history_file")) + "<br>" + htmlEscape(mqttTopic("sd_mqtt_pending")) + "</div></div>";
+  html += "<div class='item'><div class='label'>Telemetria completa</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("telemetry")) + "<br>" + htmlEscape(mqttTopic("telemetry_buffer")) + "</div><div class='small'>telemetry_buffer rep dades recuperades del buffer SD.</div></div>";
+  html += "<div class='item'><div class='label'>Availability</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttAvailabilityTopic()) + "</div></div>";
+  html += "<div class='item'><div class='label'>Comandes</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttCommandRestartTopic()) + "<br>" + htmlEscape(mqttCommandPublishDiscoveryTopic()) + "</div></div>";
+  html += "</div></div>";
 
   html += "<div id='help-future'>";
   appendFutureExpansionSection(html);
