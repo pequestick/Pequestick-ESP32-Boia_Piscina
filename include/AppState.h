@@ -42,6 +42,22 @@ struct AppState {
   String batteryStatus = "UNKNOWN";
   String batteryLastError = "Encara no s'ha fet cap lectura";
 
+  bool sdEnabled = false;
+  bool sdMounted = false;
+  bool sdLastOperationOk = false;
+  String sdStatus = "UNKNOWN";
+  String sdCardType = "Sense dades";
+  String sdLastError = "SD encara no inicialitzada";
+  String sdHistoryPath = "/boia/history.csv";
+  String sdLastHistoryLine = "";
+  uint64_t sdTotalBytes = 0;
+  uint64_t sdUsedBytes = 0;
+  uint64_t sdFreeBytes = 0;
+  uint32_t sdHistoryWriteCount = 0;
+  uint32_t sdHistoryWriteFailCount = 0;
+  unsigned long sdLastCheckMillis = 0;
+  unsigned long sdLastWriteMillis = 0;
+
   bool mqttDiscoveryPublished = false;
   bool mqttRestartRequested = false;
   bool mqttDiscoveryRequested = false;

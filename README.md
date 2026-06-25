@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.15.0-battery-gpio1
+1.16.0-sd-history
 ```
 
 Funcionalitats principals actuals:
@@ -35,6 +35,8 @@ Funcionalitats principals actuals:
 - Configuració exportable/importable.
 - Sensor intern SHT41 actiu.
 - Lectura de bateria per GPIO1 amb divisor resistiu 100k/100k, tensió estimada i percentatge aproximat.
+- microSD per SPI amb pàgina pròpia, estat de muntatge, espai ocupat, descàrrega CSV i neteja lògica.
+- Guardat local d'històric de lectures a `/boia/history.csv`.
 - Accés web protegit amb usuari i contrasenya persistents.
 - Lectura pública de temperatura i estat de sensors des de la pantalla d'accés.
 - Sessió web persistent de set dies amb cookie versionada per navegar sense reautenticacions constants.
@@ -66,6 +68,46 @@ Les credencials Wi-Fi, MQTT i Home Assistant introduïdes des de la web també e
 
 - **DS18B20 impermeable** per temperatura de l'aigua.
 - **SHT41** actiu per temperatura i humitat internes de la boia.
+
+### microSD
+
+Mòdul microSD SPI configurat per guardar històric local de lectures.
+
+Connexió recomanada del mòdul de la foto:
+
+```text
+Mòdul microSD  -> ESP32-C6
+3V3 / VCC      -> 3V3
+GND            -> GND
+CS             -> GPIO23
+MOSI           -> GPIO18
+CLK / SCK      -> GPIO19
+MISO           -> GPIO20
+```
+
+Punts importants:
+
+- Alimenta el mòdul a **3V3**, no a 5V, perquè l'ESP32-C6 no és tolerant a senyals de 5V als GPIO.
+- Si el teu mòdul només accepta 5V segons la serigrafia real, no el connectis a cegues: cal confirmar que porta regulador i adaptació de nivells. Si no, és una manera ràpida de matar l'ESP32.
+- GND del mòdul i GND de l'ESP32 han d'anar units.
+- La targeta ha d'estar en FAT32. Si la boia no la munta, formata-la primer al PC.
+- Fes servir cables curts. SPI amb Dupont llarg fa coses rares.
+
+Constants principals:
+
+```cpp
+#define SD_SPI_MOSI_PIN 18
+#define SD_SPI_CLK_PIN 19
+#define SD_SPI_MISO_PIN 20
+#define SD_SPI_CS_PIN 23
+const bool SD_CARD_ENABLED = true;
+const uint32_t SD_SPI_FREQUENCY_HZ = 4000000;
+const char* SD_HISTORY_FILE = "/boia/history.csv";
+```
+
+La web afegeix la pàgina **SD / Històric**, on es pot veure estat, tipus de targeta, espai total, espai ocupat, espai lliure, descarregar el CSV i fer una neteja lògica de la targeta.
+
+El botó de neteja no és un format físic complet: esborra els fitxers de la microSD i recrea `/boia/history.csv`. Si la targeta està corrupta, format FAT32 al PC i prou romanços.
 
 ### Energia
 
@@ -157,6 +199,29 @@ La web mostra bateria a la pantalla d'estat, al login públic, al diagnòstic i 
 
 ---
 
+## Històric local a microSD
+
+Cada cicle de lectura escriu una línia CSV a:
+
+```text
+/boia/history.csv
+```
+
+Columnes actuals:
+
+```text
+unix_time,iso_time,uptime_seconds,water_temperature_c,raw_temperature_c,water_sensor_status,internal_temperature_c,internal_humidity_percent,internal_env_status,battery_voltage_v,battery_percent,battery_status,wifi_rssi_dbm
+```
+
+Notes clares:
+
+- Si la boia encara no ha sincronitzat hora per NTP, `unix_time` i `iso_time` poden quedar buits. `uptime_seconds` sempre queda escrit.
+- El fitxer és append-only: no reescriu l'històric cada cop, només afegeix una línia.
+- Es pot descarregar des de la web a **SD / Històric → Descarregar CSV**.
+- També hi ha `/sd-info` per veure l'estat en JSON i `/sd-history.csv` per descarregar directament el CSV.
+
+---
+
 ## Web local
 
 La boia exposa una web local a la IP assignada pel router.
@@ -170,6 +235,7 @@ La web inclou:
 - Sistema.
 - Manteniment.
 - Centre d'ajuda.
+- SD / Històric.
 - JSON d'estat.
 
 La interfície utilitza WebSocket per actualitzar estat en directe quan és possible.
@@ -517,6 +583,19 @@ Funcionalitats previstes:
 - Backup/import/export.
 - Centre d'ajuda.
 - Subpàgines i menú lateral.
+
+### v1.16.0
+
+- Afegeix suport microSD per SPI.
+- Guarda històric local de lectures a `/boia/history.csv`.
+- Nova pàgina web SD / Històric amb estat, espai ocupat, descàrrega CSV i neteja lògica.
+- Nou endpoint `/sd-info` i descàrrega directa `/sd-history.csv`.
+
+### v1.15.0
+
+- Lectura de bateria per GPIO1 amb divisor 100k/100k.
+- Mostra tensió, percentatge i estat de bateria a la web.
+- Publica bateria per MQTT i Home Assistant Discovery.
 
 ### v1.5
 

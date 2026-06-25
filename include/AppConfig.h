@@ -57,6 +57,12 @@ extern const float BATTERY_FULL_VOLTAGE;
 extern const float BATTERY_LOW_PERCENT;
 extern const uint8_t BATTERY_ADC_SAMPLES;
 
+// Targeta microSD per historics locals
+extern const bool SD_CARD_ENABLED;
+extern const uint32_t SD_SPI_FREQUENCY_HZ;
+extern const char* SD_HISTORY_DIR;
+extern const char* SD_HISTORY_FILE;
+
 // Ampliacions futures preparades/documentades
 extern const char* FUTURE_INTERNAL_ENV_SENSOR;
 extern const char* FUTURE_BATTERY_MONITOR;
@@ -98,6 +104,14 @@ extern const uint16_t WEB_SERVER_PORT;
 #define INTERNAL_ENV_I2C_SCL_PIN 7
 #define INTERNAL_ENV_I2C_ADDRESS 0x44
 #define BATTERY_VOLTAGE_ADC_PIN 1
+
+// Bus SPI dedicat a microSD. Pins triats lliures respecte DS18B20, SHT41,
+// bateria, LED intern, LED extern i boto de reset.
+#define SD_SPI_MOSI_PIN 18
+#define SD_SPI_CLK_PIN 19
+#define SD_SPI_MISO_PIN 20
+#define SD_SPI_CS_PIN 23
+
 #define SOLAR_VOLTAGE_ADC_PIN -1
 #define CHARGER_STATUS_PIN -1
 

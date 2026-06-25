@@ -44,9 +44,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.15.0-battery-gpio1";
-const char* FIRMWARE_CHANGE_TITLE = "v1.15.0 bateria per GPIO1";
-const char* FIRMWARE_CHANGE_NOTES = "Activa la lectura de bateria amb divisor 100k/100k al GPIO1, mostra volts i percentatge a la web i publica sensors MQTT/Home Assistant.";
+const char* FIRMWARE_VERSION = "1.16.0-sd-history";
+const char* FIRMWARE_CHANGE_TITLE = "v1.16.0 microSD i historic local";
+const char* FIRMWARE_CHANGE_NOTES = "Afegeix suport microSD per SPI, pagina SD/Historic, lectura d'espai ocupat, descarrega CSV i guardat local de lectures.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
@@ -65,6 +65,13 @@ const float BATTERY_EMPTY_VOLTAGE = 3.20f;
 const float BATTERY_FULL_VOLTAGE = 4.20f;
 const float BATTERY_LOW_PERCENT = 20.0f;
 const uint8_t BATTERY_ADC_SAMPLES = 16;
+
+// microSD SPI. El modul de la foto porta pins 3V3/CS/MOSI/CLK/MISO/GND.
+// Es fa servir SPI a baixa velocitat per ser tolerant amb cables Dupont curts.
+const bool SD_CARD_ENABLED = true;
+const uint32_t SD_SPI_FREQUENCY_HZ = 4000000;
+const char* SD_HISTORY_DIR = "/boia";
+const char* SD_HISTORY_FILE = "/boia/history.csv";
 
 // Ampliacions futures. Documentades a la web, no actives encara.
 const char* FUTURE_INTERNAL_ENV_SENSOR = "SHT41 actiu per temperatura i humitat interna";

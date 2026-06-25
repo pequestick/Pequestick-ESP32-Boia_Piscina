@@ -8,6 +8,8 @@
 #include <HTTPClient.h>
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
+#include <FS.h>
+#include <SD.h>
 #include <mbedtls/sha256.h>
 
 #include "AppConfig.h"
@@ -19,6 +21,7 @@
 #include "GitHubOta.h"
 #include "AuthManager.h"
 #include "BatteryMonitor.h"
+#include "SdManager.h"
 
 // ==========================
 // OBJECTE WEB SERVER
@@ -214,7 +217,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "function updateGithubOtaStatus(d){var internetCls=d.internet_check_done?(d.internet_check_ok?'ok':'bad'):'info';var ghCls=d.github_update_checked?(d.github_update_ok?'ok':'bad'):'info';var updCls='info';if(d.github_update_checked){if(d.github_update_available)updCls='warn';else if(d.github_remote_older)updCls='bad';else if(d.github_update_ok)updCls='ok';}txt('ota-internet-main',d.internet_check_done?d.internet_check_message:'Comprovant...');txt('ota-internet-meta',(d.internet_check_details||'')+(d.internet_resolved_ip?' · DNS '+d.internet_resolved_ip:'')+(d.internet_check_done?' · última prova ara':''));txt('ota-github-main',d.github_update_checked?(d.github_update_ok?'Manifest llegit':'Manifest fallit'):'Comprovant...');txt('ota-github-version',d.github_update_version||'--');txt('ota-github-sha',d.github_update_sha_short||d.github_update_sha||'--');txt('ota-github-date',d.github_update_date||'--');txt('ota-update-main',d.github_update_message||'Encara no comprovat');txt('ota-update-details',d.github_update_details||'');cls('ota-internet-tile',internetCls);cls('ota-github-tile',ghCls);cls('ota-update-tile',updCls);cls('ota-internet-main',internetCls);cls('ota-github-main',ghCls);cls('ota-update-main',updCls);var b=document.getElementById('github-install-button');if(b){b.disabled=!(d.github_update_available||(d.github_remote_same_version&&d.github_allow_same_version_update));}}";
   html += "function updateOtaProgress(d){txt('live-internal-temp',d.internal_temperature_c===null?'Sense dades':d.internal_temperature_c+' °C');txt('live-internal-humidity',d.internal_humidity_percent===null?'Sense dades':d.internal_humidity_percent+' %');var card=document.getElementById('ota-progress-card');if(!card)return;var pct=parseInt(d.ota_progress_percent||0,10);var inProg=!!d.ota_in_progress;var phase=d.ota_progress_phase||'espera';var source=d.ota_progress_source||'cap';var active=(source!=='cap'&&phase!=='espera')||inProg;var interrupted=sessionStorage.getItem('boiaOtaPending')==='1'&&!active;if(interrupted){active=true;source='OTA';phase='interrompuda';}if(phase==='error'||phase==='completada')sessionStorage.removeItem('boiaOtaPending');if(active)card.classList.remove('hidden');else card.classList.add('hidden');setOtaModal(active);var fill=document.getElementById('ota-progress-fill');var pctEl=document.getElementById('ota-progress-percent');var phaseEl=document.getElementById('ota-progress-phase');var msgEl=document.getElementById('ota-progress-message');var bytesEl=document.getElementById('ota-progress-bytes');card.classList.remove('done','error');if(phase==='error'||interrupted)card.classList.add('error');if(phase==='completada')card.classList.add('done');if(fill){fill.classList.remove('indeterminate');if(inProg&&(!pct||pct<1)){fill.classList.add('indeterminate');fill.style.width='38%';}else{fill.style.width=Math.max(0,Math.min(100,pct))+'%';}}if(pctEl)pctEl.textContent=(pct?pct:0)+'%';if(phaseEl)phaseEl.textContent=(source||'OTA')+' · '+phase;if(msgEl)msgEl.textContent=interrupted?'L actualitzacio ha perdut la connexio o la boia ha reiniciat. Comprova la versio i el log abans de repetir-la.':(d.ota_last_message||'Esperant accio OTA');if(bytesEl)bytesEl.textContent=bytesHuman(d.ota_progress_bytes)+' / '+bytesHuman(d.ota_progress_total);var log=document.getElementById('ota-log');if(log&&d.ota_log!==undefined){var atBottom=(log.scrollTop+log.clientHeight+24)>=log.scrollHeight;log.textContent=d.ota_log||'Sense log OTA';if(atBottom)log.scrollTop=log.scrollHeight;}}";
   html += "function runOtaAutoChecks(){if(location.pathname!=='/maintenance'||location.search.indexOf('section=mnt-ota')<0)return;txt('ota-internet-main','Comprovant...');txt('ota-github-main','Comprovant...');fetch('/internet-check-run',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){applyStatus(d);return fetch('/github-check-update-run',{cache:'no-store'});}).then(function(r){return r.json();}).then(function(d){applyStatus(d);}).catch(function(){txt('ota-update-main','No puc actualitzar estat OTA');txt('ota-update-details','La comprovació automàtica ha fallat. Prova els botons manuals.');});}";
-  html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-battery',d.battery_percent===null?'Sense dades':d.battery_percent+' %');txt('live-battery-voltage',d.battery_voltage===null?'Sense dades':d.battery_voltage+' V');txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',d.uptime_seconds+' s');txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateGithubOtaStatus(d);updateOtaProgress(d);}";
+  html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-battery',d.battery_percent===null?'Sense dades':d.battery_percent+' %');txt('live-battery-voltage',d.battery_voltage===null?'Sense dades':d.battery_voltage+' V');txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',d.uptime_seconds+' s');txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-sd',d.sd_mounted,d.sd_enabled&&!d.sd_mounted,d.sd_enabled?(d.sd_mounted?'OK':'Error'):'Off');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateGithubOtaStatus(d);updateOtaProgress(d);}";
   html += "function startWS(){if(location.pathname==='/login'||location.pathname==='/change-password')return;try{var ws=new WebSocket('ws://'+location.hostname+':81/');ws.onmessage=function(ev){try{applyStatus(JSON.parse(ev.data));}catch(e){}};ws.onclose=function(){setTimeout(startWS,3000);};ws.onerror=function(){try{ws.close();}catch(e){}};}catch(e){}}";
   html += "function bindConfirms(){document.querySelectorAll('form[data-confirm]').forEach(function(f){if(f.id==='ota-local-form'||f.id==='github-install-form')return;f.addEventListener('submit',function(e){if(!confirm(f.getAttribute('data-confirm'))){e.preventDefault();}});});}";
   html += "function bindAccordion(){document.querySelectorAll('.menu-toggle').forEach(function(btn){btn.addEventListener('click',function(){var g=btn.closest('.menu-group');if(!g)return;var isOpen=g.classList.contains('open');document.querySelectorAll('.menu-group.has-sub').forEach(function(x){x.classList.remove('open');});if(!isOpen)g.classList.add('open');});});}";
@@ -263,6 +266,10 @@ static void appendTabs(String& html, const String& active) {
 
   html += "<div class='menu-group'>";
   html += "<a class='tab "; html += active == "status" ? "active" : ""; html += "' href='/'>📊 Estat</a>";
+  html += "</div>";
+
+  html += "<div class='menu-group'>";
+  html += "<a class='tab "; html += active == "storage" ? "active" : ""; html += "' href='/storage'>💾 SD / Històric</a>";
   html += "</div>";
 
   html += "<div class='menu-group has-sub "; html += active == "config" ? "open" : ""; html += "'>";
@@ -372,6 +379,7 @@ static void appendPageStart(String& html, const String& active, bool autoRefresh
   appendServicePill(html, "svc-mqtt", "📡", "MQTT", configMqttEnabled ? statusClass(isMqttConnected()) : "warn", mqttStatusText());
   appendServicePill(html, "svc-ha", "🏠", "HA", (configHaDiscoveryEnabled && appState.mqttDiscoveryPublished) ? "ok" : "warn", configHaDiscoveryEnabled ? (appState.mqttDiscoveryPublished ? "OK" : "Pendent") : "Off");
   appendServicePill(html, "svc-sensor", "🌡️", "Sonda", appState.sensorStatus == "OK" ? "ok" : (appState.sensorStatus == "ERROR" ? "bad" : "warn"), appState.sensorStatus);
+  appendServicePill(html, "svc-sd", "💾", "SD", isSdMounted() ? "ok" : (isSdEnabled() ? "bad" : "warn"), isSdEnabled() ? (isSdMounted() ? "OK" : "Error") : "Off");
   appendServicePill(html, "svc-ota", "⬆️", "OTA", appState.otaInProgress ? "warn" : "ok", appState.otaInProgress ? "En curs" : "Disponible");
   html += "</div></div>";
   html += "</div>";
@@ -481,6 +489,74 @@ static String buildStatusPage() {
   html += "<button class='history-range' type='button' data-target='temp-history-chart' data-range='1y'>1 any</button></div>";
   html += "<div class='chart-legend'><span class='legend-item'><i class='legend-line'></i>Mitjana</span><span class='legend-item'><i class='legend-band'></i>Mínim–màxim</span></div>";
   html += "<div id='temp-history-chart-note' class='chart-note'>Carregant estadístiques HA...</div></div>";
+
+  appendPageEnd(html);
+  return html;
+}
+
+
+static String buildStoragePage() {
+  refreshSdInfo();
+
+  String html = "";
+  appendPageStart(html, "storage", false);
+
+  html += "<div class='card'>";
+  html += "<h2>microSD / Històric local</h2>";
+  html += "<p class='hint'>Aquesta pàgina serveix per comprovar si la microSD està muntada, veure espai ocupat, descarregar l'històric CSV i fer una neteja completa de la targeta quan calgui.</p>";
+
+  html += "<div class='grid3'>";
+  html += "<div class='item'><div class='label'>Estat SD</div><div class='value ";
+  html += isSdMounted() ? "ok" : "bad";
+  html += "'>" + htmlEscape(sdStatusText()) + "</div><div class='small'>" + htmlEscape(sdLastErrorText()) + "</div></div>";
+  html += "<div class='item'><div class='label'>Tipus targeta</div><div class='value'>" + htmlEscape(sdCardTypeText()) + "</div><div class='small'>Bus SPI dedicat</div></div>";
+  html += "<div class='item'><div class='label'>Fitxer històric</div><div class='value' style='font-size:15px'>" + htmlEscape(sdHistoryPathText()) + "</div><div class='small'>CSV append-only</div></div>";
+  html += "<div class='item'><div class='label'>Capacitat total</div><div class='value'>" + htmlEscape(sdTotalText()) + "</div></div>";
+  html += "<div class='item'><div class='label'>Espai ocupat</div><div class='value'>" + htmlEscape(sdUsedText()) + "</div><div class='small'>" + htmlEscape(sdUsedPercentText()) + "</div></div>";
+  html += "<div class='item'><div class='label'>Espai lliure</div><div class='value'>" + htmlEscape(sdFreeText()) + "</div></div>";
+  html += "<div class='item'><div class='label'>Registres escrits</div><div class='value'>" + String(appState.sdHistoryWriteCount) + "</div></div>";
+  html += "<div class='item'><div class='label'>Errors escriptura</div><div class='value ";
+  html += appState.sdHistoryWriteFailCount == 0 ? "ok" : "bad";
+  html += "'>" + String(appState.sdHistoryWriteFailCount) + "</div></div>";
+  html += "<div class='item'><div class='label'>Última escriptura</div><div class='value'>";
+  html += appState.sdLastWriteMillis == 0 ? "Mai" : elapsedText(appState.sdLastWriteMillis);
+  html += "</div></div>";
+  html += "</div>";
+
+  html += "<h3>Cablejat configurat al firmware</h3>";
+  html += "<div class='grid'>";
+  html += "<div class='item'><div class='label'>CS</div><div class='value'>GPIO" + String(SD_SPI_CS_PIN) + "</div></div>";
+  html += "<div class='item'><div class='label'>MOSI</div><div class='value'>GPIO" + String(SD_SPI_MOSI_PIN) + "</div></div>";
+  html += "<div class='item'><div class='label'>CLK / SCK</div><div class='value'>GPIO" + String(SD_SPI_CLK_PIN) + "</div></div>";
+  html += "<div class='item'><div class='label'>MISO</div><div class='value'>GPIO" + String(SD_SPI_MISO_PIN) + "</div></div>";
+  html += "</div>";
+
+  html += "<div class='actions' style='margin-top:16px'>";
+  html += "<a class='btn secondary' href='/storage'>Recarregar estat</a>";
+  if (isSdMounted()) {
+    html += "<a class='btn secondary' href='/sd-history.csv'>Descarregar CSV</a>";
+  }
+  html += "<a class='btn secondary' href='/sd-info'>Veure JSON SD</a>";
+  html += "</div>";
+  html += "</div>";
+
+  html += "<div class='card'>";
+  html += "<h2>Últim registre guardat</h2>";
+  if (appState.sdLastHistoryLine.length() == 0) {
+    html += "<p class='hint'>Encara no s'ha escrit cap registre en aquesta arrencada. Quan es faci la pròxima lectura, la boia intentarà afegir una línia al CSV.</p>";
+  } else {
+    html += "<pre>" + htmlEscape(appState.sdLastHistoryLine) + "</pre>";
+  }
+  html += "<p class='small'>Columnes: unix_time, iso_time, uptime_seconds, water_temperature_c, raw_temperature_c, water_sensor_status, internal_temperature_c, internal_humidity_percent, internal_env_status, battery_voltage_v, battery_percent, battery_status, wifi_rssi_dbm.</p>";
+  html += "</div>";
+
+  html += "<div class='card'>";
+  html += "<h2>Formatar / netejar SD</h2>";
+  html += "<p class='hint'>El botó següent fa una neteja lògica: esborra tots els fitxers de la microSD i recrea <code>" + htmlEscape(SD_HISTORY_FILE) + "</code>. Això no reparticiona ni refà el FAT físic. Si la targeta està corrupta de veritat, formata-la al PC en FAT32.</p>";
+  html += "<form method='POST' action='/sd-format' data-confirm='Això esborrarà TOTS els fitxers de la microSD. Segur?'>";
+  html += "<button class='btn danger' type='submit'>Netejar SD i recrear històric</button>";
+  html += "</form>";
+  html += "</div>";
 
   appendPageEnd(html);
   return html;
@@ -1271,6 +1347,8 @@ static void appendFirmwareSection(String& html) {
 
   html += "<div class='card'>";
   html += "<h2>Actualitzacions</h2>";
+  html += "<div class='item'><div class='label'>v1.16.0-sd-history</div><div class='value'>microSD i històric local</div><div class='small'>Afegeix suport SPI per microSD, pàgina SD / Històric, espai ocupat, descàrrega CSV, neteja lògica i guardat local de lectures a /boia/history.csv.</div></div>";
+  html += "<div class='item'><div class='label'>v1.15.0-battery-gpio1</div><div class='value'>Bateria per GPIO1</div><div class='small'>Lectura de bateria amb divisor 100k/100k, volts, percentatge aproximat i publicació MQTT/Home Assistant.</div></div>";
   html += "<div class='item'><div class='label'>v1.6.7-ota-auto-check-clean-log</div><div class='value'>OTA més neta i comprovació automàtica</div><div class='small'>La pantalla OTA comprova automàticament Internet i GitHub en entrar, actualitza les targetes sense canviar de pàgina i només mostra el log quan realment hi ha una actualització en curs o acabada.</div></div><div class='item'><div class='label'>v1.6.6-ota-diagnostics-log</div><div class='value'>Log OTA en directe i timeout</div><div class='small'>La pantalla OTA mostra un log detallat de cada pas de GitHub OTA i OTA local, amb missatges també al monitor sèrie. Si la descàrrega queda encallada sense dades, talla amb error en comptes de quedar-se indefinidament.</div></div><div class='item'><div class='label'>v1.6.5-ota-progress-ui</div><div class='value'>Barra de progrés OTA</div><div class='small'>Les actualitzacions OTA locals i des de GitHub mostren barra de progrés, fase, percentatge i bytes perquè es vegi clarament que la boia està treballant.</div></div><div class='item'><div class='label'>v1.6.4-release-helper</div><div class='value'>Release helper</div><div class='small'>Afegeix un script de release que llegeix el nom del canvi des del firmware i fa commit, rebase i push amb un missatge coherent.</div></div><div class='item'><div class='label'>v1.6.3-github-ota-ui-refresh</div><div class='value'>Pantalla GitHub OTA professional</div><div class='small'>La pantalla d'OTA mostra Internet, GitHub, manifest i actualització en targetes clares, guarda el resultat de les comprovacions i evita oferir downgrades quan GitHub publica una versió més antiga.</div></div><div class='item'><div class='label'>v1.6.2-auto-version-manifest</div><div class='value'>Manifest amb versió automàtica</div><div class='small'>GitHub Actions llegeix FIRMWARE_VERSION des d'AppConfig.cpp i genera manifest.json amb la mateixa versió, sense hardcodejar-la al workflow.</div></div><div class='item'><div class='label'>v1.6.1-internet-check</div><div class='value'>Actualitzacions automatiques des de GitHub</div><div class='small'>GitHub Actions pot compilar el firmware en cada push, publicar firmware.bin i manifest.json, i la boia pot detectar una build nova i instal·lar-la per Wi-Fi des de la pestanya Manteniment / OTA.</div></div><div class='item'><div class='label'>v1.5.3-ha-history-hourly</div><div class='value'>Històric HA configurable i reduït per hores</div><div class='small'>El gràfic permet triar les últimes hores a mostrar i el proxy de la boia retorna mostres horàries compactes per evitar carregar massa l'ESP32 amb tot l'històric cru de Home Assistant.</div></div><div class='item'><div class='label'>v1.5.2-ha-token-fix</div><div class='value'>Correcció token Home Assistant</div><div class='small'>La configuració de l'API de Home Assistant ara neteja espais, cometes i el prefix Bearer si s'ha enganxat per error. També mostra un missatge més clar quan Home Assistant respon 401.</div></div><div class='item'><div class='label'>v1.5.0-ha-history-ui</div><div class='value'>Històric de temperatura des de Home Assistant</div><div class='small'>La fitxa de temperatura pot dibuixar un gràfic de fons amb l'històric de l'última setmana llegit des de l'API local de Home Assistant. La configuració d'URL, token i entity_id queda dins MQTT / HA.</div></div><div class='item'><div class='label'>v1.4.9-menu-align</div><div class='value'>Alineació visual del menú</div><div class='small'>El menú lateral queda alineat amb la targeta de contingut principal, mantenint el format acordió compacte sota la capçalera.</div></div><div class='item'><div class='label'>v1.4.8-accordion-menu</div><div class='value'>Menú lateral compacte desplegable</div><div class='small'>El menú lateral passa a funcionar com un acordió: les seccions generals despleguen les subopcions només quan cal. També s'alinea el menú just sota la capçalera principal i es redueix l'efecte de scroll lateral.</div></div><div class='item'><div class='label'>v1.4.7-help-center-menu</div><div class='value'>Centre d'ajuda i menú lateral refinat</div><div class='small'>Firmware, Hardware, Futur i ajuda de rescat passen al Centre d'ajuda. Sistema i Manteniment queden més nets. El menú lateral incorpora subdirectoris i s'arregla el fons quan el contingut és curt.</div></div><div class='item'><div class='label'>v1.4.6-left-menu-subpages</div><div class='value'>Menú lateral i subpàgines</div><div class='small'>La navegació principal passa a l'esquerra i les seccions grans funcionen com a subpàgines amb URL pròpia per secció, sense ancoratges.</div></div><div class='item'><div class='label'>v1.4.5-subtabs</div><div class='value'>Subpestanyes internes</div><div class='small'>Les pàgines grans queden ordenades amb subpestanyes: Sistema, Manteniment, Wi-Fi, MQTT i Temperatura tenen navegació interna per seccions.</div></div><div class='item'><div class='label'>v1.4.4-board-leds</div><div class='value'>Control LED intern de placa</div><div class='small'>Opció per activar/desactivar el LED intern de l'ESP32-C6 i usar-lo com a mirall del LED d'estat extern o com a heartbeat local.</div></div><div class='item'><div class='label'>v1.4.3-future-sensors-prep</div><div class='value'>Preparació sensors interns i energia</div><div class='small'>Documentació i reserves per temperatura interna, humitat interna, bateria, placa solar i GPIO d'expansió. Encara no activa sensors nous fins triar hardware concret.</div></div><div class='item'><div class='label'>v1.4.2-tabs-consolidated</div><div class='value'>Pestanyes consolidades</div><div class='small'>Firmware i Hardware passen dins de Sistema. Diagnòstic passa dins de Manteniment. La navegació queda més curta i menys carregada.</div></div>";
   html += "<div class='item'><div class='label'>v1.4.1-recovery-help</div><div class='value'>Ajuda de rescat</div><div class='small'>Documentació visible a la web sobre què fer després d'un reset total: Wi-Fi AP de rescat, IP per defecte i passos de recuperació.</div></div>";
   html += "<div class='item'><div class='label'>v1.4-maintenance-polish</div><div class='value'>Manteniment i poliment</div><div class='small'>Pestanya Manteniment, Hardware separat, export/import de configuració, confirmacions, salut general, qualitat RSSI i publicació manual de telemetria.</div></div>";
@@ -1340,7 +1418,8 @@ static void appendHardwareSection(String& html) {
   html += "<div class='item'><div class='label'>LED intern placa</div><div class='value'>GPIO";
   html += String(INTERNAL_BOARD_LED_PIN);
   html += "</div><div class='small'>LED RGB intern preparat per ESP32-C6 DevKitC-1. Es pot desactivar o fer servir com a mirall del LED extern des de Sistema → LEDs de placa.</div></div>";
-  html += "<div class='item'><div class='label'>Alimentació</div><div class='value'>5V estable</div><div class='small'>Alimenta la placa per USB/5V segons la teva placa. La DS18B20 millor a 3V3 per evitar nivells de dades de 5V.</div></div>";
+  html += "<div class='item'><div class='label'>microSD SPI</div><div class='value'>GPIO" + String(SD_SPI_CS_PIN) + " / " + String(SD_SPI_MOSI_PIN) + " / " + String(SD_SPI_CLK_PIN) + " / " + String(SD_SPI_MISO_PIN) + "</div><div class='small'>CS GPIO" + String(SD_SPI_CS_PIN) + ", MOSI GPIO" + String(SD_SPI_MOSI_PIN) + ", CLK GPIO" + String(SD_SPI_CLK_PIN) + ", MISO GPIO" + String(SD_SPI_MISO_PIN) + ". Alimenta el mòdul a 3V3 i GND comú.</div></div>";
+  html += "<div class='item'><div class='label'>Alimentació</div><div class='value'>5V estable</div><div class='small'>Alimenta la placa per USB/5V segons la teva placa. La DS18B20 millor a 3V3 per evitar nivells de dades de 5V. El mòdul microSD, a 3V3.</div></div>";
   html += "</div></div>";
 
   html += "<div class='card'>";
@@ -2077,6 +2156,50 @@ static void handleUserCredentialsPost() {
 
 static void handleRoot() {
   server.send(200, "text/html", buildStatusPage());
+}
+
+static void handleStorageGet() {
+  server.send(200, "text/html", buildStoragePage());
+}
+
+static void handleSdInfoGet() {
+  refreshSdInfo();
+  server.send(200, "application/json", sdInfoJson());
+}
+
+static void handleSdHistoryCsvGet() {
+  if (!isSdMounted()) {
+    server.send(404, "text/plain", "SD no muntada");
+    return;
+  }
+
+  if (!ensureSdHistoryFile()) {
+    server.send(500, "text/plain", "No puc preparar el fitxer historic");
+    return;
+  }
+
+  File file = SD.open(SD_HISTORY_FILE, FILE_READ);
+  if (!file) {
+    server.send(404, "text/plain", "Historic no trobat");
+    return;
+  }
+
+  server.sendHeader("Content-Disposition", "attachment; filename=boia_history.csv");
+  server.streamFile(file, "text/csv");
+  file.close();
+}
+
+static void handleSdFormatPost() {
+  bool ok = logicalFormatSdCard();
+  server.send(
+    ok ? 200 : 500,
+    "text/html",
+    buildSavedPage(
+      ok ? "SD netejada" : "Error netejant SD",
+      ok ? "S'han esborrat els fitxers de la microSD i s'ha recreat l'historic CSV." : sdLastErrorText(),
+      false
+    )
+  );
 }
 
 static void handleConfigGet() {
@@ -3579,6 +3702,31 @@ static String buildStatusJsonPayload() {
   json += String(appState.otaProgressPercent);
   json += ",";
 
+  json += "\"sd_enabled\":";
+  json += isSdEnabled() ? "true" : "false";
+  json += ",";
+  json += "\"sd_mounted\":";
+  json += isSdMounted() ? "true" : "false";
+  json += ",";
+  json += "\"sd_status\":\"";
+  json += jsonEscape(sdStatusText());
+  json += "\",";
+  json += "\"sd_card_type\":\"";
+  json += jsonEscape(sdCardTypeText());
+  json += "\",";
+  json += "\"sd_history_file\":\"";
+  json += jsonEscape(sdHistoryPathText());
+  json += "\",";
+  json += "\"sd_history_writes\":";
+  json += String(appState.sdHistoryWriteCount);
+  json += ",";
+  json += "\"sd_history_write_fails\":";
+  json += String(appState.sdHistoryWriteFailCount);
+  json += ",";
+  json += "\"sd_last_error\":\"";
+  json += jsonEscape(sdLastErrorText());
+  json += "\",";
+
   json += "\"hardware_ready\":";
   json += appState.hardwareReady ? "true" : "false";
   json += ",";
@@ -3768,6 +3916,10 @@ void setupWebServer() {
   server.on("/change-password", HTTP_GET, handleChangePasswordGet);
   server.on("/change-password", HTTP_POST, handleChangePasswordPost);
   server.on("/", HTTP_GET, handleRoot);
+  server.on("/storage", HTTP_GET, handleStorageGet);
+  server.on("/sd-info", HTTP_GET, handleSdInfoGet);
+  server.on("/sd-history.csv", HTTP_GET, handleSdHistoryCsvGet);
+  server.on("/sd-format", HTTP_POST, handleSdFormatPost);
   server.on("/config", HTTP_GET, handleConfigGet);
   server.on("/config", HTTP_POST, handleConfigPost);
   server.on("/wifi", HTTP_GET, handleWifiGet);

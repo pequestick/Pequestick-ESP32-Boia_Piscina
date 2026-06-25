@@ -9,6 +9,7 @@
 #include "HardwareManager.h"
 #include "InternalEnvSensor.h"
 #include "BatteryMonitor.h"
+#include "SdManager.h"
 
 // ==========================
 // ESTAT GLOBAL
@@ -25,8 +26,8 @@ void printHeader() {
   Serial.println("================================");
   Serial.print("BOIA PISCINA - ");
   Serial.println(FIRMWARE_VERSION);
-  Serial.println("ESP32-C6 + DS18B20 + SHT41 + bateria GPIO1 + Wi-Fi + MQTT + HA + OTA");
-  Serial.println("v1.15 - bateria GPIO1 amb divisor 100k/100k");
+  Serial.println("ESP32-C6 + DS18B20 + SHT41 + bateria GPIO1 + microSD + Wi-Fi + MQTT + HA + OTA");
+  Serial.println("v1.16 - microSD SPI amb historic local CSV");
   Serial.println("================================");
 
   Serial.print("GPIO sonda DS18B20: GPIO");
@@ -41,6 +42,15 @@ void printHeader() {
   Serial.print(BATTERY_VOLTAGE_ADC_PIN);
   Serial.print(" · divisor x");
   Serial.println(BATTERY_DIVIDER_RATIO, 2);
+
+  Serial.print("microSD SPI: CS GPIO");
+  Serial.print(SD_SPI_CS_PIN);
+  Serial.print(" · MOSI GPIO");
+  Serial.print(SD_SPI_MOSI_PIN);
+  Serial.print(" · CLK GPIO");
+  Serial.print(SD_SPI_CLK_PIN);
+  Serial.print(" · MISO GPIO");
+  Serial.println(SD_SPI_MISO_PIN);
 
   Serial.print("GPIO boto fisic: ");
   Serial.println(RESET_BUTTON_ENABLED ? ("GPIO" + String(RESET_BUTTON_PIN)) : "desactivat");
@@ -124,6 +134,7 @@ void setup() {
   initHardwareManager();
   initInternalEnvSensor();
   initBatteryMonitor();
+  initSdManager();
 
   connectWifi();
 
@@ -141,6 +152,7 @@ void loop() {
   handleWebServer();
   mqttLoop();
   handleHardwareManager();
+  handleSdManager();
 
   if (now - appState.lastWifiCheckMillis >= WIFI_CHECK_INTERVAL_SECONDS * 1000UL || appState.lastWifiCheckMillis == 0) {
     appState.lastWifiCheckMillis = now;
@@ -157,6 +169,7 @@ void loop() {
     performTemperatureRead();
     performInternalEnvRead();
     performBatteryRead();
+    appendSdHistoryRecord();
   }
 
   if (configMqttEnabled && (now - appState.lastMqttPublishMillis >= (unsigned long)configMqttPublishIntervalSeconds * 1000UL || appState.lastMqttPublishMillis == 0)) {
