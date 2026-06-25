@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.22.0-wifi-power-mode
+1.23.0-battery-autonomy
 ```
 
 Funcionalitats principals actuals:
@@ -38,6 +38,7 @@ Funcionalitats principals actuals:
 - Configuració exportable/importable.
 - Sensor intern SHT41 actiu.
 - Lectura de bateria per GPIO1 amb divisor resistiu 100k/100k, tensió estimada i percentatge aproximat.
+- Estimació orientativa d'autonomia restant de bateria, mostrada al footer del gràfic inicial i a **Sistema / Bateria** quan hi ha prou mostra de descàrrega.
 - Configuració web dels volts de bateria buida/plena, percentatge LOW i calibratge ADC.
 - microSD per SPI amb pàgina pròpia separada en subpàgines, estat de muntatge, espai ocupat, explorador tipus Windows, visor modal, descàrrega CSV i neteja lògica.
 - Guardat local d'històric de lectures separat per dies a `/boia/history/YYYY-MM-DD.csv`.
@@ -675,6 +676,14 @@ Funcionalitats previstes:
 - Backup/import/export.
 - Centre d'ajuda.
 - Subpàgines i menú lateral.
+
+### v1.23.0
+
+- Afegeix una estimació orientativa d'autonomia restant de bateria.
+- Mostra l'autonomia al footer compacte del gràfic inicial, al costat de bateria i uptime.
+- Mostra l'autonomia i el detall del càlcul a **Sistema / Bateria**.
+- El càlcul espera almenys uns minuts i una baixada mínima de bateria abans de donar un resultat; mentre no hi ha prou mostra mostra **Calculant**.
+- Afegeix camps nous al JSON `/status`: `battery_estimate_ready`, `battery_estimated_remaining_seconds`, `battery_discharge_percent_per_hour`, `battery_remaining_text` i `battery_remaining_detail`.
 
 ### v1.22.0
 

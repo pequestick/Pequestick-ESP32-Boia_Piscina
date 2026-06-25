@@ -39,6 +39,12 @@ struct AppState {
   float lastBatteryPercent = NAN;
   float lastBatteryAdcMilliVolts = NAN;
   float lastBatteryRawAdc = NAN;
+  unsigned long batteryEstimateStartMillis = 0;
+  float batteryEstimateStartPercent = NAN;
+  float batteryDischargePercentPerHour = NAN;
+  uint32_t batteryEstimatedRemainingSeconds = 0;
+  bool batteryEstimateReady = false;
+  String batteryEstimateStatus = "Esperant dades";
   String batteryStatus = "UNKNOWN";
   String batteryLastError = "Encara no s'ha fet cap lectura";
 
