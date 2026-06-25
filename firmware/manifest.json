@@ -1,10 +1,10 @@
 {
-  "version": "1.23.0-battery-autonomy",
-  "build_sha": "a8ea56490fd80954f721136fa0b99b247ad1da34",
-  "build_short_sha": "a8ea56490fd8",
-  "build_date": "2026-06-25T14:01:35Z",
-  "size": 1677312,
-  "sha256": "9ed2fb559284a65dc269c7d2af3f4f6e7844dbce7363c3536fe916ba3fbec44e",
+  "version": "1.24.0-web-reordered",
+  "build_sha": "2ce669ea08d3d4acc955b7909fa73e906fb52abf",
+  "build_short_sha": "2ce669ea08d3",
+  "build_date": "2026-06-25T14:18:50Z",
+  "size": 1692144,
+  "sha256": "09111cc5dcf3d0af4e108a370849fda8aa6423348d819bf0124b838c8c6707e2",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Afegeix una estimacio aproximada de dies, hores o mesos restants de bateria al footer inicial i a Sistema / Bateria, calculada quan hi ha prou mostra de descarrega."
+  "notes": "Reordena el menu lateral en blocs funcionals, amplia SD / Historic amb dades, estadistiques, buffer MQTT, logs i blackbox, i afegeix ajuda local de formats i MQTT topics."
 }
