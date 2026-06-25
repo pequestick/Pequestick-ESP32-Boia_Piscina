@@ -198,13 +198,13 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += ".ota-log{margin-top:12px;background:#020617;border:1px solid #263449;border-radius:14px;padding:12px;color:#c7d2fe;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45;max-height:230px;overflow:auto;white-space:pre-wrap}.ota-log-head{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#bfdbfe;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}.ota-log small{color:#64748b}";
   html += "button:disabled{opacity:.45;cursor:not-allowed;background:#334155;}";
   html += "pre{white-space:pre-wrap;word-break:break-word;background:#050b14;border:1px solid #334155;border-radius:14px;padding:14px;color:#dbeafe;}";
-  html += ".temp-card{position:relative;overflow:hidden;min-height:270px;}";
+  html += ".temp-card{position:relative;overflow:hidden;min-height:350px;padding-bottom:92px;}";
   html += ".temp-card canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.26;pointer-events:none;}";
-  html += ".temp-card .temp-content{position:relative;z-index:1}.temp-card h2{padding-right:210px}";
+  html += ".temp-card .temp-content{position:relative;z-index:1}.temp-card h2{padding-right:210px}.temp-battery-card{margin-top:16px;max-width:360px;}";
   html += ".temp-trend{display:inline-block;margin-left:9px;font-size:36px;font-weight:950;line-height:1;vertical-align:7px;text-shadow:0 2px 12px rgba(0,0,0,.35)}.temp-trend.up{color:#22c55e}.temp-trend.down{color:#ef4444}.temp-trend.stable{color:#facc15}.temp-trend.pending{visibility:hidden}";
   html += ".internal-mini{position:absolute;top:0;right:0;display:flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid rgba(125,211,252,.24);border-radius:10px;background:rgba(2,6,23,.58);font-size:11px;color:#94a3b8;white-space:nowrap}.internal-mini b{color:#e0f2fe;font-size:12px}.internal-mini .separator{color:#475569;margin:0 1px}";
   html += ".chart-note{position:absolute;right:18px;bottom:12px;color:#94a3b8;font-size:11px;z-index:2}.history-toolbar{position:absolute;left:18px;bottom:38px;z-index:3;display:flex;gap:5px;flex-wrap:wrap}.history-range{padding:5px 8px;border-radius:999px;background:rgba(15,23,42,.82);border:1px solid #334155;font-size:11px;color:#cbd5e1}.history-range.active{border-color:var(--range-color,#38bdf8);box-shadow:0 0 0 2px color-mix(in srgb,var(--range-color,#38bdf8) 24%,transparent);color:#fff}.chart-legend{position:absolute;left:18px;bottom:12px;z-index:2;display:flex;gap:12px;color:#94a3b8;font-size:11px}.legend-item{display:inline-flex;align-items:center;gap:5px}.legend-line{width:18px;height:2px;background:var(--range-color,#38bdf8)}.legend-band{width:18px;height:8px;border:1px solid var(--range-color,#38bdf8);background:color-mix(in srgb,var(--range-color,#38bdf8) 22%,transparent)}.history-panel{position:relative;overflow:hidden;min-height:270px}.history-panel canvas{position:absolute;inset:48px 0 0;width:100%;height:calc(100% - 48px);opacity:.72;pointer-events:none}.history-panel h3{position:relative;z-index:2;margin:0;padding-right:12px}.history-panel .history-toolbar{top:46px;bottom:auto}.history-panel .chart-note,.history-panel .chart-legend{bottom:10px}";
-  html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.temp-trend{font-size:29px;vertical-align:5px}.temp-card h2{padding-right:165px}.internal-mini{font-size:10px;padding:5px 7px;gap:4px}.internal-mini b{font-size:11px}.history-toolbar{left:12px;bottom:40px}.chart-legend{left:12px;gap:8px}.chart-note{right:12px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}}";
+  html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.temp-trend{font-size:29px;vertical-align:5px}.temp-card{min-height:390px;padding-bottom:105px}.temp-card h2{padding-right:165px}.temp-battery-card{max-width:none}.internal-mini{font-size:10px;padding:5px 7px;gap:4px}.internal-mini b{font-size:11px}.history-toolbar{left:12px;bottom:40px}.chart-legend{left:12px;gap:8px}.chart-note{right:12px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}}";
   html += "</style>";
 
   html += "<script>";
@@ -303,6 +303,7 @@ static void appendTabs(String& html, const String& active) {
   html += "<div class='subnav'>";
   html += "<a class='"; html += (active == "system" && (section == "" || section == "sys-summary")) ? "active" : ""; html += "' href='/system?section=sys-summary'>Resum</a>";
   html += "<a class='"; html += (active == "system" && section == "sys-internal-env") ? "active" : ""; html += "' href='/system?section=sys-internal-env'>Interior boia / alarmes</a>";
+  html += "<a class='"; html += (active == "system" && section == "sys-battery") ? "active" : ""; html += "' href='/system?section=sys-battery'>Bateria</a>";
   html += "<a class='"; html += (active == "system" && section == "sys-identity") ? "active" : ""; html += "' href='/system?section=sys-identity'>Identitat</a>";
   html += "<a class='"; html += (active == "system" && section == "sys-mode") ? "active" : ""; html += "' href='/system?section=sys-mode'>Mode</a>";
   html += "<a class='"; html += (active == "system" && section == "sys-leds") ? "active" : ""; html += "' href='/system?section=sys-leds'>LEDs</a>";
@@ -474,7 +475,7 @@ static String buildStatusPage() {
   html += "</b><span class='separator'>·</span><b id='live-internal-humidity'>";
   html += isnan(appState.lastInternalHumidityPercent) ? "Sense dades" : formatTemperature(appState.lastInternalHumidityPercent, 1) + " %";
   html += "</b><span>HR</span></div>";
-  html += "<div class='item' style='margin-top:12px;max-width:360px'><div class='label'>Bateria</div><div class='value' id='live-battery'>";
+  html += "<div class='item temp-battery-card'><div class='label'>Bateria</div><div class='value' id='live-battery'>";
   html += batteryPercentText();
   html += "</div><div class='small'>";
   html += batteryVoltageText();
@@ -1160,6 +1161,10 @@ static String buildConfigExportJson(bool includePasswords) {
   json += "  \"temperature_offset_c\": " + floatText(configTemperatureOffsetC, 2) + ",\n";
   json += "  \"min_valid_temp_c\": " + floatText(configMinValidTempC, 2) + ",\n";
   json += "  \"max_valid_temp_c\": " + floatText(configMaxValidTempC, 2) + ",\n";
+  json += "  \"battery_empty_voltage\": " + floatText(configBatteryEmptyVoltage, 2) + ",\n";
+  json += "  \"battery_full_voltage\": " + floatText(configBatteryFullVoltage, 2) + ",\n";
+  json += "  \"battery_low_percent\": " + floatText(configBatteryLowPercent, 0) + ",\n";
+  json += "  \"battery_calibration_factor\": " + floatText(configBatteryCalibrationFactor, 3) + ",\n";
   json += "  \"board_led_enabled\": "; json += (configBoardLedEnabled ? "true" : "false"); json += ",\n";
   json += "  \"board_led_mirror_status\": "; json += (configBoardLedMirrorStatus ? "true" : "false"); json += "\n";
   json += "}";
@@ -1347,6 +1352,7 @@ static void appendFirmwareSection(String& html) {
 
   html += "<div class='card'>";
   html += "<h2>Actualitzacions</h2>";
+  html += "<div class='item'><div class='label'>v1.17.0-battery-config</div><div class='value'>Bateria configurable</div><div class='small'>Afegeix Sistema / Bateria amb volts buit/ple, percentatge LOW, calibratge ADC i ajust visual de la fitxa inicial.</div></div>";
   html += "<div class='item'><div class='label'>v1.16.0-sd-history</div><div class='value'>microSD i històric local</div><div class='small'>Afegeix suport SPI per microSD, pàgina SD / Històric, espai ocupat, descàrrega CSV, neteja lògica i guardat local de lectures a /boia/history.csv.</div></div>";
   html += "<div class='item'><div class='label'>v1.15.0-battery-gpio1</div><div class='value'>Bateria per GPIO1</div><div class='small'>Lectura de bateria amb divisor 100k/100k, volts, percentatge aproximat i publicació MQTT/Home Assistant.</div></div>";
   html += "<div class='item'><div class='label'>v1.6.7-ota-auto-check-clean-log</div><div class='value'>OTA més neta i comprovació automàtica</div><div class='small'>La pantalla OTA comprova automàticament Internet i GitHub en entrar, actualitza les targetes sense canviar de pàgina i només mostra el log quan realment hi ha una actualització en curs o acabada.</div></div><div class='item'><div class='label'>v1.6.6-ota-diagnostics-log</div><div class='value'>Log OTA en directe i timeout</div><div class='small'>La pantalla OTA mostra un log detallat de cada pas de GitHub OTA i OTA local, amb missatges també al monitor sèrie. Si la descàrrega queda encallada sense dades, talla amb error en comptes de quedar-se indefinidament.</div></div><div class='item'><div class='label'>v1.6.5-ota-progress-ui</div><div class='value'>Barra de progrés OTA</div><div class='small'>Les actualitzacions OTA locals i des de GitHub mostren barra de progrés, fase, percentatge i bytes perquè es vegi clarament que la boia està treballant.</div></div><div class='item'><div class='label'>v1.6.4-release-helper</div><div class='value'>Release helper</div><div class='small'>Afegeix un script de release que llegeix el nom del canvi des del firmware i fa commit, rebase i push amb un missatge coherent.</div></div><div class='item'><div class='label'>v1.6.3-github-ota-ui-refresh</div><div class='value'>Pantalla GitHub OTA professional</div><div class='small'>La pantalla d'OTA mostra Internet, GitHub, manifest i actualització en targetes clares, guarda el resultat de les comprovacions i evita oferir downgrades quan GitHub publica una versió més antiga.</div></div><div class='item'><div class='label'>v1.6.2-auto-version-manifest</div><div class='value'>Manifest amb versió automàtica</div><div class='small'>GitHub Actions llegeix FIRMWARE_VERSION des d'AppConfig.cpp i genera manifest.json amb la mateixa versió, sense hardcodejar-la al workflow.</div></div><div class='item'><div class='label'>v1.6.1-internet-check</div><div class='value'>Actualitzacions automatiques des de GitHub</div><div class='small'>GitHub Actions pot compilar el firmware en cada push, publicar firmware.bin i manifest.json, i la boia pot detectar una build nova i instal·lar-la per Wi-Fi des de la pestanya Manteniment / OTA.</div></div><div class='item'><div class='label'>v1.5.3-ha-history-hourly</div><div class='value'>Històric HA configurable i reduït per hores</div><div class='small'>El gràfic permet triar les últimes hores a mostrar i el proxy de la boia retorna mostres horàries compactes per evitar carregar massa l'ESP32 amb tot l'històric cru de Home Assistant.</div></div><div class='item'><div class='label'>v1.5.2-ha-token-fix</div><div class='value'>Correcció token Home Assistant</div><div class='small'>La configuració de l'API de Home Assistant ara neteja espais, cometes i el prefix Bearer si s'ha enganxat per error. També mostra un missatge més clar quan Home Assistant respon 401.</div></div><div class='item'><div class='label'>v1.5.0-ha-history-ui</div><div class='value'>Històric de temperatura des de Home Assistant</div><div class='small'>La fitxa de temperatura pot dibuixar un gràfic de fons amb l'històric de l'última setmana llegit des de l'API local de Home Assistant. La configuració d'URL, token i entity_id queda dins MQTT / HA.</div></div><div class='item'><div class='label'>v1.4.9-menu-align</div><div class='value'>Alineació visual del menú</div><div class='small'>El menú lateral queda alineat amb la targeta de contingut principal, mantenint el format acordió compacte sota la capçalera.</div></div><div class='item'><div class='label'>v1.4.8-accordion-menu</div><div class='value'>Menú lateral compacte desplegable</div><div class='small'>El menú lateral passa a funcionar com un acordió: les seccions generals despleguen les subopcions només quan cal. També s'alinea el menú just sota la capçalera principal i es redueix l'efecte de scroll lateral.</div></div><div class='item'><div class='label'>v1.4.7-help-center-menu</div><div class='value'>Centre d'ajuda i menú lateral refinat</div><div class='small'>Firmware, Hardware, Futur i ajuda de rescat passen al Centre d'ajuda. Sistema i Manteniment queden més nets. El menú lateral incorpora subdirectoris i s'arregla el fons quan el contingut és curt.</div></div><div class='item'><div class='label'>v1.4.6-left-menu-subpages</div><div class='value'>Menú lateral i subpàgines</div><div class='small'>La navegació principal passa a l'esquerra i les seccions grans funcionen com a subpàgines amb URL pròpia per secció, sense ancoratges.</div></div><div class='item'><div class='label'>v1.4.5-subtabs</div><div class='value'>Subpestanyes internes</div><div class='small'>Les pàgines grans queden ordenades amb subpestanyes: Sistema, Manteniment, Wi-Fi, MQTT i Temperatura tenen navegació interna per seccions.</div></div><div class='item'><div class='label'>v1.4.4-board-leds</div><div class='value'>Control LED intern de placa</div><div class='small'>Opció per activar/desactivar el LED intern de l'ESP32-C6 i usar-lo com a mirall del LED d'estat extern o com a heartbeat local.</div></div><div class='item'><div class='label'>v1.4.3-future-sensors-prep</div><div class='value'>Preparació sensors interns i energia</div><div class='small'>Documentació i reserves per temperatura interna, humitat interna, bateria, placa solar i GPIO d'expansió. Encara no activa sensors nous fins triar hardware concret.</div></div><div class='item'><div class='label'>v1.4.2-tabs-consolidated</div><div class='value'>Pestanyes consolidades</div><div class='small'>Firmware i Hardware passen dins de Sistema. Diagnòstic passa dins de Manteniment. La navegació queda més curta i menys carregada.</div></div>";
@@ -1484,7 +1490,7 @@ static void appendFutureExpansionSection(String& html) {
   html += "<div class='card'>";
   html += "<h2>Arquitectura futura d'energia</h2>";
   html += "<div class='grid'>";
-  appendChecklistItem(html, "Bateria", htmlEscape("Li-Ion/LiPo 1S"), "El percentatge actual assumeix 3.20 V buit i 4.20 V ple. Si canvies química o tensió, revisa constants i divisor.");
+  appendChecklistItem(html, "Bateria", htmlEscape("Li-Ion/LiPo 1S"), "Per defecte assumeix 3.00 V buit i 4.20 V ple, però ara es pot ajustar des de Sistema → Bateria. Si canvies química o tensió, revisa també el divisor.");
   appendChecklistItem(html, "Càrrega solar", htmlEscape("Carregador dedicat"), "La placa solar no ha d'anar directa a la bateria. Necessita mòdul carregador/protecció adequat.");
   appendChecklistItem(html, "Mesura tensió", htmlEscape("Divisor resistiu"), "L'ADC de l'ESP32 no pot rebre tensions altes. Cal divisor i calibratge.");
   appendChecklistItem(html, "Mode energia", htmlEscape("Futur"), "Quan hi hagi bateria real, tindrà sentit deep sleep, intervals més llargs i telemetria d'energia.");
@@ -1723,9 +1729,9 @@ static String buildSystemPage() {
   String html = "";
   appendPageStart(html, "system", false);
 
-  static const char* labels[] = {"Resum", "Interior boia", "Identitat", "Mode", "LEDs", "Usuaris"};
-  static const char* anchors[] = {"sys-summary", "sys-internal-env", "sys-identity", "sys-mode", "sys-leds", "sys-users"};
-  appendSubTabs(html, "Sistema", labels, anchors, 6);
+  static const char* labels[] = {"Resum", "Interior boia", "Bateria", "Identitat", "Mode", "LEDs", "Usuaris"};
+  static const char* anchors[] = {"sys-summary", "sys-internal-env", "sys-battery", "sys-identity", "sys-mode", "sys-leds", "sys-users"};
+  appendSubTabs(html, "Sistema", labels, anchors, 7);
   bool tempAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalTemperatureC) && appState.lastInternalTemperatureC >= configInternalTempAlarmC;
   bool humidityAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalHumidityPercent) && appState.lastInternalHumidityPercent >= configInternalHumidityAlarmPercent;
 
@@ -1776,6 +1782,11 @@ static String buildSystemPage() {
   html += "</div><div class='small'>Llindars: " + String(configInternalTempAlarmC, 1) + " °C i " + String(configInternalHumidityAlarmPercent, 1) + " % HR.</div>";
   html += "<div class='buttons' style='margin-top:10px'><a class='action-link' href='/system?section=sys-internal-env'>Veure interior de la boia i configurar alarmes</a></div></div>";
 
+  html += "<div class='item'><div class='label'>Bateria</div><div class='value ";
+  html += appState.batteryStatus == "LOW" ? "warn" : (appState.batteryStatus == "ERROR" ? "bad" : "ok");
+  html += "'>" + batteryPercentText() + "</div><div class='small'>" + batteryVoltageText() + " · Buit: " + floatText(configBatteryEmptyVoltage, 2) + " V · Ple: " + floatText(configBatteryFullVoltage, 2) + " V.</div>";
+  html += "<div class='buttons' style='margin-top:10px'><a class='action-link' href='/system?section=sys-battery'>Configurar bateria</a></div></div>";
+
   html += "</div>";
   html += "</div>";
 
@@ -1794,17 +1805,41 @@ static String buildSystemPage() {
   html += "<h3>Històric de l'ambient interior</h3>";
   appendStatisticsHistoryPanel(html, "internal-temp-history-chart", "Temperatura interior de la boia", configHaInternalTemperatureEntityId);
   appendStatisticsHistoryPanel(html, "internal-humidity-history-chart", "Humitat interior de la boia", configHaInternalHumidityEntityId);
-  if (configHaBatteryEntityId.length() > 0) {
-    appendStatisticsHistoryPanel(html, "battery-history-chart", "Bateria de la boia", configHaBatteryEntityId);
-  } else {
-    html += "<div class='item'><div class='label'>Històric de bateria · futur</div><div class='small'>El component gràfic ja està preparat. Apareixerà quan hi hagi sensor de bateria i configuris el seu Entity ID a MQTT / HA → Home Assistant.</div></div>";
-  }
   html += "<h3>Configuració de valors i alarmes</h3><form method='POST' action='/internal-env-alarm'><div><label><input name='alarm_enabled' type='checkbox' value='1' ";
   html += configInternalEnvAlarmEnabled ? "checked" : "";
   html += ">Activar alarmes de temperatura i humitat interior de la boia</label></div><div class='grid'>";
   html += "<div><div class='label'>Sobretemperatura interior de la boia (°C)</div><input name='temp_alarm_c' type='number' min='-20' max='85' step='0.1' value='" + String(configInternalTempAlarmC, 1) + "' required></div>";
   html += "<div><div class='label'>Humitat interior alta de la boia (%)</div><input name='humidity_alarm_percent' type='number' min='1' max='100' step='0.1' value='" + String(configInternalHumidityAlarmPercent, 1) + "' required></div></div>";
   html += "<div class='buttons'><button type='submit'>Guardar alarmes</button></div></form></div>";
+
+  html += "<div id='sys-battery' class='card'><h2>Bateria · GPIO1</h2>";
+  html += "<p class='hint'>La lectura surt del divisor 100k/100k: BAT+ → 100 kΩ → GPIO" + String(BATTERY_VOLTAGE_ADC_PIN) + " → 100 kΩ → GND. El percentatge és lineal entre el voltatge buit i el voltatge ple que configuris aquí.</p>";
+  html += "<div class='grid'>";
+  html += "<div class='item'><div class='label'>Percentatge actual</div><div class='value ";
+  html += appState.batteryStatus == "LOW" ? "warn" : (appState.batteryStatus == "ERROR" ? "bad" : "ok");
+  html += "'>" + batteryPercentText() + "</div><div class='small'>Estat: " + htmlEscape(batteryStatusText()) + "</div></div>";
+  html += "<div class='item'><div class='label'>Voltatge calculat</div><div class='value'>" + batteryVoltageText() + "</div><div class='small'>ADC: ";
+  html += (isnan(appState.lastBatteryAdcMilliVolts) ? String("sense dades") : floatText(appState.lastBatteryAdcMilliVolts, 0) + " mV");
+  html += " · divisor x" + floatText(BATTERY_DIVIDER_RATIO, 2) + "</div></div>";
+  html += "<div class='item'><div class='label'>Escala actual</div><div class='value'>" + floatText(configBatteryEmptyVoltage, 2) + " V → " + floatText(configBatteryFullVoltage, 2) + " V</div><div class='small'>Avís LOW per sota de " + floatText(configBatteryLowPercent, 0) + " %. Calibratge ADC: x" + floatText(configBatteryCalibrationFactor, 3) + ".</div></div>";
+  html += "<div class='item'><div class='label'>Lectures bateria</div><div class='value'>" + String(appState.batteryValidReads) + "/" + String(appState.batteryTotalReads) + "</div><div class='small'>Últim error: " + htmlEscape(appState.batteryLastError) + "</div></div>";
+  html += "</div>";
+  if (configHaBatteryEntityId.length() > 0) {
+    html += "<h3>Històric de bateria a Home Assistant</h3>";
+    appendStatisticsHistoryPanel(html, "battery-history-chart", "Bateria de la boia", configHaBatteryEntityId);
+  } else {
+    html += "<div class='item' style='margin-top:12px'><div class='label'>Històric de bateria</div><div class='small'>Configura l'Entity ID de bateria a MQTT / HA → Home Assistant per veure el gràfic aquí.</div></div>";
+  }
+  html += "<h3>Configuració volts bateria</h3>";
+  html += "<form method='POST' action='/battery-config'><div class='grid'>";
+  html += "<div><div class='label'>Voltatge bateria buida (0 %)</div><input name='battery_empty_voltage' type='number' min='" + floatText(MIN_BATTERY_EMPTY_VOLTAGE, 2) + "' max='" + floatText(MAX_BATTERY_EMPTY_VOLTAGE, 2) + "' step='0.01' value='" + floatText(configBatteryEmptyVoltage, 2) + "' required></div>";
+  html += "<div><div class='label'>Voltatge bateria plena (100 %)</div><input name='battery_full_voltage' type='number' min='" + floatText(MIN_BATTERY_FULL_VOLTAGE, 2) + "' max='" + floatText(MAX_BATTERY_FULL_VOLTAGE, 2) + "' step='0.01' value='" + floatText(configBatteryFullVoltage, 2) + "' required></div>";
+  html += "<div><div class='label'>Avís bateria baixa (%)</div><input name='battery_low_percent' type='number' min='" + floatText(MIN_BATTERY_LOW_PERCENT, 0) + "' max='" + floatText(MAX_BATTERY_LOW_PERCENT, 0) + "' step='1' value='" + floatText(configBatteryLowPercent, 0) + "' required></div>";
+  html += "<div><div class='label'>Factor calibratge ADC</div><input name='battery_calibration_factor' type='number' min='" + floatText(MIN_BATTERY_CALIBRATION_FACTOR, 2) + "' max='" + floatText(MAX_BATTERY_CALIBRATION_FACTOR, 2) + "' step='0.001' value='" + floatText(configBatteryCalibrationFactor, 3) + "' required></div>";
+  html += "</div><p class='small'>Si el multímetre diu 3.80 V i la web diu 3.60 V, posa calibratge aproximat 3.80 / 3.60 = 1.056. No facis trampes: 3.02 V en una Li-Ion 1S és pràcticament buida, encara que l'ESP32 aguanti uns minuts més.</p>";
+  html += "<div class='buttons'><button type='submit'>Guardar bateria</button></div></form>";
+  html += "<form method='POST' action='/battery-config-reset' data-confirm='Restaurar valors de bateria per defecte?'><button class='secondary' type='submit'>Restaurar valors bateria</button></form>";
+  html += "</div>";
 
   html += "<div id='sys-identity' class='card'>";
   html += "<h2>Identitat del dispositiu</h2>";
@@ -2387,6 +2422,35 @@ static void handleInternalEnvAlarmPost() {
   );
 }
 
+static void handleBatteryConfigPost() {
+  float emptyVoltage = server.hasArg("battery_empty_voltage") ? server.arg("battery_empty_voltage").toFloat() : DEFAULT_BATTERY_EMPTY_VOLTAGE;
+  float fullVoltage = server.hasArg("battery_full_voltage") ? server.arg("battery_full_voltage").toFloat() : DEFAULT_BATTERY_FULL_VOLTAGE;
+  float lowPercent = server.hasArg("battery_low_percent") ? server.arg("battery_low_percent").toFloat() : DEFAULT_BATTERY_LOW_PERCENT;
+  float calibrationFactor = server.hasArg("battery_calibration_factor") ? server.arg("battery_calibration_factor").toFloat() : DEFAULT_BATTERY_CALIBRATION_FACTOR;
+
+  saveBatteryConfig(emptyVoltage, fullVoltage, lowPercent, calibrationFactor);
+  performBatteryRead();
+  appState.lastMqttPublishMillis = 0;
+
+  server.send(
+    200,
+    "text/html",
+    buildSavedPage("Configuracio de bateria guardada", "La boia ja recalcula el percentatge amb els nous volts de referencia i el nou factor ADC.", false)
+  );
+}
+
+static void handleBatteryConfigResetPost() {
+  resetBatteryConfigToDefaults();
+  performBatteryRead();
+  appState.lastMqttPublishMillis = 0;
+
+  server.send(
+    200,
+    "text/html",
+    buildSavedPage("Bateria restaurada", "S'han restaurat els valors per defecte de bateria: 3.00 V buit, 4.20 V ple, LOW al 15 % i calibratge x1.000.", false)
+  );
+}
+
 static void handleMqttPublishNowPost() {
   if (!configMqttEnabled || !isMqttConnected()) {
     server.send(400, "text/html", buildSavedPage("MQTT no connectat", "No puc publicar telemetria perquè MQTT no esta connectat.", false));
@@ -2514,6 +2578,16 @@ static void handleConfigImportPost() {
   if (extractJsonFloatValue(json, "min_valid_temp_c", fv)) minT = fv;
   if (extractJsonFloatValue(json, "max_valid_temp_c", fv)) maxT = fv;
   saveSensorConfig(offset, minT, maxT);
+
+  float batteryEmpty = configBatteryEmptyVoltage;
+  float batteryFull = configBatteryFullVoltage;
+  float batteryLow = configBatteryLowPercent;
+  float batteryCal = configBatteryCalibrationFactor;
+  if (extractJsonFloatValue(json, "battery_empty_voltage", fv)) batteryEmpty = fv;
+  if (extractJsonFloatValue(json, "battery_full_voltage", fv)) batteryFull = fv;
+  if (extractJsonFloatValue(json, "battery_low_percent", fv)) batteryLow = fv;
+  if (extractJsonFloatValue(json, "battery_calibration_factor", fv)) batteryCal = fv;
+  saveBatteryConfig(batteryEmpty, batteryFull, batteryLow, batteryCal);
 
   appState.mqttDiscoveryPublished = false;
   appState.mqttConfigStatePublishRequested = true;
@@ -3944,6 +4018,8 @@ void setupWebServer() {
   server.on("/device-mode", HTTP_POST, handleDeviceModePost);
   server.on("/board-leds", HTTP_POST, handleBoardLedsPost);
   server.on("/internal-env-alarm", HTTP_POST, handleInternalEnvAlarmPost);
+  server.on("/battery-config", HTTP_POST, handleBatteryConfigPost);
+  server.on("/battery-config-reset", HTTP_POST, handleBatteryConfigResetPost);
   server.on("/user-credentials", HTTP_POST, handleUserCredentialsPost);
   server.on("/mqtt-publish-now", HTTP_POST, handleMqttPublishNowPost);
   server.on("/config-export", HTTP_GET, handleConfigExport);

@@ -19,9 +19,9 @@ static float clampPercent(float value) {
 
 static float estimateBatteryPercent(float voltage) {
   if (isnan(voltage)) return NAN;
-  float range = BATTERY_FULL_VOLTAGE - BATTERY_EMPTY_VOLTAGE;
+  float range = configBatteryFullVoltage - configBatteryEmptyVoltage;
   if (range <= 0.01f) return NAN;
-  return clampPercent(((voltage - BATTERY_EMPTY_VOLTAGE) / range) * 100.0f);
+  return clampPercent(((voltage - configBatteryEmptyVoltage) / range) * 100.0f);
 }
 
 void initBatteryMonitor() {
@@ -62,7 +62,7 @@ void performBatteryRead() {
 
   float raw = (float)rawSum / (float)BATTERY_ADC_SAMPLES;
   float adcMilliVolts = (float)mvSum / (float)BATTERY_ADC_SAMPLES;
-  float voltage = (adcMilliVolts / 1000.0f) * BATTERY_DIVIDER_RATIO * BATTERY_CALIBRATION_FACTOR;
+  float voltage = (adcMilliVolts / 1000.0f) * BATTERY_DIVIDER_RATIO * configBatteryCalibrationFactor;
   float percent = estimateBatteryPercent(voltage);
 
   appState.lastBatteryRawAdc = raw;
@@ -80,7 +80,7 @@ void performBatteryRead() {
 
   appState.batteryValidReads++;
   appState.batteryLastError = "OK";
-  appState.batteryStatus = percent <= BATTERY_LOW_PERCENT ? "LOW" : "OK";
+  appState.batteryStatus = percent <= configBatteryLowPercent ? "LOW" : "OK";
 
   Serial.print("Bateria: ");
   Serial.print(voltage, 3);

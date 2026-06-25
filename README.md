@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.16.0-sd-history
+1.17.0-battery-config
 ```
 
 Funcionalitats principals actuals:
@@ -35,6 +35,7 @@ Funcionalitats principals actuals:
 - Configuració exportable/importable.
 - Sensor intern SHT41 actiu.
 - Lectura de bateria per GPIO1 amb divisor resistiu 100k/100k, tensió estimada i percentatge aproximat.
+- Configuració web dels volts de bateria buida/plena, percentatge LOW i calibratge ADC.
 - microSD per SPI amb pàgina pròpia, estat de muntatge, espai ocupat, descàrrega CSV i neteja lògica.
 - Guardat local d'històric de lectures a `/boia/history.csv`.
 - Accés web protegit amb usuari i contrasenya persistents.
@@ -127,8 +128,9 @@ Punts importants, perquè aquí no hi ha marge per fer el bèstia:
 
 - No connectis mai BAT+ directament al GPIO1.
 - Amb dues resistències iguals de 100 kΩ el divisor és x2: l'ESP32 veu aproximadament la meitat de la tensió de bateria.
-- El càlcul de percentatge està pensat per una bateria Li-Ion/LiPo 1S: 3.20 V = 0 %, 4.20 V = 100 %. És una estimació lineal, no un indicador perfecte d'estat de càrrega.
-- Si el muntatge final és 2S, 5 V boost, LiFePO4 o una altra química, caldrà canviar constants i possiblement el divisor. No ho barregis sense revisar-ho.
+- El càlcul de percentatge està pensat per una bateria Li-Ion/LiPo 1S i ara es pot ajustar des de **Sistema → Bateria**. Per defecte: 3.00 V = 0 %, 4.20 V = 100 %, LOW per sota del 15 %. És una estimació lineal, no un indicador perfecte d'estat de càrrega.
+- Si la web no coincideix amb el multímetre, ajusta el **factor de calibratge ADC**. Exemple: si el multímetre diu 3.80 V i la web diu 3.60 V, factor aproximat = 3.80 / 3.60 = 1.056.
+- Si el muntatge final és 2S, 5 V boost, LiFePO4 o una altra química, caldrà canviar rangs i possiblement el divisor. No ho barregis sense revisar-ho.
 
 Preparació prevista:
 
@@ -180,7 +182,7 @@ Això encara s'haurà de validar amb el pinout real de la placa final.
 El firmware llegeix la bateria al **GPIO1**. La lectura es fa amb `analogReadMilliVolts()`, mitjana de 16 mostres i atenuació `ADC_11db`. Després aplica el factor del divisor:
 
 ```text
-voltatge_bateria = voltatge_gpio1 * 2.0
+voltatge_bateria = voltatge_gpio1 * 2.0 * factor_calibratge_adc
 ```
 
 Constants principals a `src/AppConfig.cpp` / `include/AppConfig.h`:
@@ -188,14 +190,23 @@ Constants principals a `src/AppConfig.cpp` / `include/AppConfig.h`:
 ```cpp
 #define BATTERY_VOLTAGE_ADC_PIN 1
 const float BATTERY_DIVIDER_RATIO = 2.0f;
-const float BATTERY_CALIBRATION_FACTOR = 1.0f;
-const float BATTERY_EMPTY_VOLTAGE = 3.20f;
-const float BATTERY_FULL_VOLTAGE = 4.20f;
-const float BATTERY_LOW_PERCENT = 20.0f;
+const float DEFAULT_BATTERY_CALIBRATION_FACTOR = 1.0f;
+const float DEFAULT_BATTERY_EMPTY_VOLTAGE = 3.00f;
+const float DEFAULT_BATTERY_FULL_VOLTAGE = 4.20f;
+const float DEFAULT_BATTERY_LOW_PERCENT = 15.0f;
 const uint8_t BATTERY_ADC_SAMPLES = 16;
 ```
 
-La web mostra bateria a la pantalla d'estat, al login públic, al diagnòstic i al mapa de hardware. MQTT publica `battery_voltage`, `battery_percent` i `battery_status`, i Home Assistant Discovery crea les entitats corresponents.
+La web mostra bateria a la pantalla d'estat, al login públic, al diagnòstic, al mapa de hardware i a **Sistema → Bateria**. En aquesta pàgina es poden configurar:
+
+- Voltatge de bateria buida, que equival a 0 %.
+- Voltatge de bateria plena, que equival a 100 %.
+- Percentatge a partir del qual l'estat passa a `LOW`.
+- Factor de calibratge ADC.
+
+MQTT publica `battery_voltage`, `battery_percent` i `battery_status`, i Home Assistant Discovery crea les entitats corresponents.
+
+Una lectura de **3.02 V** en una Li-Ion 1S no és “mitja bateria”: és pràcticament buida. Pot continuar funcionant una estona, sobretot si hi ha conversor o regulador, però no és un estat saludable per anar drenat la bateria cada dia.
 
 ---
 
@@ -583,6 +594,14 @@ Funcionalitats previstes:
 - Backup/import/export.
 - Centre d'ajuda.
 - Subpàgines i menú lateral.
+
+### v1.17.0
+
+- Afegeix pàgina **Sistema → Bateria**.
+- Permet configurar volts de bateria buida i plena.
+- Permet ajustar percentatge LOW i calibratge ADC.
+- Canvia el valor per defecte de bateria buida a 3.00 V.
+- Evita el solapament de la fitxa de bateria amb els controls del gràfic inicial.
 
 ### v1.16.0
 

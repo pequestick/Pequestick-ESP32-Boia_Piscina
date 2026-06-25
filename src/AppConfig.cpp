@@ -44,9 +44,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.16.0-sd-history";
-const char* FIRMWARE_CHANGE_TITLE = "v1.16.0 microSD i historic local";
-const char* FIRMWARE_CHANGE_NOTES = "Afegeix suport microSD per SPI, pagina SD/Historic, lectura d'espai ocupat, descarrega CSV i guardat local de lectures.";
+const char* FIRMWARE_VERSION = "1.17.0-battery-config";
+const char* FIRMWARE_CHANGE_TITLE = "v1.17.0 bateria configurable";
+const char* FIRMWARE_CHANGE_NOTES = "Afegeix configuracio web dels volts de bateria buida/plena, percentatge baix i calibratge ADC; tambe ajusta la fitxa inicial per evitar solapaments.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
@@ -58,12 +58,29 @@ const float DEFAULT_INTERNAL_TEMP_ALARM_C = 50.0f;
 const float DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT = 80.0f;
 
 // Bateria: BAT+ -> 100k -> GPIO1 -> 100k -> GND.
-// Pensat per una bateria Li-Ion/LiPo 1S. El percentatge és una estimació lineal.
+// Pensat per una bateria Li-Ion/LiPo 1S. El percentatge és una estimació lineal
+// i ara es pot ajustar des de Sistema -> Bateria.
 const float BATTERY_DIVIDER_RATIO = 2.0f;
-const float BATTERY_CALIBRATION_FACTOR = 1.0f;
-const float BATTERY_EMPTY_VOLTAGE = 3.20f;
-const float BATTERY_FULL_VOLTAGE = 4.20f;
-const float BATTERY_LOW_PERCENT = 20.0f;
+const float DEFAULT_BATTERY_CALIBRATION_FACTOR = 1.0f;
+const float DEFAULT_BATTERY_EMPTY_VOLTAGE = 3.00f;
+const float DEFAULT_BATTERY_FULL_VOLTAGE = 4.20f;
+const float DEFAULT_BATTERY_LOW_PERCENT = 15.0f;
+
+// Constants legacy, mantingudes perquè els textos antics i qualsevol referencia
+// externa continuin compilant. El firmware fa servir configBattery*.
+const float BATTERY_CALIBRATION_FACTOR = DEFAULT_BATTERY_CALIBRATION_FACTOR;
+const float BATTERY_EMPTY_VOLTAGE = DEFAULT_BATTERY_EMPTY_VOLTAGE;
+const float BATTERY_FULL_VOLTAGE = DEFAULT_BATTERY_FULL_VOLTAGE;
+const float BATTERY_LOW_PERCENT = DEFAULT_BATTERY_LOW_PERCENT;
+
+const float MIN_BATTERY_EMPTY_VOLTAGE = 2.50f;
+const float MAX_BATTERY_EMPTY_VOLTAGE = 3.60f;
+const float MIN_BATTERY_FULL_VOLTAGE = 3.40f;
+const float MAX_BATTERY_FULL_VOLTAGE = 4.35f;
+const float MIN_BATTERY_CALIBRATION_FACTOR = 0.50f;
+const float MAX_BATTERY_CALIBRATION_FACTOR = 1.50f;
+const float MIN_BATTERY_LOW_PERCENT = 0.0f;
+const float MAX_BATTERY_LOW_PERCENT = 100.0f;
 const uint8_t BATTERY_ADC_SAMPLES = 16;
 
 // microSD SPI. El modul de la foto porta pins 3V3/CS/MOSI/CLK/MISO/GND.
@@ -183,6 +200,10 @@ bool configGithubAllowSameVersionUpdate = DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDA
 bool configInternalEnvAlarmEnabled = DEFAULT_INTERNAL_ENV_ALARM_ENABLED;
 float configInternalTempAlarmC = DEFAULT_INTERNAL_TEMP_ALARM_C;
 float configInternalHumidityAlarmPercent = DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT;
+float configBatteryEmptyVoltage = DEFAULT_BATTERY_EMPTY_VOLTAGE;
+float configBatteryFullVoltage = DEFAULT_BATTERY_FULL_VOLTAGE;
+float configBatteryLowPercent = DEFAULT_BATTERY_LOW_PERCENT;
+float configBatteryCalibrationFactor = DEFAULT_BATTERY_CALIBRATION_FACTOR;
 
 static Preferences preferences;
 
@@ -443,6 +464,10 @@ void loadConfig() {
   configInternalHumidityAlarmPercent = preferences.isKey("env_hum_hi")
     ? preferences.getFloat("env_hum_hi", DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT)
     : DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT;
+  configBatteryEmptyVoltage = preferences.getFloat("bat_empty", DEFAULT_BATTERY_EMPTY_VOLTAGE);
+  configBatteryFullVoltage = preferences.getFloat("bat_full", DEFAULT_BATTERY_FULL_VOLTAGE);
+  configBatteryLowPercent = preferences.getFloat("bat_low", DEFAULT_BATTERY_LOW_PERCENT);
+  configBatteryCalibrationFactor = preferences.getFloat("bat_cal", DEFAULT_BATTERY_CALIBRATION_FACTOR);
 
   preferences.end();
 
@@ -475,6 +500,15 @@ void loadConfig() {
   configMaxValidTempC = clampFloat(configMaxValidTempC, ABSOLUTE_MIN_VALID_TEMP_C, ABSOLUTE_MAX_VALID_TEMP_C);
   configInternalTempAlarmC = clampFloat(configInternalTempAlarmC, -20.0f, 85.0f);
   configInternalHumidityAlarmPercent = clampFloat(configInternalHumidityAlarmPercent, 1.0f, 100.0f);
+  configBatteryEmptyVoltage = clampFloat(configBatteryEmptyVoltage, MIN_BATTERY_EMPTY_VOLTAGE, MAX_BATTERY_EMPTY_VOLTAGE);
+  configBatteryFullVoltage = clampFloat(configBatteryFullVoltage, MIN_BATTERY_FULL_VOLTAGE, MAX_BATTERY_FULL_VOLTAGE);
+  configBatteryLowPercent = clampFloat(configBatteryLowPercent, MIN_BATTERY_LOW_PERCENT, MAX_BATTERY_LOW_PERCENT);
+  configBatteryCalibrationFactor = clampFloat(configBatteryCalibrationFactor, MIN_BATTERY_CALIBRATION_FACTOR, MAX_BATTERY_CALIBRATION_FACTOR);
+
+  if (configBatteryFullVoltage <= configBatteryEmptyVoltage + 0.10f) {
+    configBatteryEmptyVoltage = DEFAULT_BATTERY_EMPTY_VOLTAGE;
+    configBatteryFullVoltage = DEFAULT_BATTERY_FULL_VOLTAGE;
+  }
 
   if (configMinValidTempC >= configMaxValidTempC) {
     configMinValidTempC = DEFAULT_MIN_VALID_TEMP_C;
@@ -669,6 +703,10 @@ void factoryResetConfigAndSetupMode() {
   configInternalEnvAlarmEnabled = DEFAULT_INTERNAL_ENV_ALARM_ENABLED;
   configInternalTempAlarmC = DEFAULT_INTERNAL_TEMP_ALARM_C;
   configInternalHumidityAlarmPercent = DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT;
+  configBatteryEmptyVoltage = DEFAULT_BATTERY_EMPTY_VOLTAGE;
+  configBatteryFullVoltage = DEFAULT_BATTERY_FULL_VOLTAGE;
+  configBatteryLowPercent = DEFAULT_BATTERY_LOW_PERCENT;
+  configBatteryCalibrationFactor = DEFAULT_BATTERY_CALIBRATION_FACTOR;
 }
 
 bool hasWifiConfig() {
@@ -919,6 +957,39 @@ void saveInternalEnvAlarmConfig(bool enabled, float temperatureC, float humidity
   preferences.putBool("env_alarm", configInternalEnvAlarmEnabled);
   preferences.putFloat("env_temp_hi", configInternalTempAlarmC);
   preferences.putFloat("env_hum_hi", configInternalHumidityAlarmPercent);
+  preferences.end();
+}
+
+void saveBatteryConfig(float emptyVoltage, float fullVoltage, float lowPercent, float calibrationFactor) {
+  configBatteryEmptyVoltage = clampFloat(emptyVoltage, MIN_BATTERY_EMPTY_VOLTAGE, MAX_BATTERY_EMPTY_VOLTAGE);
+  configBatteryFullVoltage = clampFloat(fullVoltage, MIN_BATTERY_FULL_VOLTAGE, MAX_BATTERY_FULL_VOLTAGE);
+  configBatteryLowPercent = clampFloat(lowPercent, MIN_BATTERY_LOW_PERCENT, MAX_BATTERY_LOW_PERCENT);
+  configBatteryCalibrationFactor = clampFloat(calibrationFactor, MIN_BATTERY_CALIBRATION_FACTOR, MAX_BATTERY_CALIBRATION_FACTOR);
+
+  if (configBatteryFullVoltage <= configBatteryEmptyVoltage + 0.10f) {
+    configBatteryEmptyVoltage = DEFAULT_BATTERY_EMPTY_VOLTAGE;
+    configBatteryFullVoltage = DEFAULT_BATTERY_FULL_VOLTAGE;
+  }
+
+  preferences.begin("boia", false);
+  preferences.putFloat("bat_empty", configBatteryEmptyVoltage);
+  preferences.putFloat("bat_full", configBatteryFullVoltage);
+  preferences.putFloat("bat_low", configBatteryLowPercent);
+  preferences.putFloat("bat_cal", configBatteryCalibrationFactor);
+  preferences.end();
+}
+
+void resetBatteryConfigToDefaults() {
+  configBatteryEmptyVoltage = DEFAULT_BATTERY_EMPTY_VOLTAGE;
+  configBatteryFullVoltage = DEFAULT_BATTERY_FULL_VOLTAGE;
+  configBatteryLowPercent = DEFAULT_BATTERY_LOW_PERCENT;
+  configBatteryCalibrationFactor = DEFAULT_BATTERY_CALIBRATION_FACTOR;
+
+  preferences.begin("boia", false);
+  preferences.remove("bat_empty");
+  preferences.remove("bat_full");
+  preferences.remove("bat_low");
+  preferences.remove("bat_cal");
   preferences.end();
 }
 

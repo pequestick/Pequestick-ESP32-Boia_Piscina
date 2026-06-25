@@ -55,6 +55,18 @@ extern const float BATTERY_CALIBRATION_FACTOR;
 extern const float BATTERY_EMPTY_VOLTAGE;
 extern const float BATTERY_FULL_VOLTAGE;
 extern const float BATTERY_LOW_PERCENT;
+extern const float DEFAULT_BATTERY_CALIBRATION_FACTOR;
+extern const float DEFAULT_BATTERY_EMPTY_VOLTAGE;
+extern const float DEFAULT_BATTERY_FULL_VOLTAGE;
+extern const float DEFAULT_BATTERY_LOW_PERCENT;
+extern const float MIN_BATTERY_EMPTY_VOLTAGE;
+extern const float MAX_BATTERY_EMPTY_VOLTAGE;
+extern const float MIN_BATTERY_FULL_VOLTAGE;
+extern const float MAX_BATTERY_FULL_VOLTAGE;
+extern const float MIN_BATTERY_CALIBRATION_FACTOR;
+extern const float MAX_BATTERY_CALIBRATION_FACTOR;
+extern const float MIN_BATTERY_LOW_PERCENT;
+extern const float MAX_BATTERY_LOW_PERCENT;
 extern const uint8_t BATTERY_ADC_SAMPLES;
 
 // Targeta microSD per historics locals
@@ -156,6 +168,10 @@ extern bool configGithubAllowSameVersionUpdate;
 extern bool configInternalEnvAlarmEnabled;
 extern float configInternalTempAlarmC;
 extern float configInternalHumidityAlarmPercent;
+extern float configBatteryEmptyVoltage;
+extern float configBatteryFullVoltage;
+extern float configBatteryLowPercent;
+extern float configBatteryCalibrationFactor;
 
 // Configuracio persistent: temperatura
 extern uint16_t configReadIntervalSeconds;
@@ -258,6 +274,8 @@ String normalizedDeviceHostname(const String& hostname);
 void saveDeviceIdentity(const String& deviceName, const String& hostname);
 void saveDeviceMode(bool productionMode);
 void saveBoardLedConfig(bool enabled, bool mirrorStatus);
+void saveBatteryConfig(float emptyVoltage, float fullVoltage, float lowPercent, float calibrationFactor);
+void resetBatteryConfigToDefaults();
 void saveInternalEnvAlarmConfig(bool enabled, float temperatureC, float humidityPercent);
 void saveGithubOtaConfig(bool enabled, const String& manifestUrl, bool allowSameVersionUpdate);
 String normalizedGithubManifestUrl(const String& manifestUrl);
