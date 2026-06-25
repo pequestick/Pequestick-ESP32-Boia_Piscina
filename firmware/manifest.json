@@ -1,10 +1,10 @@
 {
-  "version": "1.21.0-header-actions",
-  "build_sha": "c75309c0977df2f3e4d8728b54ef02a9f9c91090",
-  "build_short_sha": "c75309c0977d",
-  "build_date": "2026-06-25T13:07:49Z",
-  "size": 1669216,
-  "sha256": "b90604d5826c0e37761b6bc526df47779ecdb35080548e9ad2fc49ac253dd959",
+  "version": "1.22.0-wifi-power-mode",
+  "build_sha": "5e3369824b2e073ac3054b60e38cf79c86ba102f",
+  "build_short_sha": "5e3369824b2e",
+  "build_date": "2026-06-25T13:14:41Z",
+  "size": 1672624,
+  "sha256": "f4a54c8bacaf72701558de524cc46664bf56dd0b2ca38224e3afc9c045d64e0e",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Separa la pantalla SD en subpagines amb submenu lateral, compacta bateria i uptime en el footer del grafic inicial i deixa els controls de resolucio centrats."
+  "notes": "Afegeix una subpagina Wi-Fi / Rendiment per triar entre maxim rendiment i estalvi bateria Wi-Fi sense apagar la connexio."
 }
