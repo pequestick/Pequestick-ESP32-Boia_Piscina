@@ -1,10 +1,10 @@
 {
-  "version": "1.15.0-battery-gpio1",
-  "build_sha": "70f02cf2b20d2dc10e134ffcdc019160edcab222",
-  "build_short_sha": "70f02cf2b20d",
-  "build_date": "2026-06-25T09:58:40Z",
-  "size": 1538432,
-  "sha256": "6e89cbcb8241aa5c1398f6a35a51961a7a456441c490f23f74d971848b3f3887",
+  "version": "1.16.0-sd-history",
+  "build_sha": "6a38439eea1423aa8bf0a5eab352c22540d165a1",
+  "build_short_sha": "6a38439eea14",
+  "build_date": "2026-06-25T10:34:51Z",
+  "size": 1614384,
+  "sha256": "55401695e7c7461f677c4ea6eb850da9de63be0a64da4a628dffc8edf2f4debc",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Activa la lectura de bateria amb divisor 100k/100k al GPIO1, mostra volts i percentatge a la web i publica sensors MQTT/Home Assistant."
+  "notes": "Afegeix suport microSD per SPI, pagina SD/Historic, lectura d'espai ocupat, descarrega CSV i guardat local de lectures."
 }
