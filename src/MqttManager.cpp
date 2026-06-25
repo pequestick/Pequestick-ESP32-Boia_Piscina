@@ -2,11 +2,13 @@
 
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <time.h>
 
 #include "AppConfig.h"
 #include "AppState.h"
 #include "Utils.h"
 #include "BatteryMonitor.h"
+#include "SdManager.h"
 
 // ==========================
 // OBJECTES MQTT
@@ -423,6 +425,15 @@ void publishHomeAssistantDiscovery() {
   consecutiveErrorsExtra += "\"icon\":\"mdi:counter\",";
   consecutiveErrorsExtra += "\"entity_category\":\"diagnostic\"";
 
+  String sdStatusExtra = "";
+  sdStatusExtra += "\"icon\":\"mdi:sd\",";
+  sdStatusExtra += "\"entity_category\":\"diagnostic\"";
+
+  String sdPendingExtra = "";
+  sdPendingExtra += "\"state_class\":\"measurement\",";
+  sdPendingExtra += "\"icon\":\"mdi:database-sync\",";
+  sdPendingExtra += "\"entity_category\":\"diagnostic\"";
+
   bool ok = true;
 
   ok &= mqttPublishRetained(
@@ -499,6 +510,21 @@ void publishHomeAssistantDiscovery() {
   ok &= mqttPublishRetained(
     discoveryTopic("sensor", "consecutive_sensor_errors"),
     buildBaseSensorConfig("Errors consecutius sonda", deviceId + "_consecutive_sensor_errors", mqttTopic("consecutive_sensor_errors"), consecutiveErrorsExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "sd_status"),
+    buildBaseSensorConfig("Estat microSD", deviceId + "_sd_status", mqttTopic("sd_status"), sdStatusExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "sd_history_file"),
+    buildBaseSensorConfig("Fitxer historic microSD", deviceId + "_sd_history_file", mqttTopic("sd_history_file"), sdStatusExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "sd_mqtt_pending"),
+    buildBaseSensorConfig("Buffer MQTT pendent", deviceId + "_sd_mqtt_pending", mqttTopic("sd_mqtt_pending"), sdPendingExtra)
   );
 
   ok &= mqttPublishRetained(
@@ -965,9 +991,149 @@ void checkMqttConnection() {
   }
 }
 
+static String buildTelemetryJsonPayload() {
+  bool internalTempAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalTemperatureC) && appState.lastInternalTemperatureC >= configInternalTempAlarmC;
+  bool internalHumidityAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalHumidityPercent) && appState.lastInternalHumidityPercent >= configInternalHumidityAlarmPercent;
+
+  String telemetry = "{";
+
+  telemetry += "\"unix_time\":";
+  time_t nowTime = time(nullptr);
+  telemetry += nowTime > 1700000000 ? String((unsigned long)nowTime) : String("null");
+  telemetry += ",";
+
+  telemetry += "\"uptime_seconds\":";
+  telemetry += String(getUptimeSeconds());
+  telemetry += ",";
+
+  telemetry += "\"temperature_c\":";
+  telemetry += formatTemperatureForJson(appState.lastValidTemperatureC, configTemperatureDecimals);
+  telemetry += ",";
+
+  telemetry += "\"raw_temperature_c\":";
+  telemetry += formatTemperatureForJson(appState.lastRawTemperatureC, configTemperatureDecimals);
+  telemetry += ",";
+
+  telemetry += "\"internal_temperature_c\":";
+  telemetry += formatTemperatureForJson(appState.lastInternalTemperatureC, 2);
+  telemetry += ",";
+
+  telemetry += "\"internal_humidity_percent\":";
+  telemetry += formatTemperatureForJson(appState.lastInternalHumidityPercent, 1);
+  telemetry += ",";
+
+  telemetry += "\"battery_voltage\":";
+  telemetry += isnan(appState.lastBatteryVoltage) ? String("null") : floatPayload(appState.lastBatteryVoltage, 3);
+  telemetry += ",";
+
+  telemetry += "\"battery_percent\":";
+  telemetry += isnan(appState.lastBatteryPercent) ? String("null") : floatPayload(appState.lastBatteryPercent, 0);
+  telemetry += ",";
+
+  telemetry += "\"battery_status\":\"";
+  telemetry += jsonEscape(appState.batteryStatus);
+  telemetry += "\",";
+
+  telemetry += "\"internal_env_status\":\"";
+  telemetry += jsonEscape(appState.internalEnvStatus);
+  telemetry += "\",";
+
+  telemetry += "\"sensor_status\":\"";
+  telemetry += jsonEscape(appState.sensorStatus);
+  telemetry += "\",";
+
+  telemetry += "\"last_error\":\"";
+  telemetry += jsonEscape(appState.lastErrorMessage);
+  telemetry += "\",";
+
+  telemetry += "\"internal_env_alarms_enabled\":";
+  telemetry += configInternalEnvAlarmEnabled ? "true" : "false";
+  telemetry += ",";
+  telemetry += "\"internal_temperature_alarm\":";
+  telemetry += internalTempAlarm ? "true" : "false";
+  telemetry += ",";
+  telemetry += "\"internal_humidity_alarm\":";
+  telemetry += internalHumidityAlarm ? "true" : "false";
+  telemetry += ",";
+  telemetry += "\"internal_temperature_alarm_threshold_c\":";
+  telemetry += floatPayload(configInternalTempAlarmC, 1);
+  telemetry += ",";
+  telemetry += "\"internal_humidity_alarm_threshold_percent\":";
+  telemetry += floatPayload(configInternalHumidityAlarmPercent, 1);
+  telemetry += ",";
+
+  telemetry += "\"total_reads\":";
+  telemetry += String(appState.totalReads);
+  telemetry += ",";
+
+  telemetry += "\"valid_reads\":";
+  telemetry += String(appState.validReads);
+  telemetry += ",";
+
+  telemetry += "\"failed_reads\":";
+  telemetry += String(appState.failedReads);
+  telemetry += ",";
+
+  telemetry += "\"consecutive_sensor_errors\":";
+  telemetry += String(appState.consecutiveSensorErrors);
+  telemetry += ",";
+
+  telemetry += "\"temperature_offset_c\":";
+  telemetry += floatPayload(configTemperatureOffsetC, 2);
+  telemetry += ",";
+
+  telemetry += "\"rssi_dbm\":";
+  telemetry += WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) : String("null");
+  telemetry += ",";
+
+  telemetry += "\"ip\":\"";
+  telemetry += jsonEscape(WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : String(""));
+  telemetry += "\",";
+
+  telemetry += "\"read_interval_seconds\":";
+  telemetry += String(configReadIntervalSeconds);
+  telemetry += ",";
+
+  telemetry += "\"mqtt_publish_interval_seconds\":";
+  telemetry += String(configMqttPublishIntervalSeconds);
+  telemetry += ",";
+
+  telemetry += "\"temperature_decimals\":";
+  telemetry += String(configTemperatureDecimals);
+  telemetry += ",";
+
+  telemetry += "\"sd_mounted\":";
+  telemetry += isSdMounted() ? "true" : "false";
+  telemetry += ",";
+
+  telemetry += "\"sd_history_file\":\"";
+  telemetry += jsonEscape(sdHistoryPathText());
+  telemetry += "\"";
+
+  telemetry += "}";
+  return telemetry;
+}
+
+static bool publishBufferedTelemetryLine(const String& topic, const String& payload) {
+  return mqttPublishNotRetained(topic, payload);
+}
+
 void publishMqttTelemetry() {
-  if (!configMqttEnabled || !mqttClient.connected()) {
+  if (!configMqttEnabled) {
     return;
+  }
+
+  String telemetry = buildTelemetryJsonPayload();
+
+  if (!mqttClient.connected()) {
+    if (isSdMounted()) {
+      appendSdMqttPending(telemetry);
+    }
+    return;
+  }
+
+  if (isSdMounted() && hasSdMqttPending()) {
+    flushSdMqttPending(mqttTopic("telemetry_buffer"), publishBufferedTelemetryLine);
   }
 
   if (!isnan(appState.lastValidTemperatureC)) {
@@ -1016,101 +1182,9 @@ void publishMqttTelemetry() {
   mqttPublishRetained(mqttTopic("sensor_status"), appState.sensorStatus);
   mqttPublishRetained(mqttTopic("consecutive_sensor_errors"), String(appState.consecutiveSensorErrors));
   mqttPublishRetained(mqttTopic("last_error"), appState.lastErrorMessage);
-
-  String telemetry = "{";
-
-  telemetry += "\"temperature_c\":";
-  telemetry += formatTemperatureForJson(appState.lastValidTemperatureC, configTemperatureDecimals);
-  telemetry += ",";
-
-  telemetry += "\"internal_temperature_c\":";
-  telemetry += formatTemperatureForJson(appState.lastInternalTemperatureC, 2);
-  telemetry += ",";
-
-  telemetry += "\"internal_humidity_percent\":";
-  telemetry += formatTemperatureForJson(appState.lastInternalHumidityPercent, 1);
-  telemetry += ",";
-
-  telemetry += "\"battery_voltage\":";
-  telemetry += isnan(appState.lastBatteryVoltage) ? String("null") : floatPayload(appState.lastBatteryVoltage, 3);
-  telemetry += ",";
-
-  telemetry += "\"battery_percent\":";
-  telemetry += isnan(appState.lastBatteryPercent) ? String("null") : floatPayload(appState.lastBatteryPercent, 0);
-  telemetry += ",";
-
-  telemetry += "\"battery_status\":\"";
-  telemetry += jsonEscape(appState.batteryStatus);
-  telemetry += "\",";
-
-  telemetry += "\"internal_env_status\":\"";
-  telemetry += jsonEscape(appState.internalEnvStatus);
-  telemetry += "\",";
-
-  telemetry += "\"internal_env_alarms_enabled\":";
-  telemetry += configInternalEnvAlarmEnabled ? "true" : "false";
-  telemetry += ",";
-  telemetry += "\"internal_temperature_alarm\":";
-  telemetry += internalTempAlarm ? "true" : "false";
-  telemetry += ",";
-  telemetry += "\"internal_humidity_alarm\":";
-  telemetry += internalHumidityAlarm ? "true" : "false";
-  telemetry += ",";
-  telemetry += "\"internal_temperature_alarm_threshold_c\":";
-  telemetry += floatPayload(configInternalTempAlarmC, 1);
-  telemetry += ",";
-  telemetry += "\"internal_humidity_alarm_threshold_percent\":";
-  telemetry += floatPayload(configInternalHumidityAlarmPercent, 1);
-  telemetry += ",";
-
-  telemetry += "\"total_reads\":";
-  telemetry += String(appState.totalReads);
-  telemetry += ",";
-
-  telemetry += "\"valid_reads\":";
-  telemetry += String(appState.validReads);
-  telemetry += ",";
-
-  telemetry += "\"failed_reads\":";
-  telemetry += String(appState.failedReads);
-  telemetry += ",";
-
-  telemetry += "\"sensor_status\":\"";
-  telemetry += jsonEscape(appState.sensorStatus);
-  telemetry += "\",";
-
-  telemetry += "\"consecutive_sensor_errors\":";
-  telemetry += String(appState.consecutiveSensorErrors);
-  telemetry += ",";
-
-  telemetry += "\"temperature_offset_c\":";
-  telemetry += floatPayload(configTemperatureOffsetC, 2);
-  telemetry += ",";
-
-  telemetry += "\"rssi_dbm\":";
-  telemetry += String(WiFi.RSSI());
-  telemetry += ",";
-
-  telemetry += "\"uptime_seconds\":";
-  telemetry += String(getUptimeSeconds());
-  telemetry += ",";
-
-  telemetry += "\"ip\":\"";
-  telemetry += jsonEscape(WiFi.localIP().toString());
-  telemetry += "\",";
-
-  telemetry += "\"read_interval_seconds\":";
-  telemetry += String(configReadIntervalSeconds);
-  telemetry += ",";
-
-  telemetry += "\"mqtt_publish_interval_seconds\":";
-  telemetry += String(configMqttPublishIntervalSeconds);
-  telemetry += ",";
-
-  telemetry += "\"temperature_decimals\":";
-  telemetry += String(configTemperatureDecimals);
-
-  telemetry += "}";
+  mqttPublishRetained(mqttTopic("sd_status"), sdStatusText());
+  mqttPublishRetained(mqttTopic("sd_history_file"), sdHistoryPathText());
+  mqttPublishRetained(mqttTopic("sd_mqtt_pending"), String((unsigned long)appState.sdMqttPendingCount));
 
   mqttPublishRetained(mqttTopic("telemetry"), telemetry);
   publishMqttConfigState();

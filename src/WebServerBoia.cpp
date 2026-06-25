@@ -198,6 +198,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += ".ota-log{margin-top:12px;background:#020617;border:1px solid #263449;border-radius:14px;padding:12px;color:#c7d2fe;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45;max-height:230px;overflow:auto;white-space:pre-wrap}.ota-log-head{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#bfdbfe;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.06em}.ota-log small{color:#64748b}";
   html += "button:disabled{opacity:.45;cursor:not-allowed;background:#334155;}";
   html += "pre{white-space:pre-wrap;word-break:break-word;background:#050b14;border:1px solid #334155;border-radius:14px;padding:14px;color:#dbeafe;}";
+  html += "table{width:100%;border-collapse:collapse;margin-top:10px;background:#0b1220;border:1px solid #263449;border-radius:12px;overflow:hidden}th,td{padding:9px 10px;border-bottom:1px solid #263449;text-align:left;font-size:13px;vertical-align:top}th{color:#bae6fd;background:#111827;font-weight:900}td{color:#cbd5e1}tr:last-child td{border-bottom:0}code{background:#050b14;border:1px solid #263449;border-radius:6px;padding:2px 5px;color:#dbeafe}.file-preview{max-height:520px;overflow:auto;white-space:pre;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}";
   html += ".temp-card{position:relative;overflow:hidden;min-height:350px;padding-bottom:92px;}";
   html += ".temp-card canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.26;pointer-events:none;}";
   html += ".temp-card .temp-content{position:relative;z-index:1}.temp-card h2{padding-right:210px}.temp-battery-card{margin-top:16px;max-width:360px;}";
@@ -498,30 +499,43 @@ static String buildStatusPage() {
 
 static String buildStoragePage() {
   refreshSdInfo();
+  String browsePath = server.arg("path");
+  if (browsePath.length() == 0) browsePath = SD_BASE_DIR;
 
   String html = "";
   appendPageStart(html, "storage", false);
 
   html += "<div class='card'>";
-  html += "<h2>microSD / Històric local</h2>";
-  html += "<p class='hint'>Aquesta pàgina serveix per comprovar si la microSD està muntada, veure espai ocupat, descarregar l'històric CSV i fer una neteja completa de la targeta quan calgui.</p>";
+  html += "<h2>microSD / Històric local / Buffer HA</h2>";
+  html += "<p class='hint'>Aquesta pàgina converteix la microSD en caixa negra local: històric per dies, estadístiques precalculades, logs, snapshot de configuració, blackbox d'arrencada, buffer MQTT offline i explorador de fitxers. Si no hi ha SD, la boia continua funcionant igual, però perd aquesta capa local.</p>";
 
   html += "<div class='grid3'>";
   html += "<div class='item'><div class='label'>Estat SD</div><div class='value ";
   html += isSdMounted() ? "ok" : "bad";
   html += "'>" + htmlEscape(sdStatusText()) + "</div><div class='small'>" + htmlEscape(sdLastErrorText()) + "</div></div>";
-  html += "<div class='item'><div class='label'>Tipus targeta</div><div class='value'>" + htmlEscape(sdCardTypeText()) + "</div><div class='small'>Bus SPI dedicat</div></div>";
-  html += "<div class='item'><div class='label'>Fitxer històric</div><div class='value' style='font-size:15px'>" + htmlEscape(sdHistoryPathText()) + "</div><div class='small'>CSV append-only</div></div>";
+  html += "<div class='item'><div class='label'>Tipus targeta</div><div class='value'>" + htmlEscape(sdCardTypeText()) + "</div><div class='small'>SPI " + String(SD_SPI_FREQUENCY_HZ / 1000000UL) + " MHz</div></div>";
+  html += "<div class='item'><div class='label'>Fitxer històric actual</div><div class='value' style='font-size:15px'>" + htmlEscape(sdHistoryPathText()) + "</div><div class='small'>Un CSV per dia</div></div>";
   html += "<div class='item'><div class='label'>Capacitat total</div><div class='value'>" + htmlEscape(sdTotalText()) + "</div></div>";
   html += "<div class='item'><div class='label'>Espai ocupat</div><div class='value'>" + htmlEscape(sdUsedText()) + "</div><div class='small'>" + htmlEscape(sdUsedPercentText()) + "</div></div>";
   html += "<div class='item'><div class='label'>Espai lliure</div><div class='value'>" + htmlEscape(sdFreeText()) + "</div></div>";
-  html += "<div class='item'><div class='label'>Registres escrits</div><div class='value'>" + String(appState.sdHistoryWriteCount) + "</div></div>";
-  html += "<div class='item'><div class='label'>Errors escriptura</div><div class='value ";
-  html += appState.sdHistoryWriteFailCount == 0 ? "ok" : "bad";
-  html += "'>" + String(appState.sdHistoryWriteFailCount) + "</div></div>";
+  html += "<div class='item'><div class='label'>Registres escrits</div><div class='value'>" + String((unsigned long)appState.sdHistoryWriteCount) + "</div><div class='small'>Errors: " + String((unsigned long)appState.sdHistoryWriteFailCount) + "</div></div>";
+  html += "<div class='item'><div class='label'>Buffer MQTT pendent</div><div class='value ";
+  html += appState.sdMqttPendingCount == 0 ? "ok" : "warn";
+  html += "'>" + String((unsigned long)appState.sdMqttPendingCount) + "</div><div class='small'>Enviats des de buffer: " + String((unsigned long)appState.sdMqttFlushCount) + "</div></div>";
   html += "<div class='item'><div class='label'>Última escriptura</div><div class='value'>";
   html += appState.sdLastWriteMillis == 0 ? "Mai" : elapsedText(appState.sdLastWriteMillis);
   html += "</div></div>";
+  html += "</div>";
+
+  html += "<h3>Estadística precalculada del dia</h3>";
+  html += "<div class='grid3'>";
+  html += "<div class='item'><div class='label'>Dia</div><div class='value'>" + htmlEscape(appState.sdStatsDay) + "</div><div class='small'>Registres: " + String((unsigned long)appState.sdDailyRecordCount) + "</div></div>";
+  html += "<div class='item'><div class='label'>Temperatura min / mitjana / max</div><div class='value'>";
+  html += isnan(appState.sdDailyTempMin) ? "Sense dades" : formatTemperature(appState.sdDailyTempMin, 2) + " / " + formatTemperature(appState.sdDailyTempAvg, 2) + " / " + formatTemperature(appState.sdDailyTempMax, 2) + " °C";
+  html += "</div></div>";
+  html += "<div class='item'><div class='label'>Bateria min / mitjana / max</div><div class='value'>";
+  html += isnan(appState.sdDailyBatteryMin) ? "Sense dades" : formatTemperature(appState.sdDailyBatteryMin, 3) + " / " + formatTemperature(appState.sdDailyBatteryAvg, 3) + " / " + formatTemperature(appState.sdDailyBatteryMax, 3) + " V";
+  html += "</div><div class='small'>Errors del dia: " + String((unsigned long)appState.sdDailyErrorCount) + "</div></div>";
   html += "</div>";
 
   html += "<h3>Cablejat configurat al firmware</h3>";
@@ -534,17 +548,31 @@ static String buildStoragePage() {
 
   html += "<div class='actions' style='margin-top:16px'>";
   html += "<a class='btn secondary' href='/storage'>Recarregar estat</a>";
+  html += "<a class='btn secondary' href='/sd-info'>JSON SD</a>";
   if (isSdMounted()) {
-    html += "<a class='btn secondary' href='/sd-history.csv'>Descarregar CSV</a>";
+    html += "<a class='btn secondary' href='/sd-history.csv'>CSV d'avui</a>";
+    html += "<a class='btn secondary' href='/sd-daily-stats.csv'>Estadístiques</a>";
+    html += "<a class='btn secondary' href='/sd-view?path=" + htmlEscape(sdSystemLogPathText()) + "'>Log actual</a>";
   }
-  html += "<a class='btn secondary' href='/sd-info'>Veure JSON SD</a>";
+  html += "</div>";
+  html += "</div>";
+
+  html += "<div class='card'>";
+  html += "<h2>Mapa de fitxers locals</h2>";
+  html += "<div class='grid'>";
+  html += "<div class='item'><div class='label'>Històric detall</div><div class='value' style='font-size:15px'>/boia/history/YYYY-MM-DD.csv</div><div class='small'>Una fila per lectura real.</div></div>";
+  html += "<div class='item'><div class='label'>Precalculat</div><div class='value' style='font-size:15px'>" + htmlEscape(sdDailyStatsPathText()) + "</div><div class='small'>Snapshots min/max/mitjana del dia.</div></div>";
+  html += "<div class='item'><div class='label'>Logs</div><div class='value' style='font-size:15px'>/boia/logs/YYYY-MM-DD.log</div><div class='small'>BOOT, SD, MQTT i errors importants.</div></div>";
+  html += "<div class='item'><div class='label'>Buffer HA/MQTT</div><div class='value' style='font-size:15px'>" + htmlEscape(sdPendingMqttPathText()) + "</div><div class='small'>JSONL pendent d'enviar quan torni MQTT.</div></div>";
+  html += "<div class='item'><div class='label'>Config</div><div class='value' style='font-size:15px'>/boia/config/config_snapshot.json</div><div class='small'>Còpia llegible de la configuració activa.</div></div>";
+  html += "<div class='item'><div class='label'>Blackbox</div><div class='value' style='font-size:15px'>/boia/blackbox/last_boot.json</div><div class='small'>Dades d'arrencada i reset.</div></div>";
   html += "</div>";
   html += "</div>";
 
   html += "<div class='card'>";
   html += "<h2>Últim registre guardat</h2>";
   if (appState.sdLastHistoryLine.length() == 0) {
-    html += "<p class='hint'>Encara no s'ha escrit cap registre en aquesta arrencada. Quan es faci la pròxima lectura, la boia intentarà afegir una línia al CSV.</p>";
+    html += "<p class='hint'>Encara no s'ha escrit cap registre en aquesta arrencada. Quan es faci la pròxima lectura, la boia intentarà afegir una línia al CSV diari.</p>";
   } else {
     html += "<pre>" + htmlEscape(appState.sdLastHistoryLine) + "</pre>";
   }
@@ -552,13 +580,47 @@ static String buildStoragePage() {
   html += "</div>";
 
   html += "<div class='card'>";
+  html += "<h2>Explorador de fitxers</h2>";
+  html += "<p class='hint'>Permet veure i descarregar CSV, JSON, JSONL i logs directament des de la boia. No és per editar fitxers a mà: és diagnòstic i exportació.</p>";
+  html += sdDirectoryListingHtml(browsePath);
+  html += "</div>";
+
+  html += "<div class='card'>";
   html += "<h2>Formatar / netejar SD</h2>";
-  html += "<p class='hint'>El botó següent fa una neteja lògica: esborra tots els fitxers de la microSD i recrea <code>" + htmlEscape(SD_HISTORY_FILE) + "</code>. Això no reparticiona ni refà el FAT físic. Si la targeta està corrupta de veritat, formata-la al PC en FAT32.</p>";
+  html += "<p class='hint'>El botó següent fa una neteja lògica: esborra tots els fitxers de la microSD i recrea l'estructura <code>/boia</code>. Això no reparticiona ni refà el FAT físic. Si la targeta està corrupta de veritat, formata-la al PC en FAT32.</p>";
   html += "<form method='POST' action='/sd-format' data-confirm='Això esborrarà TOTS els fitxers de la microSD. Segur?'>";
-  html += "<button class='btn danger' type='submit'>Netejar SD i recrear històric</button>";
+  html += "<button class='btn danger' type='submit'>Netejar SD i recrear estructura</button>";
   html += "</form>";
   html += "</div>";
 
+  appendPageEnd(html);
+  return html;
+}
+
+static String buildSdFileViewPage(const String& path) {
+  String clean;
+  if (!normalizeSdPath(path, clean)) clean = SD_BASE_DIR;
+
+  bool truncated = false;
+  String content = sdReadTextFileLimited(clean, 24576, truncated);
+
+  int parentSlash = clean.lastIndexOf('/');
+  String parentPath = parentSlash <= 0 ? String("/") : clean.substring(0, parentSlash);
+
+  String html = "";
+  appendPageStart(html, "storage", false);
+  html += "<div class='card'>";
+  html += "<h2>Visualitzador de fitxer</h2>";
+  html += "<p class='hint'>Ruta: <code>" + htmlEscape(clean) + "</code></p>";
+  html += "<div class='actions' style='margin-bottom:12px'>";
+  html += "<a class='btn secondary' href='/storage?path=" + htmlEscape(parentPath) + "'>Tornar al directori</a>";
+  html += "<a class='btn secondary' href='/sd-download?path=" + htmlEscape(clean) + "'>Descarregar</a>";
+  html += "</div>";
+  if (truncated) {
+    html += "<p class='hint warn'>Vista retallada: el fitxer és més gran. Descarrega'l per veure'l complet.</p>";
+  }
+  html += "<pre class='file-preview'>" + htmlEscape(content) + "</pre>";
+  html += "</div>";
   appendPageEnd(html);
   return html;
 }
@@ -1352,8 +1414,9 @@ static void appendFirmwareSection(String& html) {
 
   html += "<div class='card'>";
   html += "<h2>Actualitzacions</h2>";
+  html += "<div class='item'><div class='label'>v1.18.0-sd-blackbox</div><div class='value'>SD caixa negra i buffer</div><div class='small'>Històrics diaris, estadístiques precalculades, logs, blackbox, snapshot de configuració, buffer MQTT offline i explorador/visor web de fitxers.</div></div>";
   html += "<div class='item'><div class='label'>v1.17.0-battery-config</div><div class='value'>Bateria configurable</div><div class='small'>Afegeix Sistema / Bateria amb volts buit/ple, percentatge LOW, calibratge ADC i ajust visual de la fitxa inicial.</div></div>";
-  html += "<div class='item'><div class='label'>v1.16.0-sd-history</div><div class='value'>microSD i històric local</div><div class='small'>Afegeix suport SPI per microSD, pàgina SD / Històric, espai ocupat, descàrrega CSV, neteja lògica i guardat local de lectures a /boia/history.csv.</div></div>";
+  html += "<div class='item'><div class='label'>v1.16.0-sd-history</div><div class='value'>microSD i històric local</div><div class='small'>Afegeix suport SPI per microSD, pàgina SD / Històric, espai ocupat, descàrrega CSV, neteja lògica i guardat local de lectures a /boia/history/YYYY-MM-DD.csv.</div></div>";
   html += "<div class='item'><div class='label'>v1.15.0-battery-gpio1</div><div class='value'>Bateria per GPIO1</div><div class='small'>Lectura de bateria amb divisor 100k/100k, volts, percentatge aproximat i publicació MQTT/Home Assistant.</div></div>";
   html += "<div class='item'><div class='label'>v1.6.7-ota-auto-check-clean-log</div><div class='value'>OTA més neta i comprovació automàtica</div><div class='small'>La pantalla OTA comprova automàticament Internet i GitHub en entrar, actualitza les targetes sense canviar de pàgina i només mostra el log quan realment hi ha una actualització en curs o acabada.</div></div><div class='item'><div class='label'>v1.6.6-ota-diagnostics-log</div><div class='value'>Log OTA en directe i timeout</div><div class='small'>La pantalla OTA mostra un log detallat de cada pas de GitHub OTA i OTA local, amb missatges també al monitor sèrie. Si la descàrrega queda encallada sense dades, talla amb error en comptes de quedar-se indefinidament.</div></div><div class='item'><div class='label'>v1.6.5-ota-progress-ui</div><div class='value'>Barra de progrés OTA</div><div class='small'>Les actualitzacions OTA locals i des de GitHub mostren barra de progrés, fase, percentatge i bytes perquè es vegi clarament que la boia està treballant.</div></div><div class='item'><div class='label'>v1.6.4-release-helper</div><div class='value'>Release helper</div><div class='small'>Afegeix un script de release que llegeix el nom del canvi des del firmware i fa commit, rebase i push amb un missatge coherent.</div></div><div class='item'><div class='label'>v1.6.3-github-ota-ui-refresh</div><div class='value'>Pantalla GitHub OTA professional</div><div class='small'>La pantalla d'OTA mostra Internet, GitHub, manifest i actualització en targetes clares, guarda el resultat de les comprovacions i evita oferir downgrades quan GitHub publica una versió més antiga.</div></div><div class='item'><div class='label'>v1.6.2-auto-version-manifest</div><div class='value'>Manifest amb versió automàtica</div><div class='small'>GitHub Actions llegeix FIRMWARE_VERSION des d'AppConfig.cpp i genera manifest.json amb la mateixa versió, sense hardcodejar-la al workflow.</div></div><div class='item'><div class='label'>v1.6.1-internet-check</div><div class='value'>Actualitzacions automatiques des de GitHub</div><div class='small'>GitHub Actions pot compilar el firmware en cada push, publicar firmware.bin i manifest.json, i la boia pot detectar una build nova i instal·lar-la per Wi-Fi des de la pestanya Manteniment / OTA.</div></div><div class='item'><div class='label'>v1.5.3-ha-history-hourly</div><div class='value'>Històric HA configurable i reduït per hores</div><div class='small'>El gràfic permet triar les últimes hores a mostrar i el proxy de la boia retorna mostres horàries compactes per evitar carregar massa l'ESP32 amb tot l'històric cru de Home Assistant.</div></div><div class='item'><div class='label'>v1.5.2-ha-token-fix</div><div class='value'>Correcció token Home Assistant</div><div class='small'>La configuració de l'API de Home Assistant ara neteja espais, cometes i el prefix Bearer si s'ha enganxat per error. També mostra un missatge més clar quan Home Assistant respon 401.</div></div><div class='item'><div class='label'>v1.5.0-ha-history-ui</div><div class='value'>Històric de temperatura des de Home Assistant</div><div class='small'>La fitxa de temperatura pot dibuixar un gràfic de fons amb l'històric de l'última setmana llegit des de l'API local de Home Assistant. La configuració d'URL, token i entity_id queda dins MQTT / HA.</div></div><div class='item'><div class='label'>v1.4.9-menu-align</div><div class='value'>Alineació visual del menú</div><div class='small'>El menú lateral queda alineat amb la targeta de contingut principal, mantenint el format acordió compacte sota la capçalera.</div></div><div class='item'><div class='label'>v1.4.8-accordion-menu</div><div class='value'>Menú lateral compacte desplegable</div><div class='small'>El menú lateral passa a funcionar com un acordió: les seccions generals despleguen les subopcions només quan cal. També s'alinea el menú just sota la capçalera principal i es redueix l'efecte de scroll lateral.</div></div><div class='item'><div class='label'>v1.4.7-help-center-menu</div><div class='value'>Centre d'ajuda i menú lateral refinat</div><div class='small'>Firmware, Hardware, Futur i ajuda de rescat passen al Centre d'ajuda. Sistema i Manteniment queden més nets. El menú lateral incorpora subdirectoris i s'arregla el fons quan el contingut és curt.</div></div><div class='item'><div class='label'>v1.4.6-left-menu-subpages</div><div class='value'>Menú lateral i subpàgines</div><div class='small'>La navegació principal passa a l'esquerra i les seccions grans funcionen com a subpàgines amb URL pròpia per secció, sense ancoratges.</div></div><div class='item'><div class='label'>v1.4.5-subtabs</div><div class='value'>Subpestanyes internes</div><div class='small'>Les pàgines grans queden ordenades amb subpestanyes: Sistema, Manteniment, Wi-Fi, MQTT i Temperatura tenen navegació interna per seccions.</div></div><div class='item'><div class='label'>v1.4.4-board-leds</div><div class='value'>Control LED intern de placa</div><div class='small'>Opció per activar/desactivar el LED intern de l'ESP32-C6 i usar-lo com a mirall del LED d'estat extern o com a heartbeat local.</div></div><div class='item'><div class='label'>v1.4.3-future-sensors-prep</div><div class='value'>Preparació sensors interns i energia</div><div class='small'>Documentació i reserves per temperatura interna, humitat interna, bateria, placa solar i GPIO d'expansió. Encara no activa sensors nous fins triar hardware concret.</div></div><div class='item'><div class='label'>v1.4.2-tabs-consolidated</div><div class='value'>Pestanyes consolidades</div><div class='small'>Firmware i Hardware passen dins de Sistema. Diagnòstic passa dins de Manteniment. La navegació queda més curta i menys carregada.</div></div>";
   html += "<div class='item'><div class='label'>v1.4.1-recovery-help</div><div class='value'>Ajuda de rescat</div><div class='small'>Documentació visible a la web sobre què fer després d'un reset total: Wi-Fi AP de rescat, IP per defecte i passos de recuperació.</div></div>";
@@ -2202,26 +2265,80 @@ static void handleSdInfoGet() {
   server.send(200, "application/json", sdInfoJson());
 }
 
-static void handleSdHistoryCsvGet() {
+static String contentTypeForPath(const String& path) {
+  String lower = path;
+  lower.toLowerCase();
+  if (lower.endsWith(".csv")) return "text/csv";
+  if (lower.endsWith(".json")) return "application/json";
+  if (lower.endsWith(".jsonl")) return "application/x-ndjson";
+  if (lower.endsWith(".log")) return "text/plain";
+  if (lower.endsWith(".txt")) return "text/plain";
+  return "application/octet-stream";
+}
+
+static String filenameForDownload(const String& path, const String& fallback) {
+  int slash = path.lastIndexOf('/');
+  String name = slash >= 0 ? path.substring(slash + 1) : path;
+  if (name.length() == 0) name = fallback;
+  return name;
+}
+
+static void streamSdFilePath(const String& requestedPath, const String& fallbackName, bool attachment) {
   if (!isSdMounted()) {
     server.send(404, "text/plain", "SD no muntada");
     return;
   }
 
-  if (!ensureSdHistoryFile()) {
-    server.send(500, "text/plain", "No puc preparar el fitxer historic");
+  String clean;
+  if (!normalizeSdPath(requestedPath, clean)) {
+    server.send(400, "text/plain", "Ruta no valida");
     return;
   }
 
-  File file = SD.open(SD_HISTORY_FILE, FILE_READ);
-  if (!file) {
-    server.send(404, "text/plain", "Historic no trobat");
+  File file = SD.open(clean.c_str(), FILE_READ);
+  if (!file || file.isDirectory()) {
+    if (file) file.close();
+    server.send(404, "text/plain", "Fitxer no trobat");
     return;
   }
 
-  server.sendHeader("Content-Disposition", "attachment; filename=boia_history.csv");
-  server.streamFile(file, "text/csv");
+  if (attachment) {
+    server.sendHeader("Content-Disposition", String("attachment; filename=") + filenameForDownload(clean, fallbackName));
+  }
+  server.streamFile(file, contentTypeForPath(clean));
   file.close();
+}
+
+static void handleSdHistoryCsvGet() {
+  if (!ensureSdHistoryFile()) {
+    server.send(500, "text/plain", "No puc preparar el fitxer historic diari");
+    return;
+  }
+  streamSdFilePath(sdHistoryPathText(), "boia_history_today.csv", true);
+}
+
+static void handleSdDailyStatsCsvGet() {
+  streamSdFilePath(sdDailyStatsPathText(), "boia_daily_stats.csv", true);
+}
+
+static void handleSdListGet() {
+  String path = server.arg("path");
+  if (path.length() == 0) path = SD_BASE_DIR;
+  server.send(200, "application/json", sdDirectoryListingJson(path));
+}
+
+static void handleSdViewGet() {
+  String path = server.arg("path");
+  server.send(200, "text/html", buildSdFileViewPage(path));
+}
+
+static void handleSdDownloadGet() {
+  String path = server.arg("path");
+  streamSdFilePath(path, "boia_sd_file.dat", true);
+}
+
+static void handleSdPendingMqttGet() {
+  streamSdFilePath(sdPendingMqttPathText(), "boia_mqtt_pending.jsonl", true);
 }
 
 static void handleSdFormatPost() {
@@ -2231,7 +2348,7 @@ static void handleSdFormatPost() {
     "text/html",
     buildSavedPage(
       ok ? "SD netejada" : "Error netejant SD",
-      ok ? "S'han esborrat els fitxers de la microSD i s'ha recreat l'historic CSV." : sdLastErrorText(),
+      ok ? "S'han esborrat els fitxers de la microSD i s'ha recreat l'estructura /boia amb historic, stats, logs, blackbox i buffer MQTT." : sdLastErrorText(),
       false
     )
   );
@@ -3797,6 +3914,27 @@ static String buildStatusJsonPayload() {
   json += "\"sd_history_write_fails\":";
   json += String(appState.sdHistoryWriteFailCount);
   json += ",";
+  json += "\"sd_daily_stats_file\":\"";
+  json += jsonEscape(sdDailyStatsPathText());
+  json += "\",";
+  json += "\"sd_system_log_file\":\"";
+  json += jsonEscape(sdSystemLogPathText());
+  json += "\",";
+  json += "\"sd_pending_mqtt_file\":\"";
+  json += jsonEscape(sdPendingMqttPathText());
+  json += "\",";
+  json += "\"sd_mqtt_pending_count\":";
+  json += String(appState.sdMqttPendingCount);
+  json += ",";
+  json += "\"sd_mqtt_flush_count\":";
+  json += String(appState.sdMqttFlushCount);
+  json += ",";
+  json += "\"sd_daily_records\":";
+  json += String(appState.sdDailyRecordCount);
+  json += ",";
+  json += "\"sd_daily_errors\":";
+  json += String(appState.sdDailyErrorCount);
+  json += ",";
   json += "\"sd_last_error\":\"";
   json += jsonEscape(sdLastErrorText());
   json += "\",";
@@ -3993,6 +4131,11 @@ void setupWebServer() {
   server.on("/storage", HTTP_GET, handleStorageGet);
   server.on("/sd-info", HTTP_GET, handleSdInfoGet);
   server.on("/sd-history.csv", HTTP_GET, handleSdHistoryCsvGet);
+  server.on("/sd-daily-stats.csv", HTTP_GET, handleSdDailyStatsCsvGet);
+  server.on("/sd-pending-mqtt.jsonl", HTTP_GET, handleSdPendingMqttGet);
+  server.on("/sd-list", HTTP_GET, handleSdListGet);
+  server.on("/sd-view", HTTP_GET, handleSdViewGet);
+  server.on("/sd-download", HTTP_GET, handleSdDownloadGet);
   server.on("/sd-format", HTTP_POST, handleSdFormatPost);
   server.on("/config", HTTP_GET, handleConfigGet);
   server.on("/config", HTTP_POST, handleConfigPost);

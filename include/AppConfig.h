@@ -72,6 +72,21 @@ extern const uint8_t BATTERY_ADC_SAMPLES;
 // Targeta microSD per historics locals
 extern const bool SD_CARD_ENABLED;
 extern const uint32_t SD_SPI_FREQUENCY_HZ;
+extern const char* SD_BASE_DIR;
+extern const char* SD_HISTORY_DAILY_DIR;
+extern const char* SD_STATS_DIR;
+extern const char* SD_LOG_DIR;
+extern const char* SD_MQTT_DIR;
+extern const char* SD_CONFIG_DIR;
+extern const char* SD_BLACKBOX_DIR;
+extern const char* SD_SYSTEM_DIR;
+extern const char* SD_CALIBRATION_DIR;
+extern const char* SD_DAILY_STATS_FILE;
+extern const char* SD_MQTT_PENDING_FILE;
+extern const char* SD_MQTT_PENDING_TMP_FILE;
+extern const char* SD_CONFIG_SNAPSHOT_FILE;
+extern const char* SD_VERSION_FILE;
+extern const char* SD_BOOT_BLACKBOX_FILE;
 extern const char* SD_HISTORY_DIR;
 extern const char* SD_HISTORY_FILE;
 
@@ -117,12 +132,12 @@ extern const uint16_t WEB_SERVER_PORT;
 #define INTERNAL_ENV_I2C_ADDRESS 0x44
 #define BATTERY_VOLTAGE_ADC_PIN 1
 
-// Bus SPI dedicat a microSD. Assignacio alineada amb Arduino-ESP32 per ESP32-C6.
-// Pins lliures respecte DS18B20, SHT41, bateria, LED intern, LED extern i boto.
-#define SD_SPI_CS_PIN 18
+// Bus SPI dedicat a microSD. Pins triats lliures respecte DS18B20, SHT41,
+// bateria, LED intern, LED extern i boto de reset.
 #define SD_SPI_MOSI_PIN 19
-#define SD_SPI_MISO_PIN 20
 #define SD_SPI_CLK_PIN 21
+#define SD_SPI_MISO_PIN 20
+#define SD_SPI_CS_PIN 18
 
 #define SOLAR_VOLTAGE_ADC_PIN -1
 #define CHARGER_STATUS_PIN -1

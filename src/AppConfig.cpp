@@ -44,9 +44,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.18.0-sd-pinfix";
-const char* FIRMWARE_CHANGE_TITLE = "v1.18.0 pins microSD corregits";
-const char* FIRMWARE_CHANGE_NOTES = "Canvia la microSD als pins SPI recomanats per ESP32-C6 en Arduino: CS GPIO18, MOSI GPIO19, MISO GPIO20 i CLK GPIO21; baixa la velocitat SPI a 1 MHz per millorar la tolerancia amb cables Dupont.";
+const char* FIRMWARE_VERSION = "1.18.0-sd-blackbox";
+const char* FIRMWARE_CHANGE_TITLE = "v1.18.0 SD com a caixa negra i buffer";
+const char* FIRMWARE_CHANGE_NOTES = "Converteix la microSD en historics diaris, estadistiques precalculades, logs, blackbox, snapshot de configuracio, buffer MQTT offline i explorador/visor web de fitxers.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
@@ -87,8 +87,24 @@ const uint8_t BATTERY_ADC_SAMPLES = 16;
 // Es fa servir SPI a baixa velocitat per ser tolerant amb cables Dupont curts.
 const bool SD_CARD_ENABLED = true;
 const uint32_t SD_SPI_FREQUENCY_HZ = 1000000;
-const char* SD_HISTORY_DIR = "/boia";
-const char* SD_HISTORY_FILE = "/boia/history.csv";
+const char* SD_BASE_DIR = "/boia";
+const char* SD_HISTORY_DAILY_DIR = "/boia/history";
+const char* SD_STATS_DIR = "/boia/stats";
+const char* SD_LOG_DIR = "/boia/logs";
+const char* SD_MQTT_DIR = "/boia/mqtt";
+const char* SD_CONFIG_DIR = "/boia/config";
+const char* SD_BLACKBOX_DIR = "/boia/blackbox";
+const char* SD_SYSTEM_DIR = "/boia/system";
+const char* SD_CALIBRATION_DIR = "/boia/calibration";
+const char* SD_DAILY_STATS_FILE = "/boia/stats/daily_snapshots.csv";
+const char* SD_MQTT_PENDING_FILE = "/boia/mqtt/pending.jsonl";
+const char* SD_MQTT_PENDING_TMP_FILE = "/boia/mqtt/pending.tmp";
+const char* SD_CONFIG_SNAPSHOT_FILE = "/boia/config/config_snapshot.json";
+const char* SD_VERSION_FILE = "/boia/system/version.json";
+const char* SD_BOOT_BLACKBOX_FILE = "/boia/blackbox/last_boot.json";
+// Constants legacy per compatibilitat de textos antics. L'historic real ara és diari a /boia/history/YYYY-MM-DD.csv.
+const char* SD_HISTORY_DIR = "/boia/history";
+const char* SD_HISTORY_FILE = "/boia/history/boot.csv";
 
 // Ampliacions futures. Documentades a la web, no actives encara.
 const char* FUTURE_INTERNAL_ENV_SENSOR = "SHT41 actiu per temperatura i humitat interna";

@@ -27,7 +27,7 @@ void printHeader() {
   Serial.print("BOIA PISCINA - ");
   Serial.println(FIRMWARE_VERSION);
   Serial.println("ESP32-C6 + DS18B20 + SHT41 + bateria GPIO1 + microSD + Wi-Fi + MQTT + HA + OTA");
-  Serial.println("v1.16 - microSD SPI amb historic local CSV");
+  Serial.println("v1.18 - microSD com a caixa negra: historics diaris, stats, logs, blackbox i buffer MQTT");
   Serial.println("================================");
 
   Serial.print("GPIO sonda DS18B20: GPIO");

@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.17.0-battery-config
+1.18.0-sd-blackbox
 ```
 
 Funcionalitats principals actuals:
@@ -37,7 +37,12 @@ Funcionalitats principals actuals:
 - Lectura de bateria per GPIO1 amb divisor resistiu 100k/100k, tensió estimada i percentatge aproximat.
 - Configuració web dels volts de bateria buida/plena, percentatge LOW i calibratge ADC.
 - microSD per SPI amb pàgina pròpia, estat de muntatge, espai ocupat, descàrrega CSV i neteja lògica.
-- Guardat local d'històric de lectures a `/boia/history.csv`.
+- Guardat local d'històric de lectures separat per dies a `/boia/history/YYYY-MM-DD.csv`.
+- Estadístiques locals precalculades a `/boia/stats/daily_snapshots.csv`.
+- Logs locals a `/boia/logs/YYYY-MM-DD.log`.
+- Buffer MQTT offline a `/boia/mqtt/pending.jsonl`, pensat perquè Home Assistant no perdi lectures quan la xarxa o el broker cauen.
+- Snapshot de configuració, fitxer de versió i blackbox d'arrencada a la SD.
+- Petit explorador/visualitzador web de fitxers SD.
 - Accés web protegit amb usuari i contrasenya persistents.
 - Lectura pública de temperatura i estat de sensors des de la pantalla d'accés.
 - Sessió web persistent de set dies amb cookie versionada per navegar sense reautenticacions constants.
@@ -97,20 +102,20 @@ Punts importants:
 Constants principals:
 
 ```cpp
-#define SD_SPI_CS_PIN 18
 #define SD_SPI_MOSI_PIN 19
-#define SD_SPI_MISO_PIN 20
 #define SD_SPI_CLK_PIN 21
+#define SD_SPI_MISO_PIN 20
+#define SD_SPI_CS_PIN 18
 const bool SD_CARD_ENABLED = true;
 const uint32_t SD_SPI_FREQUENCY_HZ = 1000000;
-const char* SD_HISTORY_FILE = "/boia/history.csv";
+const char* SD_HISTORY_DAILY_DIR = "/boia/history";
+const char* SD_DAILY_STATS_FILE = "/boia/stats/daily_snapshots.csv";
+const char* SD_MQTT_PENDING_FILE = "/boia/mqtt/pending.jsonl";
 ```
 
-Aquesta assignació segueix els pins SPI recomanats per Arduino-ESP32 en ESP32-C6. La primera proposta feia servir una assignació estil SDIO i pot donar `SD no muntada` en alguns builds Arduino/PlatformIO.
+La web afegeix la pàgina **SD / Històric**, on es pot veure estat, tipus de targeta, espai total, espai ocupat, espai lliure, descarregar CSV, veure estadístiques precalculades, consultar logs, revisar el buffer MQTT pendent i navegar pels fitxers de la targeta.
 
-La web afegeix la pàgina **SD / Històric**, on es pot veure estat, tipus de targeta, espai total, espai ocupat, espai lliure, descarregar el CSV i fer una neteja lògica de la targeta.
-
-El botó de neteja no és un format físic complet: esborra els fitxers de la microSD i recrea `/boia/history.csv`. Si la targeta està corrupta, format FAT32 al PC i prou romanços.
+El botó de neteja no és un format físic complet: esborra els fitxers de la microSD i recrea l'estructura `/boia`. Si la targeta està corrupta, format FAT32 al PC i prou romanços.
 
 ### Energia
 
@@ -214,13 +219,34 @@ Una lectura de **3.02 V** en una Li-Ion 1S no és “mitja bateria”: és pràc
 
 ## Històric local a microSD
 
-Cada cicle de lectura escriu una línia CSV a:
+A partir de la versió `1.18.0-sd-blackbox`, la SD deixa de ser només un CSV i passa a ser una **caixa negra local opcional**. La boia continua funcionant sense SD, però si la targeta existeix tot queda registrat localment.
+
+Estructura creada automàticament:
 
 ```text
-/boia/history.csv
+/boia/history/YYYY-MM-DD.csv          -> detall de lectures, un fitxer per dia
+/boia/stats/daily_snapshots.csv       -> estadístiques precalculades del dia
+/boia/logs/YYYY-MM-DD.log             -> logs de sistema
+/boia/mqtt/pending.jsonl              -> buffer MQTT offline
+/boia/config/config_snapshot.json     -> còpia llegible de la configuració
+/boia/system/version.json             -> versió instal·lada
+/boia/blackbox/last_boot.json         -> caixa negra de l'última arrencada
+/boia/calibration/                    -> reservat per calibratges futurs
 ```
 
-Columnes actuals:
+Cada cicle de lectura escriu una línia CSV al fitxer del dia:
+
+```text
+/boia/history/2026-06-25.csv
+```
+
+Si encara no hi ha hora NTP, el firmware escriu provisionalment a:
+
+```text
+/boia/history/boot.csv
+```
+
+Columnes del detall:
 
 ```text
 unix_time,iso_time,uptime_seconds,water_temperature_c,raw_temperature_c,water_sensor_status,internal_temperature_c,internal_humidity_percent,internal_env_status,battery_voltage_v,battery_percent,battery_status,wifi_rssi_dbm
@@ -230,10 +256,46 @@ Notes clares:
 
 - Si la boia encara no ha sincronitzat hora per NTP, `unix_time` i `iso_time` poden quedar buits. `uptime_seconds` sempre queda escrit.
 - El fitxer és append-only: no reescriu l'històric cada cop, només afegeix una línia.
-- Es pot descarregar des de la web a **SD / Històric → Descarregar CSV**.
-- També hi ha `/sd-info` per veure l'estat en JSON i `/sd-history.csv` per descarregar directament el CSV.
+- Les estadístiques precalculades no substitueixen el detall; serveixen perquè la web o Home Assistant puguin llegir resums sense processar tot l'històric.
+- `/sd-history.csv` descarrega el CSV del dia actual.
+- `/sd-daily-stats.csv` descarrega els snapshots precalculats.
+- `/sd-info` retorna l'estat de la SD en JSON.
+- `/sd-list?path=/boia` retorna un llistat JSON del directori.
+- `/sd-view?path=/boia/logs/boot.log` mostra un fitxer de text/CSV/JSON des de la web.
+- `/sd-download?path=/boia/history/YYYY-MM-DD.csv` descarrega qualsevol fitxer de la SD.
 
----
+### Buffer MQTT per Home Assistant
+
+Quan MQTT està activat però el broker no està connectat, la boia no llença la telemetria: la guarda a:
+
+```text
+/boia/mqtt/pending.jsonl
+```
+
+Quan MQTT torna, el firmware intenta buidar aquest buffer i publica les línies pendents a:
+
+```text
+boia_piscina/telemetry_buffer
+```
+
+La telemetria normal en temps real continua anant a:
+
+```text
+boia_piscina/telemetry
+```
+
+Això no és una base de dades perfecta ni un substitut de Home Assistant, però és molt millor que perdre lectures per una caiguda de Wi-Fi, broker o HA. Si vols fer-ho encara més bèstia més endavant, el següent pas serà que Home Assistant llegeixi directament aquests fitxers via HTTP i importi el detall.
+
+### Explorador de fitxers SD
+
+La pàgina **SD / Històric** inclou un explorador senzill. Permet:
+
+- Entrar a carpetes.
+- Veure fitxers `.csv`, `.json`, `.jsonl`, `.log` i `.txt`.
+- Descarregar qualsevol fitxer.
+- Revisar logs i blackbox sense treure la targeta de la boia.
+
+No és un gestor de fitxers complet. No edita fitxers, no fa base de dades i no ha de ser crític per arrencar. La SD és una capa extra: si falla, la boia ha de seguir viva.
 
 ## Web local
 
@@ -295,6 +357,10 @@ boia_piscina/total_reads
 boia_piscina/valid_reads
 boia_piscina/failed_reads
 boia_piscina/telemetry
+boia_piscina/telemetry_buffer
+boia_piscina/sd_status
+boia_piscina/sd_history_file
+boia_piscina/sd_mqtt_pending
 ```
 
 També accepta comandes MQTT per accions com reinici i republicació de Discovery.
@@ -597,6 +663,16 @@ Funcionalitats previstes:
 - Centre d'ajuda.
 - Subpàgines i menú lateral.
 
+### v1.18.0
+
+- Converteix la microSD en caixa negra local opcional.
+- Guarda històrics separats per dies a `/boia/history/YYYY-MM-DD.csv`.
+- Afegeix estadístiques precalculades a `/boia/stats/daily_snapshots.csv`.
+- Afegeix logs locals, blackbox d'arrencada, snapshot de configuració i fitxer de versió.
+- Afegeix buffer MQTT offline a `/boia/mqtt/pending.jsonl` i replay a `telemetry_buffer` quan torna el broker.
+- Afegeix explorador i visualitzador web de fitxers SD.
+- Canvia pins SD a CS GPIO18, MOSI GPIO19, SCK GPIO21, MISO GPIO20 i baixa SPI a 1 MHz.
+
 ### v1.17.0
 
 - Afegeix pàgina **Sistema → Bateria**.
@@ -698,11 +774,3 @@ No pujar mai al repo:
 - Credencials personals.
 
 Les credencials han de quedar guardades a la memòria de l'ESP32 mitjançant la web local, no dins del codi font.
-
-
-### v1.18.0-sd-pinfix
-
-- Corregeix assignació de pins microSD per ESP32-C6 en Arduino/PlatformIO.
-- Nou cablejat: CS GPIO18, MOSI GPIO19, CLK/SCK GPIO21, MISO GPIO20.
-- Baixa SPI SD a 1 MHz per ser més tolerant amb cables Dupont curts.
-- Missatges d’error SD més clars.

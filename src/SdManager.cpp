@@ -6,6 +6,7 @@
 #include <SPI.h>
 #include <WiFi.h>
 #include <time.h>
+#include <esp_system.h>
 
 #include "AppConfig.h"
 #include "AppState.h"
@@ -14,7 +15,22 @@
 static bool sdBegun = false;
 static bool timeSyncStarted = false;
 static unsigned long lastSdRefreshMillis = 0;
+static unsigned long lastSdStructureCheckMillis = 0;
 static const unsigned long SD_REFRESH_INTERVAL_MS = 30000;
+static const unsigned long SD_STRUCTURE_CHECK_INTERVAL_MS = 300000;
+static const size_t SD_VIEW_MAX_BYTES_DEFAULT = 16384;
+
+static String runtimeStatsDay = "";
+static uint32_t runtimeStatsRecords = 0;
+static uint32_t runtimeStatsErrors = 0;
+static float runtimeTempMin = NAN;
+static float runtimeTempMax = NAN;
+static double runtimeTempSum = 0.0;
+static uint32_t runtimeTempCount = 0;
+static float runtimeBatteryMin = NAN;
+static float runtimeBatteryMax = NAN;
+static double runtimeBatterySum = 0.0;
+static uint32_t runtimeBatteryCount = 0;
 
 bool isSdEnabled() {
   return SD_CARD_ENABLED;
@@ -60,13 +76,32 @@ static String isoTimeText() {
   return String(buffer);
 }
 
+static String dayKeyText() {
+  if (!isTimeValid()) return "boot";
+  time_t now = time(nullptr);
+  struct tm tmInfo;
+  if (!gmtime_r(&now, &tmInfo)) return "boot";
+  char buffer[16];
+  strftime(buffer, sizeof(buffer), "%Y-%m-%d", &tmInfo);
+  return String(buffer);
+}
+
+static String currentHistoryFilePath() {
+  String path = String(SD_HISTORY_DAILY_DIR) + "/" + dayKeyText() + ".csv";
+  return path;
+}
+
+static String currentLogFilePath() {
+  String path = String(SD_LOG_DIR) + "/" + dayKeyText() + ".log";
+  return path;
+}
+
 static void startTimeSyncIfNeeded() {
   if (timeSyncStarted || WiFi.status() != WL_CONNECTED) return;
   timeSyncStarted = true;
   configTime(0, 0, "pool.ntp.org", "time.nist.gov", "time.google.com");
   Serial.println("SD/NTP: sincronitzacio horaria demanada per etiquetar historic.");
 }
-
 
 static bool attemptSdBegin() {
   if (sdBegun) return true;
@@ -93,6 +128,28 @@ static void setSdError(const String& message) {
   if (!appState.sdMounted) appState.sdStatus = "ERROR";
 }
 
+static bool ensureDir(const String& path) {
+  if (!isSdMounted()) return false;
+  if (SD.exists(path.c_str())) return true;
+  if (SD.mkdir(path.c_str())) return true;
+  setSdError("No puc crear el directori " + path);
+  return false;
+}
+
+static uint32_t countNonEmptyLines(const String& path) {
+  if (!isSdMounted() || !SD.exists(path.c_str())) return 0;
+  File file = SD.open(path.c_str(), FILE_READ);
+  if (!file) return 0;
+  uint32_t count = 0;
+  while (file.available()) {
+    String line = file.readStringUntil('\n');
+    line.trim();
+    if (line.length() > 0) count++;
+  }
+  file.close();
+  return count;
+}
+
 bool refreshSdInfo() {
   if (!isSdEnabled()) {
     appState.sdMounted = false;
@@ -104,7 +161,7 @@ bool refreshSdInfo() {
   if (!attemptSdBegin()) {
     appState.sdMounted = false;
     appState.sdStatus = "ERROR";
-    appState.sdLastError = "SD no muntada. Revisa FAT32 i cablejat: CS18 MOSI19 CLK21 MISO20.";
+    appState.sdLastError = "SD no muntada";
     return false;
   }
 
@@ -128,83 +185,51 @@ bool refreshSdInfo() {
   return true;
 }
 
-static bool ensureSdDirectory() {
+bool ensureSdBaseStructure() {
   if (!isSdMounted()) return false;
-  if (SD.exists(SD_HISTORY_DIR)) return true;
-  if (SD.mkdir(SD_HISTORY_DIR)) return true;
-  setSdError("No puc crear el directori d'historic a la SD");
-  return false;
+
+  bool ok = true;
+  ok &= ensureDir(SD_BASE_DIR);
+  ok &= ensureDir(SD_HISTORY_DAILY_DIR);
+  ok &= ensureDir(SD_STATS_DIR);
+  ok &= ensureDir(SD_LOG_DIR);
+  ok &= ensureDir(SD_MQTT_DIR);
+  ok &= ensureDir(SD_CONFIG_DIR);
+  ok &= ensureDir(SD_BLACKBOX_DIR);
+  ok &= ensureDir(SD_SYSTEM_DIR);
+  ok &= ensureDir(SD_CALIBRATION_DIR);
+  return ok;
+}
+
+static void printCsvHeaderIfNew(const String& path, const String& header) {
+  if (SD.exists(path.c_str())) return;
+  File file = SD.open(path.c_str(), FILE_WRITE);
+  if (!file) return;
+  file.println(header);
+  file.close();
 }
 
 bool ensureSdHistoryFile() {
   if (!isSdMounted()) return false;
-  if (!ensureSdDirectory()) return false;
+  if (!ensureSdBaseStructure()) return false;
 
-  if (SD.exists(SD_HISTORY_FILE)) return true;
+  appState.sdHistoryPath = currentHistoryFilePath();
+  printCsvHeaderIfNew(
+    appState.sdHistoryPath,
+    "unix_time,iso_time,uptime_seconds,water_temperature_c,raw_temperature_c,water_sensor_status,internal_temperature_c,internal_humidity_percent,internal_env_status,battery_voltage_v,battery_percent,battery_status,wifi_rssi_dbm"
+  );
 
-  File file = SD.open(SD_HISTORY_FILE, FILE_WRITE);
-  if (!file) {
-    setSdError("No puc crear el fitxer d'historic a la SD");
+  if (!SD.exists(appState.sdHistoryPath.c_str())) {
+    setSdError("No puc crear el fitxer historic diari a la SD");
     return false;
   }
 
-  file.println("unix_time,iso_time,uptime_seconds,water_temperature_c,raw_temperature_c,water_sensor_status,internal_temperature_c,internal_humidity_percent,internal_env_status,battery_voltage_v,battery_percent,battery_status,wifi_rssi_dbm");
-  file.close();
+  printCsvHeaderIfNew(
+    SD_DAILY_STATS_FILE,
+    "unix_time,iso_time,day,records,temp_min_c,temp_max_c,temp_avg_c,battery_min_v,battery_max_v,battery_avg_v,error_count,last_sensor_status,last_battery_status,wifi_rssi_dbm"
+  );
+
   return true;
-}
-
-void initSdManager() {
-  appState.sdEnabled = isSdEnabled();
-  appState.sdMounted = false;
-  appState.sdStatus = isSdEnabled() ? "INIT" : "DISABLED";
-  appState.sdHistoryPath = SD_HISTORY_FILE;
-
-  if (!isSdEnabled()) {
-    Serial.println("SD: desactivada per firmware");
-    return;
-  }
-
-  Serial.println();
-  Serial.print("SD: inicialitzant SPI CLK GPIO");
-  Serial.print(SD_SPI_CLK_PIN);
-  Serial.print(" · MISO GPIO");
-  Serial.print(SD_SPI_MISO_PIN);
-  Serial.print(" · MOSI GPIO");
-  Serial.print(SD_SPI_MOSI_PIN);
-  Serial.print(" · CS GPIO");
-  Serial.println(SD_SPI_CS_PIN);
-
-  if (!attemptSdBegin() || SD.cardType() == CARD_NONE) {
-    appState.sdMounted = false;
-    appState.sdStatus = "NO_CARD";
-    appState.sdLastError = "No detecto la microSD. Revisa cablejat CS18/MOSI19/CLK21/MISO20, format FAT32 i alimentacio 3V3.";
-    Serial.print("SD ERROR: ");
-    Serial.println(appState.sdLastError);
-    return;
-  }
-
-  appState.sdMounted = true;
-  refreshSdInfo();
-  ensureSdHistoryFile();
-
-  Serial.print("SD: muntada. Tipus ");
-  Serial.print(appState.sdCardType);
-  Serial.print(" · total ");
-  Serial.print(sdTotalText());
-  Serial.print(" · usat ");
-  Serial.println(sdUsedText());
-}
-
-void handleSdManager() {
-  startTimeSyncIfNeeded();
-
-  if (!isSdEnabled() || !sdBegun) return;
-
-  unsigned long now = millis();
-  if (now - lastSdRefreshMillis >= SD_REFRESH_INTERVAL_MS || lastSdRefreshMillis == 0) {
-    lastSdRefreshMillis = now;
-    refreshSdInfo();
-  }
 }
 
 static void csvField(File& file, const String& value) {
@@ -229,6 +254,104 @@ static String floatCsv(float value, uint8_t decimals) {
   return String(value, decimalPlaces);
 }
 
+static void resetRuntimeStatsForDay(const String& day) {
+  runtimeStatsDay = day;
+  runtimeStatsRecords = 0;
+  runtimeStatsErrors = 0;
+  runtimeTempMin = NAN;
+  runtimeTempMax = NAN;
+  runtimeTempSum = 0.0;
+  runtimeTempCount = 0;
+  runtimeBatteryMin = NAN;
+  runtimeBatteryMax = NAN;
+  runtimeBatterySum = 0.0;
+  runtimeBatteryCount = 0;
+
+  appState.sdStatsDay = day;
+  appState.sdDailyRecordCount = 0;
+  appState.sdDailyErrorCount = 0;
+  appState.sdDailyTempMin = NAN;
+  appState.sdDailyTempMax = NAN;
+  appState.sdDailyTempAvg = NAN;
+  appState.sdDailyBatteryMin = NAN;
+  appState.sdDailyBatteryMax = NAN;
+  appState.sdDailyBatteryAvg = NAN;
+}
+
+static void updateRuntimeStats() {
+  String day = dayKeyText();
+  if (runtimeStatsDay != day) {
+    resetRuntimeStatsForDay(day);
+  }
+
+  runtimeStatsRecords++;
+  bool hasError = appState.sensorStatus != "OK" || appState.internalEnvStatus == "ERROR" || appState.batteryStatus == "ERROR";
+  if (hasError) runtimeStatsErrors++;
+
+  if (!isnan(appState.lastValidTemperatureC)) {
+    if (isnan(runtimeTempMin) || appState.lastValidTemperatureC < runtimeTempMin) runtimeTempMin = appState.lastValidTemperatureC;
+    if (isnan(runtimeTempMax) || appState.lastValidTemperatureC > runtimeTempMax) runtimeTempMax = appState.lastValidTemperatureC;
+    runtimeTempSum += appState.lastValidTemperatureC;
+    runtimeTempCount++;
+  }
+
+  if (!isnan(appState.lastBatteryVoltage)) {
+    if (isnan(runtimeBatteryMin) || appState.lastBatteryVoltage < runtimeBatteryMin) runtimeBatteryMin = appState.lastBatteryVoltage;
+    if (isnan(runtimeBatteryMax) || appState.lastBatteryVoltage > runtimeBatteryMax) runtimeBatteryMax = appState.lastBatteryVoltage;
+    runtimeBatterySum += appState.lastBatteryVoltage;
+    runtimeBatteryCount++;
+  }
+
+  appState.sdStatsDay = runtimeStatsDay;
+  appState.sdDailyRecordCount = runtimeStatsRecords;
+  appState.sdDailyErrorCount = runtimeStatsErrors;
+  appState.sdDailyTempMin = runtimeTempMin;
+  appState.sdDailyTempMax = runtimeTempMax;
+  appState.sdDailyTempAvg = runtimeTempCount == 0 ? NAN : (float)(runtimeTempSum / runtimeTempCount);
+  appState.sdDailyBatteryMin = runtimeBatteryMin;
+  appState.sdDailyBatteryMax = runtimeBatteryMax;
+  appState.sdDailyBatteryAvg = runtimeBatteryCount == 0 ? NAN : (float)(runtimeBatterySum / runtimeBatteryCount);
+}
+
+static bool appendDailyStatsSnapshot() {
+  if (!isSdMounted()) return false;
+  printCsvHeaderIfNew(
+    SD_DAILY_STATS_FILE,
+    "unix_time,iso_time,day,records,temp_min_c,temp_max_c,temp_avg_c,battery_min_v,battery_max_v,battery_avg_v,error_count,last_sensor_status,last_battery_status,wifi_rssi_dbm"
+  );
+
+  File file = SD.open(SD_DAILY_STATS_FILE, FILE_APPEND);
+  if (!file) {
+    setSdError("No puc obrir el fitxer d'estadistiques diaries");
+    return false;
+  }
+
+  time_t now = time(nullptr);
+  String fields[14];
+  fields[0] = isTimeValid() ? String((unsigned long)now) : "";
+  fields[1] = isTimeValid() ? isoTimeText() : "";
+  fields[2] = runtimeStatsDay;
+  fields[3] = String((unsigned long)runtimeStatsRecords);
+  fields[4] = floatCsv(runtimeTempMin, 2);
+  fields[5] = floatCsv(runtimeTempMax, 2);
+  fields[6] = runtimeTempCount == 0 ? "" : floatCsv((float)(runtimeTempSum / runtimeTempCount), 2);
+  fields[7] = floatCsv(runtimeBatteryMin, 3);
+  fields[8] = floatCsv(runtimeBatteryMax, 3);
+  fields[9] = runtimeBatteryCount == 0 ? "" : floatCsv((float)(runtimeBatterySum / runtimeBatteryCount), 3);
+  fields[10] = String((unsigned long)runtimeStatsErrors);
+  fields[11] = appState.sensorStatus;
+  fields[12] = appState.batteryStatus;
+  fields[13] = WiFi.status() == WL_CONNECTED ? String(WiFi.RSSI()) : "";
+
+  for (uint8_t i = 0; i < 14; i++) {
+    if (i > 0) file.print(',');
+    csvField(file, fields[i]);
+  }
+  file.println();
+  file.close();
+  return true;
+}
+
 bool appendSdHistoryRecord() {
   if (!isSdMounted()) {
     appState.sdHistoryWriteFailCount++;
@@ -240,10 +363,10 @@ bool appendSdHistoryRecord() {
     return false;
   }
 
-  File file = SD.open(SD_HISTORY_FILE, FILE_APPEND);
+  File file = SD.open(appState.sdHistoryPath.c_str(), FILE_APPEND);
   if (!file) {
     appState.sdHistoryWriteFailCount++;
-    setSdError("No puc obrir l'historic en mode append");
+    setSdError("No puc obrir l'historic diari en mode append");
     return false;
   }
 
@@ -277,6 +400,9 @@ bool appendSdHistoryRecord() {
   file.println();
   file.close();
 
+  updateRuntimeStats();
+  appendDailyStatsSnapshot();
+
   appState.sdHistoryWriteCount++;
   appState.sdLastWriteMillis = millis();
   appState.sdLastHistoryLine = line;
@@ -286,8 +412,173 @@ bool appendSdHistoryRecord() {
   refreshSdInfo();
 
   Serial.print("SD historic: registre escrit #");
-  Serial.println((unsigned long)appState.sdHistoryWriteCount);
+  Serial.print((unsigned long)appState.sdHistoryWriteCount);
+  Serial.print(" a ");
+  Serial.println(appState.sdHistoryPath);
   return true;
+}
+
+bool appendSdSystemLog(const String& level, const String& message) {
+  if (!isSdMounted()) return false;
+  if (!ensureSdBaseStructure()) return false;
+
+  String path = currentLogFilePath();
+  File file = SD.open(path.c_str(), FILE_APPEND);
+  if (!file) return false;
+
+  String iso = isTimeValid() ? isoTimeText() : String("uptime+") + String((unsigned long)getUptimeSeconds()) + "s";
+  file.print(iso);
+  file.print(" [");
+  file.print(level);
+  file.print("] ");
+  file.println(message);
+  file.close();
+
+  appState.sdSystemLogPath = path;
+  return true;
+}
+
+bool writeSdVersionFile() {
+  if (!isSdMounted()) return false;
+  if (!ensureSdBaseStructure()) return false;
+
+  File file = SD.open(SD_VERSION_FILE, FILE_WRITE);
+  if (!file) return false;
+  file.print("{\"firmware_version\":\"");
+  file.print(jsonEscape(FIRMWARE_VERSION));
+  file.print("\",\"change_title\":\"");
+  file.print(jsonEscape(FIRMWARE_CHANGE_TITLE));
+  file.print("\",\"change_notes\":\"");
+  file.print(jsonEscape(FIRMWARE_CHANGE_NOTES));
+  file.print("\",\"device_id\":\"");
+  file.print(jsonEscape(configHaDeviceId));
+  file.print("\",\"written_iso\":\"");
+  file.print(jsonEscape(isTimeValid() ? isoTimeText() : ""));
+  file.println("\"}");
+  file.close();
+  return true;
+}
+
+bool writeSdConfigSnapshot() {
+  if (!isSdMounted()) return false;
+  if (!ensureSdBaseStructure()) return false;
+
+  File file = SD.open(SD_CONFIG_SNAPSHOT_FILE, FILE_WRITE);
+  if (!file) return false;
+  file.println("{");
+  file.println("  \"device_name\": \"" + jsonEscape(configDeviceName) + "\",");
+  file.println("  \"device_hostname\": \"" + jsonEscape(configDeviceHostname) + "\",");
+  file.println("  \"firmware_version\": \"" + jsonEscape(FIRMWARE_VERSION) + "\",");
+  file.println("  \"read_interval_seconds\": " + String(configReadIntervalSeconds) + ",");
+  file.println("  \"temperature_decimals\": " + String(configTemperatureDecimals) + ",");
+  file.println("  \"temperature_offset_c\": " + floatCsv(configTemperatureOffsetC, 2) + ",");
+  file.println("  \"battery_empty_voltage\": " + floatCsv(configBatteryEmptyVoltage, 3) + ",");
+  file.println("  \"battery_full_voltage\": " + floatCsv(configBatteryFullVoltage, 3) + ",");
+  file.println("  \"battery_low_percent\": " + floatCsv(configBatteryLowPercent, 1) + ",");
+  file.println("  \"battery_calibration_factor\": " + floatCsv(configBatteryCalibrationFactor, 4) + ",");
+  file.println("  \"mqtt_enabled\": " + String(configMqttEnabled ? "true" : "false") + ",");
+  file.println("  \"mqtt_host\": \"" + jsonEscape(configMqttHost) + "\",");
+  file.println("  \"mqtt_topic_base\": \"" + jsonEscape(configMqttTopicBase) + "\",");
+  file.println("  \"ha_discovery_enabled\": " + String(configHaDiscoveryEnabled ? "true" : "false") + ",");
+  file.println("  \"ha_device_id\": \"" + jsonEscape(configHaDeviceId) + "\",");
+  file.println("  \"sd_history_daily_dir\": \"" + jsonEscape(SD_HISTORY_DAILY_DIR) + "\"");
+  file.println("}");
+  file.close();
+  return true;
+}
+
+bool writeSdBootBlackbox() {
+  if (!isSdMounted()) return false;
+  if (!ensureSdBaseStructure()) return false;
+
+  File file = SD.open(SD_BOOT_BLACKBOX_FILE, FILE_WRITE);
+  if (!file) return false;
+  file.println("{");
+  file.println("  \"boot_uptime_seconds\": " + String((unsigned long)getUptimeSeconds()) + ",");
+  file.println("  \"firmware_version\": \"" + jsonEscape(FIRMWARE_VERSION) + "\",");
+  file.println("  \"reset_reason\": \"" + jsonEscape(String((int)esp_reset_reason())) + "\",");
+  file.println("  \"free_heap\": " + String((unsigned long)ESP.getFreeHeap()) + ",");
+  file.println("  \"wifi_ssid_configured\": " + String(configWifiSsid.length() > 0 ? "true" : "false") + ",");
+  file.println("  \"sd_status\": \"" + jsonEscape(appState.sdStatus) + "\"");
+  file.println("}");
+  file.close();
+  return true;
+}
+
+bool appendSdMqttPending(const String& payload) {
+  if (!isSdMounted()) return false;
+  if (!ensureSdBaseStructure()) return false;
+
+  File file = SD.open(SD_MQTT_PENDING_FILE, FILE_APPEND);
+  if (!file) {
+    setSdError("No puc obrir el buffer MQTT pendent");
+    return false;
+  }
+  file.println(payload);
+  file.close();
+
+  appState.sdMqttPendingCount++;
+  appendSdSystemLog("MQTT", "Telemetria afegida al buffer local");
+  return true;
+}
+
+bool hasSdMqttPending() {
+  if (!isSdMounted()) return false;
+  return SD.exists(SD_MQTT_PENDING_FILE);
+}
+
+bool flushSdMqttPending(const String& topic, SdMqttPublishCallback publishCallback) {
+  if (!isSdMounted() || publishCallback == nullptr || !SD.exists(SD_MQTT_PENDING_FILE)) return false;
+
+  File input = SD.open(SD_MQTT_PENDING_FILE, FILE_READ);
+  if (!input) return false;
+
+  SD.remove(SD_MQTT_PENDING_TMP_FILE);
+  File output = SD.open(SD_MQTT_PENDING_TMP_FILE, FILE_WRITE);
+  if (!output) {
+    input.close();
+    return false;
+  }
+
+  bool allFlushed = true;
+  bool keepRest = false;
+  uint32_t flushed = 0;
+  uint32_t kept = 0;
+
+  while (input.available()) {
+    String line = input.readStringUntil('\n');
+    line.trim();
+    if (line.length() == 0) continue;
+
+    if (!keepRest && publishCallback(topic, line)) {
+      flushed++;
+      continue;
+    }
+
+    keepRest = true;
+    allFlushed = false;
+    output.println(line);
+    kept++;
+  }
+
+  input.close();
+  output.close();
+
+  SD.remove(SD_MQTT_PENDING_FILE);
+  if (kept > 0) {
+    SD.rename(SD_MQTT_PENDING_TMP_FILE, SD_MQTT_PENDING_FILE);
+  } else {
+    SD.remove(SD_MQTT_PENDING_TMP_FILE);
+  }
+
+  appState.sdMqttFlushCount += flushed;
+  appState.sdMqttPendingCount = kept;
+
+  if (flushed > 0) {
+    appendSdSystemLog("MQTT", "Buffer MQTT enviat: " + String((unsigned long)flushed) + " registres, pendents " + String((unsigned long)kept));
+  }
+
+  return allFlushed;
 }
 
 static bool removeRecursive(const String& path) {
@@ -338,16 +629,246 @@ bool logicalFormatSdCard() {
   appState.sdHistoryWriteCount = 0;
   appState.sdHistoryWriteFailCount = 0;
   appState.sdLastHistoryLine = "";
+  appState.sdMqttPendingCount = 0;
+  appState.sdMqttFlushCount = 0;
+  resetRuntimeStatsForDay(dayKeyText());
 
+  bool structureOk = ensureSdBaseStructure();
   bool historyOk = ensureSdHistoryFile();
+  writeSdVersionFile();
+  writeSdConfigSnapshot();
+  writeSdBootBlackbox();
   refreshSdInfo();
 
-  if (historyOk) {
-    appState.sdLastError = "SD netejada i historic recreat";
+  if (structureOk && historyOk) {
+    appState.sdLastError = "SD netejada i estructura recreada";
     appState.sdLastOperationOk = true;
     appState.sdStatus = "OK";
+    appendSdSystemLog("SD", "Neteja logica completada");
   }
-  return historyOk;
+  return structureOk && historyOk;
+}
+
+bool normalizeSdPath(const String& input, String& output) {
+  String clean = input;
+  clean.trim();
+  clean.replace("\\", "/");
+  if (clean.length() == 0) clean = SD_BASE_DIR;
+  if (!clean.startsWith("/")) clean = "/" + clean;
+  if (clean.indexOf("..") >= 0) return false;
+  while (clean.indexOf("//") >= 0) clean.replace("//", "/");
+  if (clean.length() > 1 && clean.endsWith("/")) clean.remove(clean.length() - 1);
+  output = clean;
+  return true;
+}
+
+bool sdPathExists(const String& path) {
+  if (!isSdMounted()) return false;
+  String clean;
+  if (!normalizeSdPath(path, clean)) return false;
+  return SD.exists(clean.c_str());
+}
+
+bool sdPathIsDirectory(const String& path) {
+  if (!isSdMounted()) return false;
+  String clean;
+  if (!normalizeSdPath(path, clean)) return false;
+  File file = SD.open(clean.c_str());
+  if (!file) return false;
+  bool isDir = file.isDirectory();
+  file.close();
+  return isDir;
+}
+
+String sdReadTextFileLimited(const String& path, size_t maxBytes, bool& truncated) {
+  truncated = false;
+  if (!isSdMounted()) return "SD no muntada";
+
+  String clean;
+  if (!normalizeSdPath(path, clean)) return "Ruta no valida";
+
+  File file = SD.open(clean.c_str(), FILE_READ);
+  if (!file) return "No puc obrir el fitxer";
+  if (file.isDirectory()) {
+    file.close();
+    return "La ruta és un directori";
+  }
+
+  String content;
+  size_t limit = maxBytes == 0 ? SD_VIEW_MAX_BYTES_DEFAULT : maxBytes;
+  content.reserve(limit < 4096 ? limit : 4096);
+  size_t readBytes = 0;
+  while (file.available() && readBytes < limit) {
+    content += (char)file.read();
+    readBytes++;
+  }
+  truncated = file.available();
+  file.close();
+  return content;
+}
+
+static String fileNameFromPath(const String& path) {
+  int pos = path.lastIndexOf('/');
+  if (pos < 0) return path;
+  return path.substring(pos + 1);
+}
+
+String sdDirectoryListingJson(const String& path) {
+  String clean;
+  if (!normalizeSdPath(path, clean)) clean = SD_BASE_DIR;
+
+  String json = "{\"path\":\"" + jsonEscape(clean) + "\",\"mounted\":" + String(isSdMounted() ? "true" : "false") + ",\"items\":[";
+  if (!isSdMounted()) {
+    json += "]}";
+    return json;
+  }
+
+  File root = SD.open(clean.c_str());
+  if (!root || !root.isDirectory()) {
+    if (root) root.close();
+    json += "]}";
+    return json;
+  }
+
+  bool first = true;
+  File file = root.openNextFile();
+  while (file) {
+    String itemPath = file.path();
+    if (!first) json += ",";
+    first = false;
+    json += "{\"name\":\"" + jsonEscape(fileNameFromPath(itemPath)) + "\",\"path\":\"" + jsonEscape(itemPath) + "\",\"directory\":" + String(file.isDirectory() ? "true" : "false") + ",\"size\":" + u64String(file.size()) + "}";
+    file.close();
+    file = root.openNextFile();
+  }
+  root.close();
+  json += "]}";
+  return json;
+}
+
+String sdDirectoryListingHtml(const String& path) {
+  String clean;
+  if (!normalizeSdPath(path, clean)) clean = SD_BASE_DIR;
+
+  String html = "";
+  if (!isSdMounted()) {
+    html += "<p class='hint bad'>SD no muntada. L'explorador només apareixerà quan la targeta funcioni.</p>";
+    return html;
+  }
+
+  File root = SD.open(clean.c_str());
+  if (!root || !root.isDirectory()) {
+    if (root) root.close();
+    html += "<p class='hint bad'>No puc obrir el directori: " + htmlEscape(clean) + "</p>";
+    return html;
+  }
+
+  html += "<div class='small'>Ruta actual: <code>" + htmlEscape(clean) + "</code></div>";
+  html += "<div class='actions' style='margin:10px 0'>";
+  if (clean != "/") {
+    String parent = clean;
+    int slash = parent.lastIndexOf('/');
+    parent = slash <= 0 ? "/" : parent.substring(0, slash);
+    html += "<a class='btn secondary' href='/storage?path=" + htmlEscape(parent) + "'>Pujar nivell</a>";
+  }
+  html += "<a class='btn secondary' href='/sd-list?path=" + htmlEscape(clean) + "'>JSON directori</a>";
+  html += "</div>";
+  html += "<table><tr><th>Nom</th><th>Tipus</th><th>Mida</th><th>Accions</th></tr>";
+
+  File file = root.openNextFile();
+  bool any = false;
+  while (file) {
+    any = true;
+    String itemPath = file.path();
+    String name = fileNameFromPath(itemPath);
+    bool isDir = file.isDirectory();
+    html += "<tr><td>" + htmlEscape(name) + "</td><td>" + String(isDir ? "Directori" : "Fitxer") + "</td><td>" + String(isDir ? "-" : bytesHuman(file.size())) + "</td><td>";
+    if (isDir) {
+      html += "<a href='/storage?path=" + htmlEscape(itemPath) + "'>Obrir</a>";
+    } else {
+      html += "<a href='/sd-view?path=" + htmlEscape(itemPath) + "'>Veure</a> · <a href='/sd-download?path=" + htmlEscape(itemPath) + "'>Descarregar</a>";
+    }
+    html += "</td></tr>";
+    file.close();
+    file = root.openNextFile();
+  }
+  root.close();
+
+  if (!any) html += "<tr><td colspan='4'>Directori buit</td></tr>";
+  html += "</table>";
+  return html;
+}
+
+void initSdManager() {
+  appState.sdEnabled = isSdEnabled();
+  appState.sdMounted = false;
+  appState.sdStatus = isSdEnabled() ? "INIT" : "DISABLED";
+  appState.sdHistoryPath = currentHistoryFilePath();
+  appState.sdDailyStatsPath = SD_DAILY_STATS_FILE;
+  appState.sdSystemLogPath = currentLogFilePath();
+  appState.sdPendingMqttPath = SD_MQTT_PENDING_FILE;
+  resetRuntimeStatsForDay(dayKeyText());
+
+  if (!isSdEnabled()) {
+    Serial.println("SD: desactivada per firmware");
+    return;
+  }
+
+  Serial.println();
+  Serial.print("SD: inicialitzant SPI CLK GPIO");
+  Serial.print(SD_SPI_CLK_PIN);
+  Serial.print(" · MISO GPIO");
+  Serial.print(SD_SPI_MISO_PIN);
+  Serial.print(" · MOSI GPIO");
+  Serial.print(SD_SPI_MOSI_PIN);
+  Serial.print(" · CS GPIO");
+  Serial.println(SD_SPI_CS_PIN);
+
+  if (!attemptSdBegin() || SD.cardType() == CARD_NONE) {
+    appState.sdMounted = false;
+    appState.sdStatus = "NO_CARD";
+    appState.sdLastError = "No detecto la microSD. Revisa cablejat, format FAT32 i alimentacio 3V3.";
+    Serial.print("SD ERROR: ");
+    Serial.println(appState.sdLastError);
+    return;
+  }
+
+  appState.sdMounted = true;
+  refreshSdInfo();
+  ensureSdBaseStructure();
+  ensureSdHistoryFile();
+  writeSdVersionFile();
+  writeSdConfigSnapshot();
+  writeSdBootBlackbox();
+  appState.sdMqttPendingCount = countNonEmptyLines(SD_MQTT_PENDING_FILE);
+  appendSdSystemLog("BOOT", "Sistema arrencat amb microSD muntada");
+  refreshSdInfo();
+
+  Serial.print("SD: muntada. Tipus ");
+  Serial.print(appState.sdCardType);
+  Serial.print(" · total ");
+  Serial.print(sdTotalText());
+  Serial.print(" · usat ");
+  Serial.println(sdUsedText());
+}
+
+void handleSdManager() {
+  startTimeSyncIfNeeded();
+
+  if (!isSdEnabled() || !sdBegun) return;
+
+  unsigned long now = millis();
+  if (now - lastSdRefreshMillis >= SD_REFRESH_INTERVAL_MS || lastSdRefreshMillis == 0) {
+    lastSdRefreshMillis = now;
+    refreshSdInfo();
+  }
+
+  if (isSdMounted() && (now - lastSdStructureCheckMillis >= SD_STRUCTURE_CHECK_INTERVAL_MS || lastSdStructureCheckMillis == 0)) {
+    lastSdStructureCheckMillis = now;
+    ensureSdBaseStructure();
+    appState.sdHistoryPath = currentHistoryFilePath();
+    appState.sdSystemLogPath = currentLogFilePath();
+    appState.sdMqttPendingCount = countNonEmptyLines(SD_MQTT_PENDING_FILE);
+  }
 }
 
 String sdStatusText() {
@@ -383,7 +904,21 @@ String sdUsedPercentText() {
 }
 
 String sdHistoryPathText() {
-  return appState.sdHistoryPath.length() > 0 ? appState.sdHistoryPath : String(SD_HISTORY_FILE);
+  appState.sdHistoryPath = currentHistoryFilePath();
+  return appState.sdHistoryPath;
+}
+
+String sdDailyStatsPathText() {
+  return SD_DAILY_STATS_FILE;
+}
+
+String sdSystemLogPathText() {
+  appState.sdSystemLogPath = currentLogFilePath();
+  return appState.sdSystemLogPath;
+}
+
+String sdPendingMqttPathText() {
+  return SD_MQTT_PENDING_FILE;
 }
 
 String sdLastErrorText() {
@@ -411,10 +946,41 @@ String sdInfoJson() {
   json += ",\"history_file\":\"";
   json += jsonEscape(sdHistoryPathText());
   json += "\"";
+  json += ",\"daily_stats_file\":\"";
+  json += jsonEscape(sdDailyStatsPathText());
+  json += "\"";
+  json += ",\"system_log_file\":\"";
+  json += jsonEscape(sdSystemLogPathText());
+  json += "\"";
+  json += ",\"mqtt_pending_file\":\"";
+  json += jsonEscape(sdPendingMqttPathText());
+  json += "\"";
   json += ",\"history_writes\":";
   json += String((unsigned long)appState.sdHistoryWriteCount);
   json += ",\"history_write_fails\":";
   json += String((unsigned long)appState.sdHistoryWriteFailCount);
+  json += ",\"mqtt_pending_count\":";
+  json += String((unsigned long)appState.sdMqttPendingCount);
+  json += ",\"mqtt_flush_count\":";
+  json += String((unsigned long)appState.sdMqttFlushCount);
+  json += ",\"daily_day\":\"";
+  json += jsonEscape(appState.sdStatsDay);
+  json += "\",\"daily_records\":";
+  json += String((unsigned long)appState.sdDailyRecordCount);
+  json += ",\"daily_error_count\":";
+  json += String((unsigned long)appState.sdDailyErrorCount);
+  json += ",\"daily_temp_min\":";
+  json += isnan(appState.sdDailyTempMin) ? String("null") : floatCsv(appState.sdDailyTempMin, 2);
+  json += ",\"daily_temp_max\":";
+  json += isnan(appState.sdDailyTempMax) ? String("null") : floatCsv(appState.sdDailyTempMax, 2);
+  json += ",\"daily_temp_avg\":";
+  json += isnan(appState.sdDailyTempAvg) ? String("null") : floatCsv(appState.sdDailyTempAvg, 2);
+  json += ",\"daily_battery_min\":";
+  json += isnan(appState.sdDailyBatteryMin) ? String("null") : floatCsv(appState.sdDailyBatteryMin, 3);
+  json += ",\"daily_battery_max\":";
+  json += isnan(appState.sdDailyBatteryMax) ? String("null") : floatCsv(appState.sdDailyBatteryMax, 3);
+  json += ",\"daily_battery_avg\":";
+  json += isnan(appState.sdDailyBatteryAvg) ? String("null") : floatCsv(appState.sdDailyBatteryAvg, 3);
   json += ",\"last_error\":\"";
   json += jsonEscape(sdLastErrorText());
   json += "\"";
