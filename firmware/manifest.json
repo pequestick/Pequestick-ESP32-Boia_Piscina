@@ -1,10 +1,10 @@
 {
-  "version": "1.14.0-ota-ui-sht41",
-  "build_sha": "ba7756b642909465fe95917ef6623dbbeb56722f",
-  "build_short_sha": "ba7756b64290",
-  "build_date": "2026-06-22T07:30:31Z",
-  "size": 1520240,
-  "sha256": "434f05965e62037dad645b1235ac13f9cd9c69f4ba05904bcc50752558b0b97b",
+  "version": "1.15.0-battery-gpio1",
+  "build_sha": "70f02cf2b20d2dc10e134ffcdc019160edcab222",
+  "build_short_sha": "70f02cf2b20d",
+  "build_date": "2026-06-25T09:58:40Z",
+  "size": 1538432,
+  "sha256": "6e89cbcb8241aa5c1398f6a35a51961a7a456441c490f23f74d971848b3f3887",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Assegura el reinici diferit de l'OTA, converteix el progres en modal, reordena el SHT41 i afegeix alarmes persistents i una particio de core dump."
+  "notes": "Activa la lectura de bateria amb divisor 100k/100k al GPIO1, mostra volts i percentatge a la web i publica sensors MQTT/Home Assistant."
 }
