@@ -1,10 +1,10 @@
 {
-  "version": "1.16.0-sd-history",
-  "build_sha": "6a38439eea1423aa8bf0a5eab352c22540d165a1",
-  "build_short_sha": "6a38439eea14",
-  "build_date": "2026-06-25T10:34:51Z",
-  "size": 1614384,
-  "sha256": "55401695e7c7461f677c4ea6eb850da9de63be0a64da4a628dffc8edf2f4debc",
+  "version": "1.17.0-battery-config",
+  "build_sha": "0f806c8527d61293aa3c7af4080f5d08089bec5e",
+  "build_short_sha": "0f806c8527d6",
+  "build_date": "2026-06-25T10:46:08Z",
+  "size": 1623040,
+  "sha256": "bdef652e55d03b214901b4263ef32c7b903cb4f69148ecd5db73a762499e5d0e",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Afegeix suport microSD per SPI, pagina SD/Historic, lectura d'espai ocupat, descarrega CSV i guardat local de lectures."
+  "notes": "Afegeix configuracio web dels volts de bateria buida/plena, percentatge baix i calibratge ADC; tambe ajusta la fitxa inicial per evitar solapaments."
 }
