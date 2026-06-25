@@ -1,10 +1,10 @@
 {
-  "version": "1.19.0-sd-explorer-ui",
-  "build_sha": "821c103f91fccaef4301422a6a40429bbe8bbc20",
-  "build_short_sha": "821c103f91fc",
-  "build_date": "2026-06-25T12:01:32Z",
-  "size": 1664416,
-  "sha256": "86f076f0d5f654546f0864ec2859d18ffeae8b89f66035b6f31ff500e4f0861a",
+  "version": "1.20.0-sd-subpages-ui",
+  "build_sha": "0a6958f1054e8f12f75409d4321d6f1da03508f7",
+  "build_short_sha": "0a6958f1054e",
+  "build_date": "2026-06-25T12:21:46Z",
+  "size": 1667984,
+  "sha256": "5b19a8df4395e5915c8bd95f5e5c8f3c1709b18277ed75ad5d83c37d817a2ca6",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Afegeix explorador SD tipus Windows sense canvi de pagina, visor modal de fitxers, uptime a la pagina inicial, textos min/max a la dreta i linies horitzontals de referencia al grafic."
+  "notes": "Separa la pantalla SD en subpagines amb submenu lateral, compacta bateria i uptime en el footer del grafic inicial i deixa els controls de resolucio centrats."
 }
