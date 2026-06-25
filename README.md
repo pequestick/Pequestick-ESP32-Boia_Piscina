@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.20.0-sd-subpages-ui
+1.21.0-header-actions
 ```
 
 Funcionalitats principals actuals:
@@ -32,6 +32,8 @@ Funcionalitats principals actuals:
 - Pantalla OTA millorada amb estat Internet, GitHub, versió remota i actualització disponible.
 - OTA GitHub assistida pel navegador, amb descàrrega ràpida, pujada local i verificació SHA-256 a la boia.
 - Web amb menú lateral, subpàgines i estructura més professional.
+- Botons globals al header per reiniciar la boia i sortir/tancar sessió.
+- Botó de guardar independent a la secció de lectura de la sonda.
 - Configuració exportable/importable.
 - Sensor intern SHT41 actiu.
 - Lectura de bateria per GPIO1 amb divisor resistiu 100k/100k, tensió estimada i percentatge aproximat.
@@ -663,6 +665,12 @@ Funcionalitats previstes:
 - Backup/import/export.
 - Centre d'ajuda.
 - Subpàgines i menú lateral.
+
+### v1.21.0
+
+- Afegeix botons globals al header per **Reiniciar boia** i **Sortir / tancar sessió**.
+- Separa millor la configuració de temperatura: la subpàgina **Lectura** ara té el seu propi botó **Guardar lectura** per aplicar interval i decimals sense haver d'anar a calibratge.
+- La subpàgina **Calibratge** manté el seu propi botó **Guardar calibratge i sonda** per offset i rang vàlid.
 
 ### v1.20.0
 

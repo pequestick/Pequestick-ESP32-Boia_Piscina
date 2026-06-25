@@ -174,6 +174,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += ".brand h1{margin:0;font-size:30px;letter-spacing:-.03em;}";
   html += ".brand .sub{margin-top:5px;color:var(--muted);font-size:14px;}";
   html += ".servicebar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}";
+  html += ".header-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;min-width:0;}.header-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}.header-actions form{display:inline-flex;margin:0;gap:0}.header-btn{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:900;text-decoration:none;border:1px solid #334155;background:#1e293b;color:#e5e7eb;line-height:1}.header-btn.secondary{background:#334155}.header-btn.danger{background:#7f1d1d;border-color:rgba(248,113,113,.45);color:#fecaca}.header-btn:hover{filter:brightness(1.12)}";
   html += ".svc{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:8px 11px;background:#0f172a;color:#cbd5e1;font-size:13px;font-weight:700;}";
   html += ".svc.ok{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.12);color:#bbf7d0;}";
   html += ".svc.warn{border-color:rgba(250,204,21,.45);background:rgba(250,204,21,.12);color:#fef08a;}";
@@ -235,7 +236,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += ".internal-mini{position:absolute;top:0;right:0;display:flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid rgba(125,211,252,.24);border-radius:10px;background:rgba(2,6,23,.58);font-size:11px;color:#94a3b8;white-space:nowrap}.internal-mini b{color:#e0f2fe;font-size:12px}.internal-mini .separator{color:#475569;margin:0 1px}";
   html += ".chart-note{position:absolute;right:18px;bottom:12px;color:#94a3b8;font-size:11px;z-index:2}.history-toolbar{position:absolute;left:18px;bottom:38px;z-index:3;display:flex;gap:5px;flex-wrap:wrap}.history-range{padding:5px 8px;border-radius:999px;background:rgba(15,23,42,.82);border:1px solid #334155;font-size:11px;color:#cbd5e1}.history-range.active{border-color:var(--range-color,#38bdf8);box-shadow:0 0 0 2px color-mix(in srgb,var(--range-color,#38bdf8) 24%,transparent);color:#fff}.chart-legend{position:absolute;left:18px;bottom:12px;z-index:2;display:flex;gap:12px;color:#94a3b8;font-size:11px}.legend-item{display:inline-flex;align-items:center;gap:5px}.legend-line{width:18px;height:2px;background:var(--range-color,#38bdf8)}.legend-band{width:18px;height:8px;border:1px solid var(--range-color,#38bdf8);background:color-mix(in srgb,var(--range-color,#38bdf8) 22%,transparent)}.history-panel{position:relative;overflow:hidden;min-height:270px}.history-panel canvas{position:absolute;inset:48px 0 0;width:100%;height:calc(100% - 48px);opacity:.72;pointer-events:none}.history-panel h3{position:relative;z-index:2;margin:0;padding-right:12px}.history-panel .history-toolbar{top:46px;bottom:auto}.history-panel .chart-note,.history-panel .chart-legend{bottom:10px}";
   html += ".temp-card{padding-bottom:76px}.temp-chart-footer{position:absolute;left:18px;right:18px;bottom:12px;z-index:4;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:center;pointer-events:none}.temp-chart-footer>*{pointer-events:auto}.temp-card .history-toolbar{position:static;justify-content:center}.temp-card .chart-note{position:static;justify-self:end;white-space:nowrap}.chart-footer-right{display:flex;justify-content:flex-end;align-items:center;gap:10px;min-width:0}.temp-card .chart-legend{position:static;justify-self:auto;display:flex;gap:10px}.temp-card .temp-metric-row{display:flex;gap:7px;align-items:center;justify-content:flex-start;flex-wrap:wrap;margin:0;max-width:none}.temp-battery-card,.temp-uptime-card{margin:0!important;max-width:none!important;padding:5px 8px!important;border-radius:999px!important;background:rgba(15,23,42,.80)!important;border:1px solid rgba(148,163,184,.22)!important;display:flex;align-items:center;gap:5px;white-space:nowrap;box-shadow:none}.temp-battery-card .label,.temp-uptime-card .label{font-size:10px;margin:0;text-transform:none;letter-spacing:.02em;color:#94a3b8}.temp-battery-card .value,.temp-uptime-card .value{font-size:12px;font-weight:950;word-break:normal}.temp-battery-card .small,.temp-uptime-card .small{font-size:10px;margin:0;color:#94a3b8}.temp-battery-card .small span{font-size:10px}";
-  html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.temp-trend{font-size:29px;vertical-align:5px}.temp-card{min-height:390px;padding-bottom:105px}.temp-card h2{padding-right:165px}.temp-metric-row{grid-template-columns:1fr;max-width:none}.temp-battery-card{max-width:none}.internal-mini{font-size:10px;padding:5px 7px;gap:4px}.internal-mini b{font-size:11px}.history-toolbar{left:12px;bottom:40px}.chart-legend{left:12px;gap:8px}.chart-note{right:12px}.brandrow{display:block}.servicebar{justify-content:flex-start;margin-top:12px}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}.sd-body{grid-template-columns:1fr}.sd-tree{border-right:0;border-bottom:1px solid #263449;grid-template-columns:repeat(2,minmax(0,1fr))}.sd-list-head,.sd-row{grid-template-columns:34px minmax(0,1fr) 82px}.sd-list-head .sd-col-type,.sd-row .sd-col-type{display:none}}";
+  html += "@media(max-width:920px){.ota-hero{grid-template-columns:1fr}.app-shell{grid-template-columns:1fr}.sidebar{position:relative;top:0;margin-top:0}.tabs{grid-template-columns:1fr}.container{padding:12px}.grid,.grid3{grid-template-columns:1fr}.temp{font-size:44px}.temp-trend{font-size:29px;vertical-align:5px}.temp-card{min-height:390px;padding-bottom:105px}.temp-card h2{padding-right:165px}.temp-metric-row{grid-template-columns:1fr;max-width:none}.temp-battery-card{max-width:none}.internal-mini{font-size:10px;padding:5px 7px;gap:4px}.internal-mini b{font-size:11px}.history-toolbar{left:12px;bottom:40px}.chart-legend{left:12px;gap:8px}.chart-note{right:12px}.brandrow{display:block}.header-right{align-items:flex-start;margin-top:12px}.servicebar{justify-content:flex-start}.header-actions{justify-content:flex-start}.tab{padding:10px 10px;font-size:14px}.subnav{margin-left:12px}.sd-body{grid-template-columns:1fr}.sd-tree{border-right:0;border-bottom:1px solid #263449;grid-template-columns:repeat(2,minmax(0,1fr))}.sd-list-head,.sd-row{grid-template-columns:34px minmax(0,1fr) 82px}.sd-list-head .sd-col-type,.sd-row .sd-col-type{display:none}}";
   html += "@media(max-width:920px){.temp-card{padding-bottom:134px}.temp-chart-footer{left:12px;right:12px;bottom:12px;grid-template-columns:1fr;gap:7px;align-items:center}.temp-card .temp-metric-row{justify-content:center}.temp-card .history-toolbar{justify-content:center}.chart-footer-right{justify-content:center}.temp-card .chart-note{justify-self:center}.temp-card .chart-legend{display:none}.temp-battery-card .small,.temp-uptime-card .small{display:none}}";
   html += "</style>";
 
@@ -424,6 +425,7 @@ static void appendPageStart(String& html, const String& active, bool autoRefresh
   html += "</b> · IP: <b id='live-ip'>";
   html += htmlEscape(wifiStaIpText());
   html += "</b></div></div>";
+  html += "<div class='header-right'>";
   html += "<div class='servicebar'>";
   appendServicePill(html, "svc-wifi", "📶", "Wi-Fi", isWifiConnected() ? "ok" : "bad", wifiStatusText());
   appendServicePill(html, "svc-ap", "🛟", "AP", isWifiApActive() ? "warn" : "ok", isWifiApActive() ? "Actiu" : "Inactiu");
@@ -432,7 +434,11 @@ static void appendPageStart(String& html, const String& active, bool autoRefresh
   appendServicePill(html, "svc-sensor", "🌡️", "Sonda", appState.sensorStatus == "OK" ? "ok" : (appState.sensorStatus == "ERROR" ? "bad" : "warn"), appState.sensorStatus);
   appendServicePill(html, "svc-sd", "💾", "SD", isSdMounted() ? "ok" : (isSdEnabled() ? "bad" : "warn"), isSdEnabled() ? (isSdMounted() ? "OK" : "Error") : "Off");
   appendServicePill(html, "svc-ota", "⬆️", "OTA", appState.otaInProgress ? "warn" : "ok", appState.otaInProgress ? "En curs" : "Disponible");
-  html += "</div></div>";
+  html += "</div>";
+  html += "<div class='header-actions'>";
+  html += "<form method='POST' action='/restart' data-confirm='Segur que vols reiniciar la boia?'><button class='header-btn danger' type='submit'>⏻ Reiniciar boia</button></form>";
+  html += "<a class='header-btn secondary' href='/logout'>Sortir / tancar sessió</a>";
+  html += "</div></div></div>";
   html += "</div>";
 
   html += "<div class='app-shell'>";
@@ -778,11 +784,17 @@ static String buildConfigPage() {
   html += "'>" + String(appState.failedReads) + "</div></div>";
   html += "<div class='item'><div class='label'>Últim error</div><div class='value' style='font-size:15px'>" + htmlEscape(appState.lastErrorMessage) + "</div></div></div>";
 
+  html += "<div class='buttons'>";
+  html += "<button type='submit'>Guardar lectura</button>";
+  html += "</div>";
+
+  html += "</form>";
   html += "</div>";
 
   html += "<div id='temp-calibration' class='card'>";
   html += "<h2>Calibratge i proteccio de la sonda</h2>";
   html += "<p class='hint'>L'offset s'aplica a la lectura abans de publicar-la. Els valors fora del rang logic es descarten. Les lectures tipiques dolentes de DS18B20, -127 C i 85 C, tambe es descarten.</p>";
+  html += "<form method='POST' action='/config'>";
 
   html += "<div class='grid'>";
 
@@ -833,7 +845,7 @@ static String buildConfigPage() {
   html += "</div>";
 
   html += "<div class='buttons'>";
-  html += "<button type='submit'>Guardar temperatura i sonda</button>";
+  html += "<button type='submit'>Guardar calibratge i sonda</button>";
   html += "</div>";
 
   html += "</form>";

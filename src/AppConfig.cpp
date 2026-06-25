@@ -44,8 +44,8 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.20.0-sd-subpages-ui";
-const char* FIRMWARE_CHANGE_TITLE = "v1.20.0 subpagines SD i footer grafic";
+const char* FIRMWARE_VERSION = "1.21.0-header-actions";
+const char* FIRMWARE_CHANGE_TITLE = "v1.21.0 accions header i guardar lectura";
 const char* FIRMWARE_CHANGE_NOTES = "Separa la pantalla SD en subpagines amb submenu lateral, compacta bateria i uptime en el footer del grafic inicial i deixa els controls de resolucio centrats.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
