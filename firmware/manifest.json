@@ -1,10 +1,10 @@
 {
-  "version": "1.25.0-battery-sleep-sd-browser",
-  "build_sha": "f6353748eda6ef7d58d18e02427b37fb8e01322d",
-  "build_short_sha": "f6353748eda6",
-  "build_date": "2026-06-29T01:47:37Z",
-  "size": 1707216,
-  "sha256": "ac0c2e10b24ee94bc47abafe7be7d95c53fbfaeb9953b7e5ffb63c1e0c9c1ae5",
+  "version": "1.25.1-sd-page-stability",
+  "build_sha": "9b68da7232264a80d91a71aa62ef5cead0bdf4a9",
+  "build_short_sha": "9b68da723226",
+  "build_date": "2026-06-29T01:55:22Z",
+  "size": 1706928,
+  "sha256": "c5036357840a6f3ef23f8ba4349ad75b8137fc8edd0226a2d4b22b5ef32c8124",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Afegeix deep sleep configurable entre lectures per allargar l'autonomia amb bateria i corregeix les rutes de l'explorador microSD perquè les carpetes dins de /boia es puguin obrir correctament."
+  "notes": "Redueix les previsualitzacions pesades de logs i blackbox a la pàgina de microSD per evitar pressió de memòria i reinicis PANIC quan es consulta l'històric."
 }
