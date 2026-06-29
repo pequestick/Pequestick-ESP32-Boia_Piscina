@@ -1,10 +1,10 @@
 {
-  "version": "1.25.1-sd-page-stability",
-  "build_sha": "9b68da7232264a80d91a71aa62ef5cead0bdf4a9",
-  "build_short_sha": "9b68da723226",
-  "build_date": "2026-06-29T01:55:22Z",
-  "size": 1706928,
-  "sha256": "c5036357840a6f3ef23f8ba4349ad75b8137fc8edd0226a2d4b22b5ef32c8124",
+  "version": "1.25.2-system-mode-render",
+  "build_sha": "51515708cf9fe58a78f5a311043137d8bfcf401b",
+  "build_short_sha": "51515708cf9f",
+  "build_date": "2026-06-29T02:38:17Z",
+  "size": 1707600,
+  "sha256": "00dd094895b58ce5dc32770627c1b5a8c02c131ae26c2dcde8f216ac836816c5",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Redueix les previsualitzacions pesades de logs i blackbox a la pàgina de microSD per evitar pressió de memòria i reinicis PANIC quan es consulta l'històric."
+  "notes": "Redueix el HTML de Sistema / Mode perquè els controls de deep sleep no quedin tallats, i redirigeix l'URL antiga /system/action cap a /system."
 }
