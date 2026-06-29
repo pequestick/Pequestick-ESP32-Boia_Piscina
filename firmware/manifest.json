@@ -1,10 +1,10 @@
 {
-  "version": "1.25.2-system-mode-render",
-  "build_sha": "51515708cf9fe58a78f5a311043137d8bfcf401b",
-  "build_short_sha": "51515708cf9f",
-  "build_date": "2026-06-29T02:38:17Z",
-  "size": 1707600,
-  "sha256": "00dd094895b58ce5dc32770627c1b5a8c02c131ae26c2dcde8f216ac836816c5",
+  "version": "1.25.3-web-actions-chunked",
+  "build_sha": "482b8c066514f96f5f7464fc3e46022d60236593",
+  "build_short_sha": "482b8c066514",
+  "build_date": "2026-06-29T02:46:42Z",
+  "size": 1707552,
+  "sha256": "fd60612d778443097e1869e0d6fdd47209c1fa8baf91d95c831fcad8179797b6",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Redueix el HTML de Sistema / Mode perquè els controls de deep sleep no quedin tallats, i redirigeix l'URL antiga /system/action cap a /system."
+  "notes": "Envia les pàgines HTML grans en fragments perquè SD, Sistema, Manteniment i Ajuda no quedin tallades a 64 KB, i fa que el buffer MQTT buit descarregui correctament."
 }
