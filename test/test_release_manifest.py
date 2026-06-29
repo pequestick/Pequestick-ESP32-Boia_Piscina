@@ -170,6 +170,14 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("sdReadTextFileLimited(String(SD_BOOT_BLACKBOX_FILE), 2048", web)
         self.assertIn("sdReadTextFileLimited(clean, 8192", web)
 
+    def test_system_mode_page_has_small_dedicated_render_path(self):
+        web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+
+        self.assertIn("appendSystemModeCard", web)
+        self.assertIn('selectedSection == "sys-mode"', web)
+        self.assertIn('server.uri() == "/system/action"', web)
+        self.assertIn('"/system?section=" + section', web)
+
     def test_home_assistant_statistics_cover_all_history_ranges_and_sensors(self):
         config = Path("src/AppConfig.cpp").read_text(encoding="utf-8")
         web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")

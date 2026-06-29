@@ -2059,6 +2059,30 @@ static String buildMaintenancePage() {
   return html;
 }
 
+static void appendSystemModeCard(String& html) {
+  html += "<div id='sys-mode' class='card'>";
+  html += "<h2>Mode del dispositiu</h2>";
+  html += "<p class='hint'>Desenvolupament és per banc de proves. Producció és per quan ja la tens muntada i vols menys marge de cagada.</p>";
+  html += "<form method='POST' action='/device-mode'>";
+  html += "<div><label><input name='production_mode' type='checkbox' value='1' ";
+  html += configProductionMode ? "checked" : "";
+  html += ">Mode producció</label></div>";
+  html += "<div><label><input name='deep_sleep_enabled' type='checkbox' value='1' ";
+  html += configDeepSleepEnabled ? "checked" : "";
+  html += ">Estalvi real bateria: deep sleep entre lectures</label></div>";
+  html += "<div class='grid'><div><div class='label'>Finestra web després d'arrencar (s)</div><input name='deep_sleep_awake_seconds' type='number' min='";
+  html += String(MIN_DEEP_SLEEP_AWAKE_SECONDS);
+  html += "' max='";
+  html += String(MAX_DEEP_SLEEP_AWAKE_SECONDS);
+  html += "' step='1' value='";
+  html += String(configDeepSleepAwakeSeconds);
+  html += "' required></div></div>";
+  html += "<p class='small'>Quan està activat, la boia llegeix sensors, publica/guarda dades i dorm fins al proper interval de lectura. Durant el son la web no respon; per recuperar-la, reinicia i entra durant aquesta finestra. L'AP de rescat i OTA no dormen.</p>";
+  html += "<div class='buttons'><button type='submit'>Guardar mode</button></div>";
+  html += "</form>";
+  html += "</div>";
+}
+
 static String buildSystemPage() {
   String html = "";
   appendPageStart(html, "system", false);
@@ -2066,6 +2090,12 @@ static String buildSystemPage() {
   static const char* labels[] = {"Estat sistema", "Ambient intern", "Bateria", "Configuració", "Mode", "LEDs", "Seguretat"};
   static const char* anchors[] = {"sys-summary", "sys-internal-env", "sys-battery", "sys-identity", "sys-mode", "sys-leds", "sys-users"};
   appendSubTabs(html, "Sistema", labels, anchors, 7);
+  String selectedSection = server.arg("section");
+  if (selectedSection == "sys-mode") {
+    appendSystemModeCard(html);
+    appendPageEnd(html);
+    return html;
+  }
   bool tempAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalTemperatureC) && appState.lastInternalTemperatureC >= configInternalTempAlarmC;
   bool humidityAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalHumidityPercent) && appState.lastInternalHumidityPercent >= configInternalHumidityAlarmPercent;
 
@@ -2193,27 +2223,7 @@ static String buildSystemPage() {
   html += "<p class='small'>Per veure el hostname nou a la xarxa, normalment cal reiniciar la connexió Wi-Fi o reiniciar la boia.</p>";
   html += "</div>";
 
-  html += "<div id='sys-mode' class='card'>";
-  html += "<h2>Mode del dispositiu</h2>";
-  html += "<p class='hint'>Desenvolupament és per banc de proves. Producció és per quan ja la tens muntada i vols menys marge de cagada.</p>";
-  html += "<form method='POST' action='/device-mode'>";
-  html += "<div><label><input name='production_mode' type='checkbox' value='1' ";
-  html += configProductionMode ? "checked" : "";
-  html += ">Mode producció</label></div>";
-  html += "<div><label><input name='deep_sleep_enabled' type='checkbox' value='1' ";
-  html += configDeepSleepEnabled ? "checked" : "";
-  html += ">Estalvi real bateria: deep sleep entre lectures</label></div>";
-  html += "<div class='grid'><div><div class='label'>Finestra web després d'arrencar (s)</div><input name='deep_sleep_awake_seconds' type='number' min='";
-  html += String(MIN_DEEP_SLEEP_AWAKE_SECONDS);
-  html += "' max='";
-  html += String(MAX_DEEP_SLEEP_AWAKE_SECONDS);
-  html += "' step='1' value='";
-  html += String(configDeepSleepAwakeSeconds);
-  html += "' required></div></div>";
-  html += "<p class='small'>Quan està activat, la boia llegeix sensors, publica/guarda dades i dorm fins al proper interval de lectura. Durant el son la web no respon; per recuperar-la, reinicia i entra durant aquesta finestra. L'AP de rescat i OTA no dormen.</p>";
-  html += "<div class='buttons'><button type='submit'>Guardar mode</button></div>";
-  html += "</form>";
-  html += "</div>";
+  appendSystemModeCard(html);
 
   html += "<div id='sys-leds' class='card'>";
   html += "<h2>LEDs de placa</h2>";
@@ -4504,6 +4514,12 @@ static void handleStatusJson() {
   server.send(200, "application/json", buildStatusJsonPayload());
 }
 static void handleNotFound() {
+  if (server.uri() == "/system/action") {
+    String section = server.hasArg("section") ? server.arg("section") : String("sys-summary");
+    server.sendHeader("Location", "/system?section=" + section, true);
+    server.send(303, "text/plain", "");
+    return;
+  }
   server.send(404, "text/plain", "404 - No trobat");
 }
 
