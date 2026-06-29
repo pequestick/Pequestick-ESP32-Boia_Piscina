@@ -1,10 +1,10 @@
 {
-  "version": "1.25.3-web-actions-chunked",
-  "build_sha": "482b8c066514f96f5f7464fc3e46022d60236593",
-  "build_short_sha": "482b8c066514",
-  "build_date": "2026-06-29T02:46:42Z",
-  "size": 1707552,
-  "sha256": "fd60612d778443097e1869e0d6fdd47209c1fa8baf91d95c831fcad8179797b6",
+  "version": "1.25.4-web-page-size-fix",
+  "build_sha": "7b870e4b78117ab812c044ddd79d5dd34ff700f1",
+  "build_short_sha": "7b870e4b7811",
+  "build_date": "2026-06-29T06:37:17Z",
+  "size": 1700096,
+  "sha256": "2172e8f1676e5459e674fcfcdb7ca36d5bcab67bfdc60d7a53a9e5f806a9f189",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Envia les pàgines HTML grans en fragments perquè SD, Sistema, Manteniment i Ajuda no quedin tallades a 64 KB, i fa que el buffer MQTT buit descarregui correctament."
+  "notes": "Redueix el JavaScript global de l'OTA, envia les pàgines HTML grans en fragments i evita que SD, Sistema, Manteniment i Ajuda quedin tallades a 64 KB."
 }
