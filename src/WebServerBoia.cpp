@@ -2270,57 +2270,74 @@ static String buildHelpPage() {
   static const char* anchors[] = {"help-hardware", "help-files", "help-mqtt", "help-firmware", "help-future", "help-recovery"};
   appendSubTabs(html, "Ajuda", labels, anchors, 6);
 
-  html += "<div id='help-firmware'>";
-  appendFirmwareSection(html);
-  html += "</div>";
+  String section = server.arg("section");
+  if (section.length() == 0) {
+    section = "help-hardware";
+  }
 
-  html += "<div id='help-hardware'>";
-  appendHardwareSection(html);
-  html += "</div>";
+  if (section == "help-firmware") {
+    html += "<div id='help-firmware'>";
+    appendFirmwareSection(html);
+    html += "</div>";
+  }
 
-  html += "<div id='help-files' class='card'>";
-  html += "<h2>Formats de fitxer SD</h2>";
-  html += "<p class='hint'>Aquests són els fitxers locals que fa servir la boia quan hi ha microSD. Si la SD no existeix, la boia continua funcionant, però no tindrà aquesta caixa negra local.</p>";
-  html += "<div class='grid'>";
-  html += "<div class='item'><div class='label'>Històric detall</div><div class='value' style='font-size:15px'>/boia/history/YYYY-MM-DD.csv</div><div class='small'>Lectures d'aigua, ambient intern, bateria, estat sensors i RSSI. Una fila per lectura.</div></div>";
-  html += "<div class='item'><div class='label'>Estadística diària</div><div class='value' style='font-size:15px'>" + htmlEscape(sdDailyStatsPathText()) + "</div><div class='small'>Snapshots amb min, max, mitjana i errors del dia.</div></div>";
-  html += "<div class='item'><div class='label'>Buffer MQTT</div><div class='value' style='font-size:15px'>" + htmlEscape(sdPendingMqttPathText()) + "</div><div class='small'>JSONL amb telemetria pendent d'enviar quan MQTT cau.</div></div>";
-  html += "<div class='item'><div class='label'>Logs</div><div class='value' style='font-size:15px'>/boia/logs/YYYY-MM-DD.log</div><div class='small'>Arrencades, errors i esdeveniments importants.</div></div>";
-  html += "<div class='item'><div class='label'>Config snapshot</div><div class='value' style='font-size:15px'>/boia/config/config_snapshot.json</div><div class='small'>Còpia llegible de configuració activa.</div></div>";
-  html += "<div class='item'><div class='label'>Blackbox</div><div class='value' style='font-size:15px'>/boia/blackbox/last_boot.json</div><div class='small'>Última arrencada, versió i estat inicial.</div></div>";
-  html += "</div></div>";
+  if (section == "help-hardware") {
+    html += "<div id='help-hardware'>";
+    appendHardwareSection(html);
+    html += "</div>";
+  }
 
-  html += "<div id='help-mqtt' class='card'>";
-  html += "<h2>MQTT topics principals</h2>";
-  html += "<p class='hint'>Topics que publica o escolta la boia. El topic base actual és <b>" + htmlEscape(configMqttTopicBase) + "</b>.</p>";
-  html += "<div class='grid'>";
-  html += "<div class='item'><div class='label'>Temperatura aigua</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("temperature")) + "</div></div>";
-  html += "<div class='item'><div class='label'>Ambient intern</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("internal_temperature")) + "<br>" + htmlEscape(mqttTopic("internal_humidity")) + "</div></div>";
-  html += "<div class='item'><div class='label'>Bateria</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("battery_voltage")) + "<br>" + htmlEscape(mqttTopic("battery_percent")) + "<br>" + htmlEscape(mqttTopic("battery_status")) + "</div></div>";
-  html += "<div class='item'><div class='label'>Sistema</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("rssi")) + "<br>" + htmlEscape(mqttTopic("uptime")) + "<br>" + htmlEscape(mqttTopic("sensor_status")) + "</div></div>";
-  html += "<div class='item'><div class='label'>SD</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("sd_status")) + "<br>" + htmlEscape(mqttTopic("sd_history_file")) + "<br>" + htmlEscape(mqttTopic("sd_mqtt_pending")) + "</div></div>";
-  html += "<div class='item'><div class='label'>Telemetria completa</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("telemetry")) + "<br>" + htmlEscape(mqttTopic("telemetry_buffer")) + "</div><div class='small'>telemetry_buffer rep dades recuperades del buffer SD.</div></div>";
-  html += "<div class='item'><div class='label'>Availability</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttAvailabilityTopic()) + "</div></div>";
-  html += "<div class='item'><div class='label'>Comandes</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttCommandRestartTopic()) + "<br>" + htmlEscape(mqttCommandPublishDiscoveryTopic()) + "</div></div>";
-  html += "</div></div>";
+  if (section == "help-files") {
+    html += "<div id='help-files' class='card'>";
+    html += "<h2>Formats de fitxer SD</h2>";
+    html += "<p class='hint'>Aquests són els fitxers locals que fa servir la boia quan hi ha microSD. Si la SD no existeix, la boia continua funcionant, però no tindrà aquesta caixa negra local.</p>";
+    html += "<div class='grid'>";
+    html += "<div class='item'><div class='label'>Històric detall</div><div class='value' style='font-size:15px'>/boia/history/YYYY-MM-DD.csv</div><div class='small'>Lectures d'aigua, ambient intern, bateria, estat sensors i RSSI. Una fila per lectura.</div></div>";
+    html += "<div class='item'><div class='label'>Estadística diària</div><div class='value' style='font-size:15px'>" + htmlEscape(sdDailyStatsPathText()) + "</div><div class='small'>Snapshots amb min, max, mitjana i errors del dia.</div></div>";
+    html += "<div class='item'><div class='label'>Buffer MQTT</div><div class='value' style='font-size:15px'>" + htmlEscape(sdPendingMqttPathText()) + "</div><div class='small'>JSONL amb telemetria pendent d'enviar quan MQTT cau.</div></div>";
+    html += "<div class='item'><div class='label'>Logs</div><div class='value' style='font-size:15px'>/boia/logs/YYYY-MM-DD.log</div><div class='small'>Arrencades, errors i esdeveniments importants.</div></div>";
+    html += "<div class='item'><div class='label'>Config snapshot</div><div class='value' style='font-size:15px'>/boia/config/config_snapshot.json</div><div class='small'>Còpia llegible de configuració activa.</div></div>";
+    html += "<div class='item'><div class='label'>Blackbox</div><div class='value' style='font-size:15px'>/boia/blackbox/last_boot.json</div><div class='small'>Última arrencada, versió i estat inicial.</div></div>";
+    html += "</div></div>";
+  }
 
-  html += "<div id='help-future'>";
-  appendFutureExpansionSection(html);
-  html += "</div>";
+  if (section == "help-mqtt") {
+    html += "<div id='help-mqtt' class='card'>";
+    html += "<h2>MQTT topics principals</h2>";
+    html += "<p class='hint'>Topics que publica o escolta la boia. El topic base actual és <b>" + htmlEscape(configMqttTopicBase) + "</b>.</p>";
+    html += "<div class='grid'>";
+    html += "<div class='item'><div class='label'>Temperatura aigua</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("temperature")) + "</div></div>";
+    html += "<div class='item'><div class='label'>Ambient intern</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("internal_temperature")) + "<br>" + htmlEscape(mqttTopic("internal_humidity")) + "</div></div>";
+    html += "<div class='item'><div class='label'>Bateria</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("battery_voltage")) + "<br>" + htmlEscape(mqttTopic("battery_percent")) + "<br>" + htmlEscape(mqttTopic("battery_status")) + "</div></div>";
+    html += "<div class='item'><div class='label'>Sistema</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("rssi")) + "<br>" + htmlEscape(mqttTopic("uptime")) + "<br>" + htmlEscape(mqttTopic("sensor_status")) + "</div></div>";
+    html += "<div class='item'><div class='label'>SD</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("sd_status")) + "<br>" + htmlEscape(mqttTopic("sd_history_file")) + "<br>" + htmlEscape(mqttTopic("sd_mqtt_pending")) + "</div></div>";
+    html += "<div class='item'><div class='label'>Telemetria completa</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttTopic("telemetry")) + "<br>" + htmlEscape(mqttTopic("telemetry_buffer")) + "</div><div class='small'>telemetry_buffer rep dades recuperades del buffer SD.</div></div>";
+    html += "<div class='item'><div class='label'>Availability</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttAvailabilityTopic()) + "</div></div>";
+    html += "<div class='item'><div class='label'>Comandes</div><div class='value' style='font-size:15px'>" + htmlEscape(mqttCommandRestartTopic()) + "<br>" + htmlEscape(mqttCommandPublishDiscoveryTopic()) + "</div></div>";
+    html += "</div></div>";
+  }
 
-  html += "<div id='help-recovery' class='card'>";
-  html += "<h2>Recuperació i reset total</h2>";
-  html += "<p class='hint'>Si la boia queda fora de la teva xarxa després d'un canvi de Wi-Fi, IP fixa mal posada o reset total, no està morta: entra en mode AP de rescat.</p>";
-  html += "<div class='grid'>";
-  html += "<div class='item'><div class='label'>Wi-Fi de rescat</div><div class='value'>";
-  html += htmlEscape(String(WIFI_AP_SSID));
-  html += "</div><div class='small'>Busca aquesta xarxa des del mòbil o portàtil.</div></div>";
-  html += "<div class='item'><div class='label'>IP per defecte</div><div class='value'>http://192.168.4.1</div><div class='small'>Només respon quan estàs connectat a l'AP de rescat.</div></div>";
-  html += "<div class='item'><div class='label'>Botó físic</div><div class='value'>10 s AP · 20 s reset total</div><div class='small'>10 segons força AP setup. 20 segons restaura configuració i força AP setup.</div></div>";
-  html += "</div>";
-  html += "<h3>Passos ràpids</h3>";
-  html += "<p class='hint'>1) Connecta't al Wi-Fi de rescat. 2) Obre http://192.168.4.1. 3) Ves a Wi-Fi / Credencials. 4) Posa el Wi-Fi correcte i guarda. 5) Espera que torni a aparèixer a la LAN.</p>";
-  html += "</div>";
+  if (section == "help-future") {
+    html += "<div id='help-future'>";
+    appendFutureExpansionSection(html);
+    html += "</div>";
+  }
+
+  if (section == "help-recovery") {
+    html += "<div id='help-recovery' class='card'>";
+    html += "<h2>Recuperació i reset total</h2>";
+    html += "<p class='hint'>Si la boia queda fora de la teva xarxa després d'un canvi de Wi-Fi, IP fixa mal posada o reset total, no està morta: entra en mode AP de rescat.</p>";
+    html += "<div class='grid'>";
+    html += "<div class='item'><div class='label'>Wi-Fi de rescat</div><div class='value'>";
+    html += htmlEscape(String(WIFI_AP_SSID));
+    html += "</div><div class='small'>Busca aquesta xarxa des del mòbil o portàtil.</div></div>";
+    html += "<div class='item'><div class='label'>IP per defecte</div><div class='value'>http://192.168.4.1</div><div class='small'>Només respon quan estàs connectat a l'AP de rescat.</div></div>";
+    html += "<div class='item'><div class='label'>Botó físic</div><div class='value'>10 s AP · 20 s reset total</div><div class='small'>10 segons força AP setup. 20 segons restaura configuració i força AP setup.</div></div>";
+    html += "</div>";
+    html += "<h3>Passos ràpids</h3>";
+    html += "<p class='hint'>1) Connecta't al Wi-Fi de rescat. 2) Obre http://192.168.4.1. 3) Ves a Wi-Fi / Credencials. 4) Posa el Wi-Fi correcte i guarda. 5) Espera que torni a aparèixer a la LAN.</p>";
+    html += "</div>";
+  }
 
   appendPageEnd(html);
   return html;
