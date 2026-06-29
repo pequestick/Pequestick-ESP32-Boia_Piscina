@@ -11,7 +11,7 @@ El projecte ha evolucionat des d'una prova simple amb una sonda **DS18B20** fins
 Versió actual documentada:
 
 ```text
-1.24.0-web-reordered
+1.25.0-battery-sleep-sd-browser
 ```
 
 Funcionalitats principals actuals:
@@ -20,6 +20,7 @@ Funcionalitats principals actuals:
 - Lectura de temperatura d'aigua amb DS18B20.
 - Wi-Fi configurable des de la web.
 - Mode d'energia Wi-Fi configurable: **màxim rendiment** o **estalvi bateria Wi-Fi**, sense apagar la connexió.
+- Mode d'estalvi real amb **deep sleep entre lectures**, configurable des de **Sistema → Mode**.
 - Cercador de xarxes Wi-Fi properes amb selecció d'SSID, intensitat de senyal i estat de seguretat.
 - Retorn automàtic a DHCP quan es canvia l'SSID, evitant heretar una IP fixa de la xarxa anterior.
 - Botons independents per guardar les credencials Wi-Fi i la configuració avançada de xarxa.
@@ -46,7 +47,7 @@ Funcionalitats principals actuals:
 - Estadístiques locals precalculades a `/boia/stats/daily_snapshots.csv`.
 - Logs locals a `/boia/logs/YYYY-MM-DD.log`.
 - Buffer MQTT offline a `/boia/mqtt/pending.jsonl`, pensat perquè Home Assistant no perdi lectures quan la xarxa o el broker cauen.
-- Snapshot de configuració, fitxer de versió i blackbox d'arrencada a la SD.
+- Snapshot de configuració, fitxer de versió, blackbox d'arrencada i historial persistent de resets a la SD.
 - Petit explorador/visualitzador web de fitxers SD.
 - Accés web protegit amb usuari i contrasenya persistents.
 - Lectura pública de temperatura i estat de sensors des de la pantalla d'accés.
@@ -236,6 +237,7 @@ Estructura creada automàticament:
 /boia/config/config_snapshot.json     -> còpia llegible de la configuració
 /boia/system/version.json             -> versió instal·lada
 /boia/blackbox/last_boot.json         -> caixa negra de l'última arrencada
+/boia/blackbox/boot_history.jsonl     -> historial append-only d'arrencades i resets
 /boia/calibration/                    -> reservat per calibratges futurs
 ```
 
@@ -262,6 +264,8 @@ Notes clares:
 - Si la boia encara no ha sincronitzat hora per NTP, `unix_time` i `iso_time` poden quedar buits. `uptime_seconds` sempre queda escrit.
 - El fitxer és append-only: no reescriu l'històric cada cop, només afegeix una línia.
 - Les estadístiques precalculades no substitueixen el detall; serveixen perquè la web o Home Assistant puguin llegir resums sense processar tot l'històric.
+- `last_boot.json` mostra l'últim motiu de reset descodificat (`PANIC`, `BROWNOUT`, `WDT`, `DEEPSLEEP`, etc.), la causa de despertar i context bàsic.
+- `boot_history.jsonl` conserva una línia JSON per arrencada, útil per investigar reinicis intermitents sense perdre l'entrada anterior.
 - `/sd-history.csv` descarrega el CSV del dia actual.
 - `/sd-daily-stats.csv` descarrega els snapshots precalculats.
 - `/sd-info` retorna l'estat de la SD en JSON.
@@ -407,6 +411,27 @@ A **Wi-Fi / Rendiment** es pot triar el comportament energètic de la ràdio Wi-
 - **Estalvi bateria Wi-Fi**: activa el sleep del Wi-Fi. La connexió continua viva, però la web pot respondre una mica més lenta i amb RSSI dolent pot ser menys estable.
 
 Això **no desactiva la Wi-Fi** i no és deep sleep de l'ESP32. Només permet al Wi-Fi entrar en mode d'estalvi entre transmissions.
+
+## Estalvi real amb deep sleep
+
+A partir de `1.25.0-battery-sleep-sd-browser`, **Sistema → Mode** permet activar deep sleep entre lectures.
+
+Quan està activat, la boia:
+
+- Arrenca.
+- Llegeix sensors.
+- Escriu històric a la SD.
+- Publica MQTT si està configurat.
+- Deixa una finestra web configurable després d'arrencar.
+- Apaga Wi-Fi i entra en deep sleep fins al proper interval de lectura.
+
+Punts importants:
+
+- Durant el deep sleep la web no respon perquè l'ESP32 està adormit.
+- La finestra web per defecte és de 90 segons i es pot ajustar.
+- No entra en deep sleep si hi ha OTA en curs o si l'AP de rescat està actiu.
+- Amb intervals de lectura/MQTT de 1800 segons, aquest mode és el que realment pot canviar l'autonomia. L'estalvi Wi-Fi sol ajuda una mica, però no substitueix el deep sleep.
+- Si es vol mantenir la web sempre disponible, cal deixar aquest mode desactivat.
 
 Si la boia no pot connectar a la xarxa configurada, entra en mode AP de rescat.
 
@@ -751,6 +776,16 @@ Funcionalitats previstes:
 - Backup/import/export.
 - Centre d'ajuda.
 - Subpàgines i menú lateral.
+
+### v1.25.0
+
+- Afegeix deep sleep configurable entre lectures des de **Sistema → Mode**.
+- Manté una finestra web configurable després d'arrencar abans d'entrar en deep sleep.
+- Evita deep sleep durant OTA i quan l'AP de rescat està actiu.
+- Afegeix `reset_reason` i `wakeup_cause` descodificats a `/status`.
+- Amplia `/boia/blackbox/last_boot.json` amb motiu de reset, causa de wakeup, intervals i estat deep sleep.
+- Afegeix `/boia/blackbox/boot_history.jsonl` com a historial persistent d'arrencades i resets.
+- Corregeix l'explorador SD perquè construeixi bé les rutes de carpetes dins del directori obert.
 
 ### v1.24.0
 
