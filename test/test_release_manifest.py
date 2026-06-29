@@ -80,11 +80,12 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("if (startByte > 0)", source)
         self.assertNotIn("maxRangeBlockSize", source)
 
-    def test_browser_assisted_ota_keeps_sha256_verification(self):
+    def test_server_side_ota_keeps_sha256_verification(self):
         source = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
-        self.assertIn("installGithubViaBrowser", source)
         self.assertIn("X-Firmware-SHA256", source)
         self.assertIn("SHA-256 OTA verificat correctament", source)
+        self.assertIn("action='/github-update'", source)
+        self.assertIn("performGitHubOtaUpdate", source)
 
     def test_upload_route_is_available_before_headers_are_parsed(self):
         auth_source = Path("src/AuthManager.cpp").read_text(encoding="utf-8")
@@ -93,7 +94,7 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn('localOtaUploadPath = "/update/" + createWebUploadToken()', web_source)
         self.assertIn("server.on(localOtaUploadPath.c_str()", web_source)
         self.assertNotIn("setFilter(protectedUploadRequest)", web_source)
-        self.assertIn("xhr.open('POST',local.action)", web_source)
+        self.assertIn("id='ota-local-form'", web_source)
 
     def test_sht41_is_wired_into_status_mqtt_and_home_assistant(self):
         config = Path("include/AppConfig.h").read_text(encoding="utf-8")
@@ -119,13 +120,12 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("internal_temperature_alarm_threshold_c", web)
         self.assertIn("internal_humidity_alarm_threshold_percent", web)
 
-    def test_browser_ota_uploads_resumable_blocks(self):
+    def test_local_ota_upload_route_validates_offsets(self):
         web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
-        self.assertIn("sendFirmwareBlock", web)
-        self.assertIn("blockSize=65536", web)
         self.assertIn("X-Firmware-Offset", web)
         self.assertIn("requestedOffset == localOtaReceivedSize", web)
         self.assertIn("es pot reprendre des del byte", web)
+        self.assertNotIn("sendFirmwareBlock", web)
 
     def test_sd_explorer_builds_child_paths_from_open_directory(self):
         sd = Path("src/SdManager.cpp").read_text(encoding="utf-8")
