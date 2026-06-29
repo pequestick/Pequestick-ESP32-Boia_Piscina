@@ -2508,17 +2508,27 @@ static bool authMiddleware(WebServer& currentServer, Middleware::Callback next) 
 // HANDLERS
 // ==========================
 
+static void sendHtmlResponse(int statusCode, const String& html) {
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.send(statusCode, "text/html", "");
+  const size_t chunkSize = 1024;
+  for (size_t offset = 0; offset < html.length(); offset += chunkSize) {
+    server.sendContent(html.substring(offset, offset + chunkSize));
+  }
+  server.sendContent("");
+}
+
 static void handleLoginGet() {
   if (requestHasValidSession()) {
     redirectTo(webAuthPasswordChangeRequired() ? "/change-password" : "/");
     return;
   }
-  server.send(200, "text/html", buildAuthPage("Accés administratiu", "", false, false));
+  sendHtmlResponse(200, buildAuthPage("Accés administratiu", "", false, false));
 }
 
 static void handleLoginPost() {
   if (lastFailedLoginMillis != 0 && millis() - lastFailedLoginMillis < 1500UL) {
-    server.send(429, "text/html", buildAuthPage("Accés administratiu", "Espera un moment abans de tornar-ho a provar.", false, false));
+    sendHtmlResponse(429, buildAuthPage("Accés administratiu", "Espera un moment abans de tornar-ho a provar.", false, false));
     return;
   }
 
@@ -2528,7 +2538,7 @@ static void handleLoginPost() {
   if (!authenticateWebUser(username, password)) {
     lastFailedLoginMillis = millis();
     delay(250);
-    server.send(401, "text/html", buildAuthPage("Accés administratiu", "Credencials incorrectes.", false, false));
+    sendHtmlResponse(401, buildAuthPage("Accés administratiu", "Credencials incorrectes.", false, false));
     return;
   }
 
@@ -2546,19 +2556,19 @@ static void handleLogout() {
 }
 
 static void handleChangePasswordGet() {
-  server.send(200, "text/html", buildAuthPage("Canviar credencials", "", true, webAuthPasswordChangeRequired()));
+  sendHtmlResponse(200, buildAuthPage("Canviar credencials", "", true, webAuthPasswordChangeRequired()));
 }
 
 static void handleChangePasswordPost() {
   String newPassword = server.arg("new_password");
   if (newPassword != server.arg("confirm_password")) {
-    server.send(400, "text/html", buildAuthPage("Canviar credencials", "Les contrasenyes noves no coincideixen.", true, webAuthPasswordChangeRequired()));
+    sendHtmlResponse(400, buildAuthPage("Canviar credencials", "Les contrasenyes noves no coincideixen.", true, webAuthPasswordChangeRequired()));
     return;
   }
 
   String message;
   if (!changeWebCredentials(server.arg("current_password"), server.arg("new_username"), newPassword, message)) {
-    server.send(400, "text/html", buildAuthPage("Canviar credencials", message, true, webAuthPasswordChangeRequired()));
+    sendHtmlResponse(400, buildAuthPage("Canviar credencials", message, true, webAuthPasswordChangeRequired()));
     return;
   }
 
@@ -2572,11 +2582,11 @@ static void handleUserCredentialsPost() {
 }
 
 static void handleRoot() {
-  server.send(200, "text/html", buildStatusPage());
+  sendHtmlResponse(200, buildStatusPage());
 }
 
 static void handleStorageGet() {
-  server.send(200, "text/html", buildStoragePage());
+  sendHtmlResponse(200, buildStoragePage());
 }
 
 static void handleSdInfoGet() {
@@ -2648,7 +2658,7 @@ static void handleSdListGet() {
 
 static void handleSdViewGet() {
   String path = server.arg("path");
-  server.send(200, "text/html", buildSdFileViewPage(path));
+  sendHtmlResponse(200, buildSdFileViewPage(path));
 }
 
 static void handleSdDownloadGet() {
@@ -2698,14 +2708,22 @@ static void handleSdReadGet() {
 }
 
 static void handleSdPendingMqttGet() {
+  if (!isSdMounted()) {
+    server.send(404, "text/plain", "SD no muntada");
+    return;
+  }
+  if (!SD.exists(sdPendingMqttPathText().c_str())) {
+    server.sendHeader("Content-Disposition", "attachment; filename=boia_mqtt_pending.jsonl");
+    server.send(200, "application/x-ndjson", "");
+    return;
+  }
   streamSdFilePath(sdPendingMqttPathText(), "boia_mqtt_pending.jsonl", true);
 }
 
 static void handleSdFormatPost() {
   bool ok = logicalFormatSdCard();
-  server.send(
+  sendHtmlResponse(
     ok ? 200 : 500,
-    "text/html",
     buildSavedPage(
       ok ? "SD netejada" : "Error netejant SD",
       ok ? "S'han esborrat els fitxers de la microSD i s'ha recreat l'estructura /boia amb historic, stats, logs, blackbox i buffer MQTT." : sdLastErrorText(),
@@ -2715,11 +2733,11 @@ static void handleSdFormatPost() {
 }
 
 static void handleConfigGet() {
-  server.send(200, "text/html", buildConfigPage());
+  sendHtmlResponse(200, buildConfigPage());
 }
 
 static void handleWifiGet() {
-  server.send(200, "text/html", buildWifiPage());
+  sendHtmlResponse(200, buildWifiPage());
 }
 
 static void handleWifiScanGet() {
@@ -2759,31 +2777,31 @@ static void handleWifiScanGet() {
 }
 
 static void handleMqttGet() {
-  server.send(200, "text/html", buildMqttPage());
+  sendHtmlResponse(200, buildMqttPage());
 }
 
 static void handleSystemGet() {
-  server.send(200, "text/html", buildSystemPage());
+  sendHtmlResponse(200, buildSystemPage());
 }
 
 static void handleHelpGet() {
-  server.send(200, "text/html", buildHelpPage());
+  sendHtmlResponse(200, buildHelpPage());
 }
 
 static void handleMaintenanceGet() {
-  server.send(200, "text/html", buildMaintenancePage());
+  sendHtmlResponse(200, buildMaintenancePage());
 }
 
 static void handleHardwareGet() {
-  server.send(200, "text/html", buildHardwarePage());
+  sendHtmlResponse(200, buildHardwarePage());
 }
 
 static void handleFirmwareGet() {
-  server.send(200, "text/html", buildFirmwarePage());
+  sendHtmlResponse(200, buildFirmwarePage());
 }
 
 static void handleDiagnosticsGet() {
-  server.send(200, "text/html", buildDiagnosticsPage());
+  sendHtmlResponse(200, buildDiagnosticsPage());
 }
 
 static void handleConfigPost() {
@@ -2810,9 +2828,8 @@ static void handleConfigPost() {
   float maxValidC = server.hasArg("max_valid_temp") ? server.arg("max_valid_temp").toFloat() : configMaxValidTempC;
 
   if (minValidC >= maxValidC) {
-    server.send(
+    sendHtmlResponse(
       400,
-      "text/html",
       buildSavedPage("Rang invalid", "La temperatura minima valida ha de ser inferior a la maxima.", false)
     );
     return;
@@ -2835,9 +2852,8 @@ static void handleConfigPost() {
   Serial.print(" - ");
   Serial.println(configMaxValidTempC);
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Temperatura guardada", "Els nous valors ja estan actius i han quedat guardats a la memoria.", false)
   );
 }
@@ -2851,9 +2867,8 @@ static void handleIdentityPost() {
   appState.mqttDiscoveryPublished = false;
   appState.mqttConfigStatePublishRequested = true;
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Identitat guardada", "S'ha guardat el nom i el hostname. Reinicio la connexio Wi-Fi perquè el hostname nou es vegi a la xarxa.", false)
   );
 
@@ -2871,9 +2886,8 @@ static void handleDeviceModePost() {
   saveDeviceMode(productionMode);
   saveDeepSleepConfig(deepSleepEnabled, awakeSeconds);
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Mode guardat", deepSleepEnabled ? "Deep sleep activat. La boia dormira entre lectures despres de la finestra web configurada." : (productionMode ? "Mode produccio activat." : "Mode desenvolupament activat."), false)
   );
 }
@@ -2883,9 +2897,8 @@ static void handleBoardLedsPost() {
   bool mirror = server.hasArg("board_led_mirror");
   saveBoardLedConfig(enabled, mirror);
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("LEDs guardats", enabled ? (mirror ? "LED intern activat com a mirall del LED d'estat." : "LED intern activat en mode heartbeat.") : "LED intern desactivat.", false)
   );
 }
@@ -2897,9 +2910,8 @@ static void handleInternalEnvAlarmPost() {
   saveInternalEnvAlarmConfig(enabled, temperatureC, humidityPercent);
   appState.lastMqttPublishMillis = 0;
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Alarmes de l'interior de la boia guardades", enabled ? "Els llindars de temperatura i humitat interior de la boia ja estan actius i es publicaran a Home Assistant." : "Les alarmes de l'ambient interior de la boia queden desactivades.", false)
   );
 }
@@ -2914,9 +2926,8 @@ static void handleBatteryConfigPost() {
   performBatteryRead();
   appState.lastMqttPublishMillis = 0;
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Configuracio de bateria guardada", "La boia ja recalcula el percentatge amb els nous volts de referencia i el nou factor ADC.", false)
   );
 }
@@ -2926,21 +2937,20 @@ static void handleBatteryConfigResetPost() {
   performBatteryRead();
   appState.lastMqttPublishMillis = 0;
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Bateria restaurada", "S'han restaurat els valors per defecte de bateria: 3.00 V buit, 4.20 V ple, LOW al 15 % i calibratge x1.000.", false)
   );
 }
 
 static void handleMqttPublishNowPost() {
   if (!configMqttEnabled || !isMqttConnected()) {
-    server.send(400, "text/html", buildSavedPage("MQTT no connectat", "No puc publicar telemetria perquè MQTT no esta connectat.", false));
+    sendHtmlResponse(400, buildSavedPage("MQTT no connectat", "No puc publicar telemetria perquè MQTT no esta connectat.", false));
     return;
   }
 
   publishMqttTelemetry();
-  server.send(200, "text/html", buildSavedPage("Telemetria publicada", "S'ha publicat la telemetria MQTT manualment.", false));
+  sendHtmlResponse(200, buildSavedPage("Telemetria publicada", "S'ha publicat la telemetria MQTT manualment.", false));
 }
 
 static void handleConfigExport() {
@@ -2953,7 +2963,7 @@ static void handleConfigImportPost() {
   String json = server.hasArg("config_json") ? server.arg("config_json") : "";
   json.trim();
   if (json.length() < 5) {
-    server.send(400, "text/html", buildSavedPage("JSON buit", "No has enganxat cap configuracio valida.", false));
+    sendHtmlResponse(400, buildSavedPage("JSON buit", "No has enganxat cap configuracio valida.", false));
     return;
   }
 
@@ -3083,7 +3093,7 @@ static void handleConfigImportPost() {
   appState.mqttConfigStatePublishRequested = true;
   reconfigureMqtt();
 
-  server.send(200, "text/html", buildSavedPage("Configuracio importada", "S'han aplicat els camps reconeguts. Reinicio la connexio Wi-Fi perquè hostname/xarxa quedin aplicats.", false));
+  sendHtmlResponse(200, buildSavedPage("Configuracio importada", "S'han aplicat els camps reconeguts. Reinicio la connexio Wi-Fi perquè hostname/xarxa quedin aplicats.", false));
   delay(800);
   restartWifiWithCurrentConfig();
 }
@@ -3095,9 +3105,8 @@ static void handleWifiPost() {
   ssid.trim();
 
   if (ssid.length() == 0) {
-    server.send(
+    sendHtmlResponse(
       400,
-      "text/html",
       buildSavedPage("SSID invalid", "No pots guardar un SSID buit. Aixo deixaria la boia sense xarxa configurada.", false)
     );
     return;
@@ -3122,9 +3131,8 @@ static void handleWifiPost() {
     savedMessage = "La xarxa Wi-Fi ha canviat i s'ha activat DHCP per seguretat. Si no connecta, la boia obrira l'AP de rescat.";
   }
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Wi-Fi guardat", savedMessage, false)
   );
 
@@ -3141,18 +3149,16 @@ static void handleWifiNetworkPost() {
   String dns2 = server.hasArg("dns2") ? server.arg("dns2") : DEFAULT_WIFI_DNS2;
 
   if (useStaticIp && (!isValidIpString(staticIp) || !isValidIpString(gateway) || !isValidIpString(subnet))) {
-    server.send(
+    sendHtmlResponse(
       400,
-      "text/html",
       buildSavedPage("IP fixa invalida", "Per activar IP fixa cal informar IP, gateway i subnet valids. No ho guardo per no deixar la boia penjada.", false)
     );
     return;
   }
 
   saveNetworkConfig(useStaticIp, staticIp, gateway, subnet, dns1, dns2);
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Xarxa guardada", useStaticIp ? "S'ha guardat la configuracio IP fixa i es reiniciara la connexio." : "S'ha activat DHCP i es reiniciara la connexio.", false)
   );
 
@@ -3166,9 +3172,8 @@ static void handleWifiPowerPost() {
   saveWifiPowerConfig(powerSaveEnabled);
   applyWifiPowerMode();
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage(
       "Mode Wi-Fi guardat",
       powerSaveEnabled ? "S'ha activat l'estalvi bateria Wi-Fi. La connexio continua activa, però la web pot respondre una mica menys immediatament." : "S'ha activat el mode de maxim rendiment Wi-Fi. La web i MQTT prioritzen latencia i estabilitat per sobre del consum.",
@@ -3183,9 +3188,8 @@ static void handleWifiResetPost() {
   Serial.println();
   Serial.println("Wi-Fi restaurat a valors per defecte.");
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Wi-Fi restaurat", "S'ha restaurat el Wi-Fi per defecte i es reiniciara la connexio.", false)
   );
 
@@ -3199,9 +3203,8 @@ static void handleWifiNetworkResetPost() {
   Serial.println();
   Serial.println("Xarxa restaurada a DHCP.");
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("DHCP restaurat", "La xarxa torna a DHCP i es reiniciara la connexio Wi-Fi.", false)
   );
 
@@ -3431,9 +3434,8 @@ static void handleHaApiPost() {
   saveHomeAssistantApiConfig(enabled, apiUrl, apiToken, entityId, hours);
   saveHomeAssistantStatisticsEntities(internalTemperatureEntityId, internalHumidityEntityId, batteryEntityId);
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("API Home Assistant guardada", enabled ? "La boia ja pot consultar l'històric de Home Assistant per dibuixar el gràfic de temperatura." : "La lectura d'històric de Home Assistant queda desactivada.", false)
   );
 }
@@ -3638,9 +3640,8 @@ static void handleMqttPost() {
   haDeviceName.trim();
 
   if (host.length() == 0 && enabled) {
-    server.send(
+    sendHtmlResponse(
       400,
-      "text/html",
       buildSavedPage("Broker invalid", "No pots activar MQTT amb el broker buit.", false)
     );
     return;
@@ -3682,9 +3683,8 @@ static void handleMqttPost() {
 
   reconfigureMqtt();
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("MQTT guardat", "La configuracio MQTT s'ha guardat i la connexio MQTT s'ha reiniciat.", false)
   );
 }
@@ -3698,18 +3698,16 @@ static void handleMqttResetPost() {
 
   reconfigureMqtt();
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("MQTT restaurat", "S'han restaurat els valors MQTT per defecte.", false)
   );
 }
 
 static void handleMqttDiscoveryPost() {
   if (!configMqttEnabled || !isMqttConnected()) {
-    server.send(
+    sendHtmlResponse(
       400,
-      "text/html",
       buildSavedPage("MQTT no connectat", "No puc publicar Discovery perquè MQTT no esta connectat.", false)
     );
     return;
@@ -3718,9 +3716,8 @@ static void handleMqttDiscoveryPost() {
   appState.mqttDiscoveryPublished = false;
   publishHomeAssistantDiscovery();
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Discovery publicat", "S'han republicat les entitats MQTT Discovery de Home Assistant.", false)
   );
 }
@@ -3804,9 +3801,8 @@ static void handleGithubUpdatePost() {
     return;
   }
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Actualitzant des de GitHub", message, true)
   );
 
@@ -3821,17 +3817,15 @@ static void handleDefaultsPost() {
   Serial.println();
   Serial.println("Configuracio de temperatura restaurada a valors per defecte.");
 
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Valors restaurats", "S'han restaurat els valors per defecte de temperatura i sonda.", false)
   );
 }
 
 static void handleRestartPost() {
-  server.send(
+  sendHtmlResponse(
     200,
-    "text/html",
     buildSavedPage("Reiniciant boia", "La boia es reiniciara en uns segons.", true)
   );
 

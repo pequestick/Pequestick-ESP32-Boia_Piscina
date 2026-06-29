@@ -178,6 +178,16 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn('server.uri() == "/system/action"', web)
         self.assertIn('"/system?section=" + section', web)
 
+    def test_large_html_pages_are_sent_in_chunks(self):
+        web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+
+        self.assertIn("sendHtmlResponse", web)
+        self.assertIn("CONTENT_LENGTH_UNKNOWN", web)
+        self.assertIn("server.sendContent", web)
+        self.assertNotIn('server.send(200, "text/html", buildStoragePage())', web)
+        self.assertNotIn('server.send(200, "text/html", buildSystemPage())', web)
+        self.assertIn('server.send(200, "application/x-ndjson", "")', web)
+
     def test_home_assistant_statistics_cover_all_history_ranges_and_sensors(self):
         config = Path("src/AppConfig.cpp").read_text(encoding="utf-8")
         web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
