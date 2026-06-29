@@ -44,13 +44,17 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.24.0-web-reordered";
-const char* FIRMWARE_CHANGE_TITLE = "v1.24.0 web reordenada";
-const char* FIRMWARE_CHANGE_NOTES = "Reordena el menu lateral en blocs funcionals, amplia SD / Historic amb dades, estadistiques, buffer MQTT, logs i blackbox, i afegeix ajuda local de formats i MQTT topics.";
+const char* FIRMWARE_VERSION = "1.25.0-battery-sleep-sd-browser";
+const char* FIRMWARE_CHANGE_TITLE = "v1.25.0 estalvi bateria i explorador SD";
+const char* FIRMWARE_CHANGE_NOTES = "Afegeix deep sleep configurable entre lectures per allargar l'autonomia amb bateria i corregeix les rutes de l'explorador microSD perquè les carpetes dins de /boia es puguin obrir correctament.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
 const bool DEFAULT_PRODUCTION_MODE = false;
+const bool DEFAULT_DEEP_SLEEP_ENABLED = false;
+const uint16_t DEFAULT_DEEP_SLEEP_AWAKE_SECONDS = 90;
+const uint16_t MIN_DEEP_SLEEP_AWAKE_SECONDS = 15;
+const uint16_t MAX_DEEP_SLEEP_AWAKE_SECONDS = 900;
 const bool DEFAULT_BOARD_LED_ENABLED = false;
 const bool DEFAULT_BOARD_LED_MIRROR_STATUS = true;
 const bool DEFAULT_INTERNAL_ENV_ALARM_ENABLED = true;
@@ -102,6 +106,7 @@ const char* SD_MQTT_PENDING_TMP_FILE = "/boia/mqtt/pending.tmp";
 const char* SD_CONFIG_SNAPSHOT_FILE = "/boia/config/config_snapshot.json";
 const char* SD_VERSION_FILE = "/boia/system/version.json";
 const char* SD_BOOT_BLACKBOX_FILE = "/boia/blackbox/last_boot.json";
+const char* SD_BOOT_HISTORY_FILE = "/boia/blackbox/boot_history.jsonl";
 // Constants legacy per compatibilitat de textos antics. L'historic real ara és diari a /boia/history/YYYY-MM-DD.csv.
 const char* SD_HISTORY_DIR = "/boia/history";
 const char* SD_HISTORY_FILE = "/boia/history/boot.csv";
@@ -210,6 +215,8 @@ uint16_t configHaHistoryHours = DEFAULT_HA_HISTORY_HOURS;
 String configDeviceName = DEVICE_NAME;
 String configDeviceHostname = DEFAULT_DEVICE_HOSTNAME;
 bool configProductionMode = DEFAULT_PRODUCTION_MODE;
+bool configDeepSleepEnabled = DEFAULT_DEEP_SLEEP_ENABLED;
+uint16_t configDeepSleepAwakeSeconds = DEFAULT_DEEP_SLEEP_AWAKE_SECONDS;
 bool configBoardLedEnabled = DEFAULT_BOARD_LED_ENABLED;
 bool configBoardLedMirrorStatus = DEFAULT_BOARD_LED_MIRROR_STATUS;
 bool configGithubOtaEnabled = DEFAULT_GITHUB_OTA_ENABLED;
@@ -471,6 +478,8 @@ void loadConfig() {
   configDeviceName = normalizedDeviceName(preferences.getString("dev_name", DEVICE_NAME));
   configDeviceHostname = normalizedDeviceHostname(preferences.getString("dev_host", DEFAULT_DEVICE_HOSTNAME));
   configProductionMode = preferences.getBool("prod_mode", DEFAULT_PRODUCTION_MODE);
+  configDeepSleepEnabled = preferences.getBool("sleep_en", DEFAULT_DEEP_SLEEP_ENABLED);
+  configDeepSleepAwakeSeconds = preferences.getUShort("sleep_awake", DEFAULT_DEEP_SLEEP_AWAKE_SECONDS);
   configBoardLedEnabled = preferences.getBool("brd_led_en", DEFAULT_BOARD_LED_ENABLED);
   configBoardLedMirrorStatus = preferences.getBool("brd_led_mir", DEFAULT_BOARD_LED_MIRROR_STATUS);
   configGithubOtaEnabled = preferences.getBool("gh_ota_en", DEFAULT_GITHUB_OTA_ENABLED);
@@ -515,6 +524,7 @@ void loadConfig() {
   );
 
   configTemperatureOffsetC = clampFloat(configTemperatureOffsetC, MIN_TEMPERATURE_OFFSET_C, MAX_TEMPERATURE_OFFSET_C);
+  configDeepSleepAwakeSeconds = clampUint16(configDeepSleepAwakeSeconds, MIN_DEEP_SLEEP_AWAKE_SECONDS, MAX_DEEP_SLEEP_AWAKE_SECONDS);
   configMinValidTempC = clampFloat(configMinValidTempC, ABSOLUTE_MIN_VALID_TEMP_C, ABSOLUTE_MAX_VALID_TEMP_C);
   configMaxValidTempC = clampFloat(configMaxValidTempC, ABSOLUTE_MIN_VALID_TEMP_C, ABSOLUTE_MAX_VALID_TEMP_C);
   configInternalTempAlarmC = clampFloat(configInternalTempAlarmC, -20.0f, 85.0f);
@@ -723,6 +733,8 @@ void factoryResetConfigAndSetupMode() {
   configDeviceName = DEVICE_NAME;
   configDeviceHostname = DEFAULT_DEVICE_HOSTNAME;
   configProductionMode = DEFAULT_PRODUCTION_MODE;
+  configDeepSleepEnabled = DEFAULT_DEEP_SLEEP_ENABLED;
+  configDeepSleepAwakeSeconds = DEFAULT_DEEP_SLEEP_AWAKE_SECONDS;
   configBoardLedEnabled = DEFAULT_BOARD_LED_ENABLED;
   configBoardLedMirrorStatus = DEFAULT_BOARD_LED_MIRROR_STATUS;
   configGithubOtaEnabled = DEFAULT_GITHUB_OTA_ENABLED;
@@ -962,6 +974,16 @@ void saveDeviceMode(bool productionMode) {
   configProductionMode = productionMode;
   preferences.begin("boia", false);
   preferences.putBool("prod_mode", configProductionMode);
+  preferences.end();
+}
+
+void saveDeepSleepConfig(bool enabled, uint16_t awakeSeconds) {
+  configDeepSleepEnabled = enabled;
+  configDeepSleepAwakeSeconds = clampUint16(awakeSeconds, MIN_DEEP_SLEEP_AWAKE_SECONDS, MAX_DEEP_SLEEP_AWAKE_SECONDS);
+
+  preferences.begin("boia", false);
+  preferences.putBool("sleep_en", configDeepSleepEnabled);
+  preferences.putUShort("sleep_awake", configDeepSleepAwakeSeconds);
   preferences.end();
 }
 

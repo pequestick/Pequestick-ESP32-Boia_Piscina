@@ -124,6 +124,11 @@ struct AppState {
   bool buttonPressed = false;
   unsigned long buttonPressDurationMs = 0;
   String lastHardwareAction = "Cap accio fisica encara";
+
+  bool lowPowerSleepRequested = false;
+  String lowPowerStatus = "Mode estalvi profund desactivat";
+  String resetReason = "Desconegut";
+  String wakeupCause = "Desconegut";
 };
 
 extern AppState appState;

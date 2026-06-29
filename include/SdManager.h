@@ -18,6 +18,7 @@ bool ensureSdBaseStructure();
 bool appendSdSystemLog(const String& level, const String& message);
 bool writeSdConfigSnapshot();
 bool writeSdBootBlackbox();
+bool appendSdBootHistory();
 bool writeSdVersionFile();
 
 bool appendSdMqttPending(const String& payload);

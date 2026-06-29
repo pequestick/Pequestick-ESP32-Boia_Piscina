@@ -1,4 +1,6 @@
 #include <Arduino.h>
+#include <WiFi.h>
+#include <esp_sleep.h>
 
 #include "AppConfig.h"
 #include "AppState.h"
@@ -16,6 +18,54 @@
 // ==========================
 
 AppState appState;
+static bool cycleReadDone = false;
+static bool cyclePublishDone = false;
+
+static void enterDeepSleepBetweenReadings() {
+  uint64_t sleepSeconds = configReadIntervalSeconds;
+  if (sleepSeconds < 5) sleepSeconds = 5;
+
+  appState.lowPowerStatus = "Entrant en deep sleep durant " + String((unsigned long)sleepSeconds) + " s";
+  appState.lowPowerSleepRequested = true;
+  Serial.println(appState.lowPowerStatus);
+
+  appendSdSystemLog("POWER", appState.lowPowerStatus);
+  if (configMqttEnabled) {
+    publishOfflineAndDisconnect();
+  }
+
+  WiFi.disconnect(true, true);
+  WiFi.mode(WIFI_OFF);
+  delay(200);
+
+  esp_sleep_enable_timer_wakeup(sleepSeconds * 1000000ULL);
+  esp_deep_sleep_start();
+}
+
+static void maybeEnterLowPowerSleep(unsigned long now) {
+  if (!configDeepSleepEnabled) {
+    appState.lowPowerStatus = "Mode estalvi profund desactivat";
+    return;
+  }
+  if (appState.otaInProgress) {
+    appState.lowPowerStatus = "Deep sleep ajornat: OTA en curs";
+    return;
+  }
+  if (isWifiApActive()) {
+    appState.lowPowerStatus = "Deep sleep ajornat: AP de rescat actiu";
+    return;
+  }
+  if (!cycleReadDone || (configMqttEnabled && !cyclePublishDone)) {
+    appState.lowPowerStatus = "Deep sleep pendent de lectura/publicacio";
+    return;
+  }
+  if (now < (unsigned long)configDeepSleepAwakeSeconds * 1000UL) {
+    appState.lowPowerStatus = "Finestra web activa abans del deep sleep";
+    return;
+  }
+
+  enterDeepSleepBetweenReadings();
+}
 
 // ==========================
 // HEADER
@@ -170,10 +220,18 @@ void loop() {
     performInternalEnvRead();
     performBatteryRead();
     appendSdHistoryRecord();
+    cycleReadDone = true;
   }
 
   if (configMqttEnabled && (now - appState.lastMqttPublishMillis >= (unsigned long)configMqttPublishIntervalSeconds * 1000UL || appState.lastMqttPublishMillis == 0)) {
     appState.lastMqttPublishMillis = now;
     publishMqttTelemetry();
+    cyclePublishDone = true;
   }
+
+  if (!configMqttEnabled) {
+    cyclePublishDone = true;
+  }
+
+  maybeEnterLowPowerSleep(now);
 }

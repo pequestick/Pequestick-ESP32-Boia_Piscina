@@ -127,6 +127,40 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("requestedOffset == localOtaReceivedSize", web)
         self.assertIn("es pot reprendre des del byte", web)
 
+    def test_sd_explorer_builds_child_paths_from_open_directory(self):
+        sd = Path("src/SdManager.cpp").read_text(encoding="utf-8")
+        self.assertIn("childPathForDirectoryEntry", sd)
+        self.assertIn("String name = file.name();", sd)
+        self.assertIn("return base + \"/\" + name;", sd)
+        self.assertNotIn("clean + itemPath", sd)
+
+    def test_deep_sleep_battery_saver_is_configurable_and_guarded(self):
+        config = Path("src/AppConfig.cpp").read_text(encoding="utf-8")
+        header = Path("include/AppConfig.h").read_text(encoding="utf-8")
+        web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+        main = Path("src/main.cpp").read_text(encoding="utf-8")
+
+        self.assertIn("DEFAULT_DEEP_SLEEP_ENABLED", config)
+        self.assertIn("saveDeepSleepConfig", header)
+        self.assertIn("deep_sleep_enabled", web)
+        self.assertIn("esp_deep_sleep_start()", main)
+        self.assertIn("isWifiApActive()", main)
+        self.assertIn("appState.otaInProgress", main)
+
+    def test_boot_blackbox_records_decoded_reset_history(self):
+        config = Path("src/AppConfig.cpp").read_text(encoding="utf-8")
+        state = Path("include/AppState.h").read_text(encoding="utf-8")
+        sd = Path("src/SdManager.cpp").read_text(encoding="utf-8")
+        web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+
+        self.assertIn("SD_BOOT_HISTORY_FILE", config)
+        self.assertIn("resetReason", state)
+        self.assertIn("resetReasonText", sd)
+        self.assertIn("ESP_RST_BROWNOUT", sd)
+        self.assertIn("appendSdBootHistory", sd)
+        self.assertIn("boot_history.jsonl", web)
+        self.assertIn("wakeup_cause", web)
+
     def test_home_assistant_statistics_cover_all_history_ranges_and_sensors(self):
         config = Path("src/AppConfig.cpp").read_text(encoding="utf-8")
         web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")

@@ -729,6 +729,7 @@ static String buildStoragePage() {
   html += "<p class='hint'>Fitxer de caixa negra amb l'última arrencada. Serveix per saber versió, reset, estat inicial i context si la boia reinicia sola.</p>";
   html += "<div class='grid'>";
   html += "<div class='item'><div class='label'>Fitxer blackbox</div><div class='value' style='font-size:15px'>" + htmlEscape(String(SD_BOOT_BLACKBOX_FILE)) + "</div><div class='small'>Es reescriu en cada arrencada.</div></div>";
+  html += "<div class='item'><div class='label'>Historial arrencades</div><div class='value' style='font-size:15px'>" + htmlEscape(String(SD_BOOT_HISTORY_FILE)) + "</div><div class='small'>Una línia JSON per cada arrencada detectada.</div></div>";
   html += "<div class='item'><div class='label'>Versió firmware</div><div class='value'>" + htmlEscape(String(FIRMWARE_VERSION)) + "</div></div>";
   html += "</div>";
   if (isSdMounted()) {
@@ -738,7 +739,13 @@ static String buildStoragePage() {
     if (preview.length()) html += String("<pre>") + htmlEscape(preview) + "</pre>";
     else html += "<p class='hint'>Blackbox encara no creat.</p>";
     if (truncated) html += "<p class='small warn'>Vista retallada.</p>";
-    html += "<div class='actions'><a class='btn secondary' href='/storage?section=sd-browser&path=/boia/blackbox'>Obrir carpeta blackbox</a><a class='btn secondary' href='/sd-download?path=/boia/blackbox/last_boot.json'>Descarregar last_boot.json</a></div>";
+    bool historyTruncated = false;
+    String historyPreview = sdReadTextFileLimited(String(SD_BOOT_HISTORY_FILE), 24576, historyTruncated);
+    html += "<h3>Historial boot_history.jsonl</h3>";
+    if (historyPreview.length()) html += String("<pre>") + htmlEscape(historyPreview) + "</pre>";
+    else html += "<p class='hint'>Historial d'arrencades encara no creat.</p>";
+    if (historyTruncated) html += "<p class='small warn'>Vista retallada; descarrega el fitxer complet.</p>";
+    html += "<div class='actions'><a class='btn secondary' href='/storage?section=sd-browser&path=/boia/blackbox'>Obrir carpeta blackbox</a><a class='btn secondary' href='/sd-download?path=/boia/blackbox/last_boot.json'>Descarregar last_boot.json</a><a class='btn secondary' href='/sd-download?path=/boia/blackbox/boot_history.jsonl'>Descarregar boot_history.jsonl</a></div>";
   }
   html += "</div>";
 
@@ -750,7 +757,7 @@ static String buildStoragePage() {
   html += "<div class='item'><div class='label'>Logs</div><div class='value' style='font-size:15px'>/boia/logs/YYYY-MM-DD.log</div><div class='small'>BOOT, SD, MQTT i errors importants.</div></div>";
   html += "<div class='item'><div class='label'>Buffer HA/MQTT</div><div class='value' style='font-size:15px'>" + htmlEscape(sdPendingMqttPathText()) + "</div><div class='small'>JSONL pendent d'enviar quan torni MQTT.</div></div>";
   html += "<div class='item'><div class='label'>Config</div><div class='value' style='font-size:15px'>/boia/config/config_snapshot.json</div><div class='small'>Còpia llegible de la configuració activa.</div></div>";
-  html += "<div class='item'><div class='label'>Blackbox</div><div class='value' style='font-size:15px'>/boia/blackbox/last_boot.json</div><div class='small'>Dades d'arrencada i reset.</div></div>";
+  html += "<div class='item'><div class='label'>Blackbox</div><div class='value' style='font-size:15px'>/boia/blackbox/last_boot.json<br>/boia/blackbox/boot_history.jsonl</div><div class='small'>Dades d'arrencada, historial de resets i wakeup.</div></div>";
   html += "</div>";
   html += "</div>";
 
@@ -1445,6 +1452,8 @@ static String buildConfigExportJson(bool includePasswords) {
   json += "  \"device_name\": \"" + jsonEscape(configDeviceName) + "\",\n";
   json += "  \"device_hostname\": \"" + jsonEscape(configDeviceHostname) + "\",\n";
   json += "  \"production_mode\": "; json += (configProductionMode ? "true" : "false"); json += ",\n";
+  json += "  \"deep_sleep_enabled\": "; json += (configDeepSleepEnabled ? "true" : "false"); json += ",\n";
+  json += "  \"deep_sleep_awake_seconds\": " + String(configDeepSleepAwakeSeconds) + ",\n";
   json += "  \"wifi_ssid\": \"" + jsonEscape(configWifiSsid) + "\",\n";
   if (includePasswords) json += "  \"wifi_password\": \"" + jsonEscape(configWifiPassword) + "\",\n";
   json += "  \"wifi_use_static_ip\": "; json += (configWifiUseStaticIp ? "true" : "false"); json += ",\n";
@@ -2195,6 +2204,17 @@ static String buildSystemPage() {
   html += "<div><label><input name='production_mode' type='checkbox' value='1' ";
   html += configProductionMode ? "checked" : "";
   html += ">Mode producció</label></div>";
+  html += "<div><label><input name='deep_sleep_enabled' type='checkbox' value='1' ";
+  html += configDeepSleepEnabled ? "checked" : "";
+  html += ">Estalvi real bateria: deep sleep entre lectures</label></div>";
+  html += "<div class='grid'><div><div class='label'>Finestra web després d'arrencar (s)</div><input name='deep_sleep_awake_seconds' type='number' min='";
+  html += String(MIN_DEEP_SLEEP_AWAKE_SECONDS);
+  html += "' max='";
+  html += String(MAX_DEEP_SLEEP_AWAKE_SECONDS);
+  html += "' step='1' value='";
+  html += String(configDeepSleepAwakeSeconds);
+  html += "' required></div></div>";
+  html += "<p class='small'>Quan està activat, la boia llegeix sensors, publica/guarda dades i dorm fins al proper interval de lectura. Durant el son la web no respon; per recuperar-la, reinicia i entra durant aquesta finestra. L'AP de rescat i OTA no dormen.</p>";
   html += "<div class='buttons'><button type='submit'>Guardar mode</button></div>";
   html += "</form>";
   html += "</div>";
@@ -2838,12 +2858,17 @@ static void handleIdentityPost() {
 
 static void handleDeviceModePost() {
   bool productionMode = server.hasArg("production_mode");
+  bool deepSleepEnabled = server.hasArg("deep_sleep_enabled");
+  uint16_t awakeSeconds = server.hasArg("deep_sleep_awake_seconds")
+    ? (uint16_t)server.arg("deep_sleep_awake_seconds").toInt()
+    : DEFAULT_DEEP_SLEEP_AWAKE_SECONDS;
   saveDeviceMode(productionMode);
+  saveDeepSleepConfig(deepSleepEnabled, awakeSeconds);
 
   server.send(
     200,
     "text/html",
-    buildSavedPage("Mode guardat", productionMode ? "Mode produccio activat." : "Mode desenvolupament activat.", false)
+    buildSavedPage("Mode guardat", deepSleepEnabled ? "Deep sleep activat. La boia dormira entre lectures despres de la finestra web configurada." : (productionMode ? "Mode produccio activat." : "Mode desenvolupament activat."), false)
   );
 }
 
@@ -2938,6 +2963,11 @@ static void handleConfigImportPost() {
   saveDeviceIdentity(deviceName, hostname);
 
   if (extractJsonBoolValue(json, "production_mode", bv)) saveDeviceMode(bv);
+  bool deepSleepEnabled = configDeepSleepEnabled;
+  uint16_t deepSleepAwakeSeconds = configDeepSleepAwakeSeconds;
+  if (extractJsonBoolValue(json, "deep_sleep_enabled", bv)) deepSleepEnabled = bv;
+  if (extractJsonUInt16Value(json, "deep_sleep_awake_seconds", uv)) deepSleepAwakeSeconds = uv;
+  saveDeepSleepConfig(deepSleepEnabled, deepSleepAwakeSeconds);
 
   bool boardLedEnabled = configBoardLedEnabled;
   bool boardLedMirror = configBoardLedMirrorStatus;
@@ -4118,6 +4148,26 @@ static String buildStatusJsonPayload() {
 
   json += "\"wifi_power_mode\":\"";
   json += jsonEscape(wifiPowerModeText());
+  json += "\",";
+
+  json += "\"deep_sleep_enabled\":";
+  json += configDeepSleepEnabled ? "true" : "false";
+  json += ",";
+
+  json += "\"deep_sleep_awake_seconds\":";
+  json += String(configDeepSleepAwakeSeconds);
+  json += ",";
+
+  json += "\"low_power_status\":\"";
+  json += jsonEscape(appState.lowPowerStatus);
+  json += "\",";
+
+  json += "\"reset_reason\":\"";
+  json += jsonEscape(appState.resetReason);
+  json += "\",";
+
+  json += "\"wakeup_cause\":\"";
+  json += jsonEscape(appState.wakeupCause);
   json += "\",";
 
   json += "\"configured_ssid\":\"";

@@ -7,6 +7,7 @@
 #include <WiFi.h>
 #include <time.h>
 #include <esp_system.h>
+#include <esp_sleep.h>
 
 #include "AppConfig.h"
 #include "AppState.h"
@@ -14,6 +15,8 @@
 
 static bool sdBegun = false;
 static bool timeSyncStarted = false;
+static bool bootHistoryWithTimeAppended = false;
+static bool bootLogWithTimeAppended = false;
 static unsigned long lastSdRefreshMillis = 0;
 static unsigned long lastSdStructureCheckMillis = 0;
 static const unsigned long SD_REFRESH_INTERVAL_MS = 30000;
@@ -94,6 +97,45 @@ static String currentHistoryFilePath() {
 static String currentLogFilePath() {
   String path = String(SD_LOG_DIR) + "/" + dayKeyText() + ".log";
   return path;
+}
+
+static String resetReasonText(esp_reset_reason_t reason) {
+  switch (reason) {
+    case ESP_RST_POWERON: return "POWERON";
+    case ESP_RST_EXT: return "EXT";
+    case ESP_RST_SW: return "SW";
+    case ESP_RST_PANIC: return "PANIC";
+    case ESP_RST_INT_WDT: return "INT_WDT";
+    case ESP_RST_TASK_WDT: return "TASK_WDT";
+    case ESP_RST_WDT: return "WDT";
+    case ESP_RST_DEEPSLEEP: return "DEEPSLEEP";
+    case ESP_RST_BROWNOUT: return "BROWNOUT";
+    case ESP_RST_SDIO: return "SDIO";
+    default: return "UNKNOWN";
+  }
+}
+
+static String wakeupCauseText(esp_sleep_wakeup_cause_t cause) {
+  switch (cause) {
+    case ESP_SLEEP_WAKEUP_UNDEFINED: return "UNDEFINED";
+    case ESP_SLEEP_WAKEUP_EXT0: return "EXT0";
+    case ESP_SLEEP_WAKEUP_EXT1: return "EXT1";
+    case ESP_SLEEP_WAKEUP_TIMER: return "TIMER";
+    case ESP_SLEEP_WAKEUP_TOUCHPAD: return "TOUCHPAD";
+    case ESP_SLEEP_WAKEUP_ULP: return "ULP";
+    case ESP_SLEEP_WAKEUP_GPIO: return "GPIO";
+    case ESP_SLEEP_WAKEUP_UART: return "UART";
+    case ESP_SLEEP_WAKEUP_WIFI: return "WIFI";
+    case ESP_SLEEP_WAKEUP_COCPU: return "COCPU";
+    case ESP_SLEEP_WAKEUP_COCPU_TRAP_TRIG: return "COCPU_TRAP_TRIG";
+    case ESP_SLEEP_WAKEUP_BT: return "BT";
+    default: return "UNKNOWN";
+  }
+}
+
+static void refreshBootReasonState() {
+  appState.resetReason = resetReasonText(esp_reset_reason());
+  appState.wakeupCause = wakeupCauseText(esp_sleep_get_wakeup_cause());
 }
 
 static void startTimeSyncIfNeeded() {
@@ -490,16 +532,55 @@ bool writeSdConfigSnapshot() {
 bool writeSdBootBlackbox() {
   if (!isSdMounted()) return false;
   if (!ensureSdBaseStructure()) return false;
+  refreshBootReasonState();
 
   File file = SD.open(SD_BOOT_BLACKBOX_FILE, FILE_WRITE);
   if (!file) return false;
   file.println("{");
   file.println("  \"boot_uptime_seconds\": " + String((unsigned long)getUptimeSeconds()) + ",");
   file.println("  \"firmware_version\": \"" + jsonEscape(FIRMWARE_VERSION) + "\",");
-  file.println("  \"reset_reason\": \"" + jsonEscape(String((int)esp_reset_reason())) + "\",");
+  file.println("  \"reset_reason_code\": " + String((int)esp_reset_reason()) + ",");
+  file.println("  \"reset_reason\": \"" + jsonEscape(appState.resetReason) + "\",");
+  file.println("  \"wakeup_cause\": \"" + jsonEscape(appState.wakeupCause) + "\",");
   file.println("  \"free_heap\": " + String((unsigned long)ESP.getFreeHeap()) + ",");
+  file.println("  \"read_interval_seconds\": " + String(configReadIntervalSeconds) + ",");
+  file.println("  \"mqtt_publish_interval_seconds\": " + String(configMqttPublishIntervalSeconds) + ",");
+  file.println("  \"deep_sleep_enabled\": " + String(configDeepSleepEnabled ? "true" : "false") + ",");
+  file.println("  \"deep_sleep_awake_seconds\": " + String(configDeepSleepAwakeSeconds) + ",");
   file.println("  \"wifi_ssid_configured\": " + String(configWifiSsid.length() > 0 ? "true" : "false") + ",");
   file.println("  \"sd_status\": \"" + jsonEscape(appState.sdStatus) + "\"");
+  file.println("}");
+  file.close();
+  return true;
+}
+
+bool appendSdBootHistory() {
+  if (!isSdMounted()) return false;
+  if (!ensureSdBaseStructure()) return false;
+  refreshBootReasonState();
+
+  File file = SD.open(SD_BOOT_HISTORY_FILE, FILE_APPEND);
+  if (!file) return false;
+  file.print("{\"iso\":\"");
+  file.print(jsonEscape(isTimeValid() ? isoTimeText() : ""));
+  file.print("\",\"uptime_seconds\":");
+  file.print((unsigned long)getUptimeSeconds());
+  file.print(",\"firmware_version\":\"");
+  file.print(jsonEscape(FIRMWARE_VERSION));
+  file.print("\",\"reset_reason_code\":");
+  file.print((int)esp_reset_reason());
+  file.print(",\"reset_reason\":\"");
+  file.print(jsonEscape(appState.resetReason));
+  file.print("\",\"wakeup_cause\":\"");
+  file.print(jsonEscape(appState.wakeupCause));
+  file.print("\",\"free_heap\":");
+  file.print((unsigned long)ESP.getFreeHeap());
+  file.print(",\"read_interval_seconds\":");
+  file.print(configReadIntervalSeconds);
+  file.print(",\"mqtt_publish_interval_seconds\":");
+  file.print(configMqttPublishIntervalSeconds);
+  file.print(",\"deep_sleep_enabled\":");
+  file.print(configDeepSleepEnabled ? "true" : "false");
   file.println("}");
   file.close();
   return true;
@@ -713,6 +794,22 @@ static String fileNameFromPath(const String& path) {
   return path.substring(pos + 1);
 }
 
+static String childPathForDirectoryEntry(const String& directoryPath, File& file) {
+  String name = file.name();
+  if (name.length() == 0) name = file.path();
+  name.replace("\\", "/");
+
+  int slash = name.lastIndexOf('/');
+  if (slash >= 0) name = name.substring(slash + 1);
+
+  String base = directoryPath;
+  if (base.length() == 0) base = "/";
+  while (base.length() > 1 && base.endsWith("/")) base.remove(base.length() - 1);
+
+  if (base == "/") return "/" + name;
+  return base + "/" + name;
+}
+
 String sdDirectoryListingJson(const String& path) {
   String clean;
   if (!normalizeSdPath(path, clean)) clean = SD_BASE_DIR;
@@ -733,9 +830,7 @@ String sdDirectoryListingJson(const String& path) {
   bool first = true;
   File file = root.openNextFile();
   while (file) {
-    String itemPath = file.path();
-    if (!itemPath.startsWith("/")) itemPath = clean + "/" + itemPath;
-    else if (clean != "/" && !itemPath.startsWith(clean + "/")) itemPath = clean + itemPath;
+    String itemPath = childPathForDirectoryEntry(clean, file);
     if (!first) json += ",";
     first = false;
     json += "{\"name\":\"" + jsonEscape(fileNameFromPath(itemPath)) + "\",\"path\":\"" + jsonEscape(itemPath) + "\",\"directory\":" + String(file.isDirectory() ? "true" : "false") + ",\"size\":" + u64String(file.size()) + "}";
@@ -780,9 +875,7 @@ String sdDirectoryListingHtml(const String& path) {
   bool any = false;
   while (file) {
     any = true;
-    String itemPath = file.path();
-    if (!itemPath.startsWith("/")) itemPath = clean + "/" + itemPath;
-    else if (clean != "/" && !itemPath.startsWith(clean + "/")) itemPath = clean + itemPath;
+    String itemPath = childPathForDirectoryEntry(clean, file);
     String name = fileNameFromPath(itemPath);
     bool isDir = file.isDirectory();
     html += "<tr><td>" + htmlEscape(name) + "</td><td>" + String(isDir ? "Directori" : "Fitxer") + "</td><td>" + String(isDir ? "-" : bytesHuman(file.size())) + "</td><td>";
@@ -803,6 +896,7 @@ String sdDirectoryListingHtml(const String& path) {
 }
 
 void initSdManager() {
+  refreshBootReasonState();
   appState.sdEnabled = isSdEnabled();
   appState.sdMounted = false;
   appState.sdStatus = isSdEnabled() ? "INIT" : "DISABLED";
@@ -843,8 +937,9 @@ void initSdManager() {
   writeSdVersionFile();
   writeSdConfigSnapshot();
   writeSdBootBlackbox();
+  appendSdBootHistory();
   appState.sdMqttPendingCount = countNonEmptyLines(SD_MQTT_PENDING_FILE);
-  appendSdSystemLog("BOOT", "Sistema arrencat amb microSD muntada");
+  appendSdSystemLog("BOOT", "Sistema arrencat amb microSD muntada. Reset=" + appState.resetReason + " Wakeup=" + appState.wakeupCause);
   refreshSdInfo();
 
   Serial.print("SD: muntada. Tipus ");
@@ -859,6 +954,17 @@ void handleSdManager() {
   startTimeSyncIfNeeded();
 
   if (!isSdEnabled() || !sdBegun) return;
+
+  if (isSdMounted() && isTimeValid()) {
+    if (!bootHistoryWithTimeAppended) {
+      appendSdBootHistory();
+      bootHistoryWithTimeAppended = true;
+    }
+    if (!bootLogWithTimeAppended) {
+      appendSdSystemLog("BOOT", "Hora sincronitzada. Reset=" + appState.resetReason + " Wakeup=" + appState.wakeupCause);
+      bootLogWithTimeAppended = true;
+    }
+  }
 
   unsigned long now = millis();
   if (now - lastSdRefreshMillis >= SD_REFRESH_INTERVAL_MS || lastSdRefreshMillis == 0) {
