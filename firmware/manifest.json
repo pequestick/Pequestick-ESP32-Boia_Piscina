@@ -1,10 +1,10 @@
 {
-  "version": "1.25.4-web-page-size-fix",
-  "build_sha": "7b870e4b78117ab812c044ddd79d5dd34ff700f1",
-  "build_short_sha": "7b870e4b7811",
-  "build_date": "2026-06-29T06:37:17Z",
-  "size": 1700096,
-  "sha256": "2172e8f1676e5459e674fcfcdb7ca36d5bcab67bfdc60d7a53a9e5f806a9f189",
+  "version": "1.25.5-help-page-slim",
+  "build_sha": "87a23a306062505c9d1a6a9565bf5df817f24c4f",
+  "build_short_sha": "87a23a306062",
+  "build_date": "2026-06-29T06:47:36Z",
+  "size": 1700336,
+  "sha256": "512ed2611b804f124b02751917129296f15e4a1f3e1f5417c173c012c1af695c",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Redueix el JavaScript global de l'OTA, envia les pàgines HTML grans en fragments i evita que SD, Sistema, Manteniment i Ajuda quedin tallades a 64 KB."
+  "notes": "Renderitza només la subsecció d'Ajuda oberta perquè Changelog, fitxers, MQTT, hardware i rescat no superin el límit pràctic de memòria del HTML."
 }
