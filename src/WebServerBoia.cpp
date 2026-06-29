@@ -697,7 +697,7 @@ static String buildStoragePage() {
   html += "</div>";
   if (isSdMounted()) {
     bool truncated = false;
-    String preview = sdReadTextFileLimited(sdPendingMqttPathText(), 8192, truncated);
+    String preview = sdReadTextFileLimited(sdPendingMqttPathText(), 1024, truncated);
     html += "<h3>Vista ràpida</h3>";
     if (preview.length()) html += String("<pre>") + htmlEscape(preview) + "</pre>";
     else html += "<p class='hint'>Buffer buit o encara no creat.</p>";
@@ -715,7 +715,7 @@ static String buildStoragePage() {
   html += "</div>";
   if (isSdMounted()) {
     bool truncated = false;
-    String preview = sdReadTextFileLimited(sdSystemLogPathText(), 12288, truncated);
+    String preview = sdReadTextFileLimited(sdSystemLogPathText(), 2048, truncated);
     html += "<h3>Vista ràpida del log actual</h3>";
     if (preview.length()) html += String("<pre>") + htmlEscape(preview) + "</pre>";
     else html += "<p class='hint'>Log buit o encara no creat.</p>";
@@ -734,17 +734,13 @@ static String buildStoragePage() {
   html += "</div>";
   if (isSdMounted()) {
     bool truncated = false;
-    String preview = sdReadTextFileLimited(String(SD_BOOT_BLACKBOX_FILE), 12288, truncated);
+    String preview = sdReadTextFileLimited(String(SD_BOOT_BLACKBOX_FILE), 2048, truncated);
     html += "<h3>Últim last_boot.json</h3>";
     if (preview.length()) html += String("<pre>") + htmlEscape(preview) + "</pre>";
     else html += "<p class='hint'>Blackbox encara no creat.</p>";
     if (truncated) html += "<p class='small warn'>Vista retallada.</p>";
-    bool historyTruncated = false;
-    String historyPreview = sdReadTextFileLimited(String(SD_BOOT_HISTORY_FILE), 24576, historyTruncated);
     html += "<h3>Historial boot_history.jsonl</h3>";
-    if (historyPreview.length()) html += String("<pre>") + htmlEscape(historyPreview) + "</pre>";
-    else html += "<p class='hint'>Historial d'arrencades encara no creat.</p>";
-    if (historyTruncated) html += "<p class='small warn'>Vista retallada; descarrega el fitxer complet.</p>";
+    html += "<p class='hint'>Per evitar reinicis per pressió de memòria, l'historial complet s'obre des de l'explorador o es descarrega com a fitxer.</p>";
     html += "<div class='actions'><a class='btn secondary' href='/storage?section=sd-browser&path=/boia/blackbox'>Obrir carpeta blackbox</a><a class='btn secondary' href='/sd-download?path=/boia/blackbox/last_boot.json'>Descarregar last_boot.json</a><a class='btn secondary' href='/sd-download?path=/boia/blackbox/boot_history.jsonl'>Descarregar boot_history.jsonl</a></div>";
   }
   html += "</div>";
@@ -834,7 +830,7 @@ static String buildSdFileViewPage(const String& path) {
   if (!normalizeSdPath(path, clean)) clean = SD_BASE_DIR;
 
   bool truncated = false;
-  String content = sdReadTextFileLimited(clean, 24576, truncated);
+  String content = sdReadTextFileLimited(clean, 8192, truncated);
 
   int parentSlash = clean.lastIndexOf('/');
   String parentPath = parentSlash <= 0 ? String("/") : clean.substring(0, parentSlash);
@@ -2677,7 +2673,7 @@ static void handleSdReadGet() {
   file.close();
 
   bool truncated = false;
-  String content = sdReadTextFileLimited(clean, 32768, truncated);
+  String content = sdReadTextFileLimited(clean, 8192, truncated);
   String json = "{\"path\":\"";
   json += jsonEscape(clean);
   json += "\",\"size\":";

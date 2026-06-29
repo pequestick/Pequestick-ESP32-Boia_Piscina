@@ -161,6 +161,15 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("boot_history.jsonl", web)
         self.assertIn("wakeup_cause", web)
 
+    def test_storage_page_avoids_large_inline_sd_previews(self):
+        web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+
+        self.assertNotIn("sdReadTextFileLimited(String(SD_BOOT_HISTORY_FILE)", web)
+        self.assertIn("sdReadTextFileLimited(sdPendingMqttPathText(), 1024", web)
+        self.assertIn("sdReadTextFileLimited(sdSystemLogPathText(), 2048", web)
+        self.assertIn("sdReadTextFileLimited(String(SD_BOOT_BLACKBOX_FILE), 2048", web)
+        self.assertIn("sdReadTextFileLimited(clean, 8192", web)
+
     def test_home_assistant_statistics_cover_all_history_ranges_and_sensors(self):
         config = Path("src/AppConfig.cpp").read_text(encoding="utf-8")
         web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
