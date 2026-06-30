@@ -1,10 +1,10 @@
 {
-  "version": "1.25.7-ota-log-hidden",
-  "build_sha": "c63673e7ff164dd545186a12f3d152e5119104f2",
-  "build_short_sha": "c63673e7ff16",
-  "build_date": "2026-06-30T11:58:55Z",
-  "size": 1710624,
-  "sha256": "16ce1d2f0ede9a0eba7c3e812c2f13a22a37736eced75b0997995b4752546339",
+  "version": "1.25.8-chart-hover-battery",
+  "build_sha": "0d59e55bad214efbf4b138b754dcfbcb7ac5a59f",
+  "build_short_sha": "0d59e55bad21",
+  "build_date": "2026-06-30T12:46:42Z",
+  "size": 1712688,
+  "sha256": "9523495329a6f7b34e16272c4198c24191a61dc928a7d7a18655e8ba0fbdf609",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Amaga correctament la targeta de progrés OTA quan no hi ha cap actualització activa i deixa el botó de tancar només per resultats reals."
+  "notes": "Afegeix tooltip al gràfic de temperatura i un mini gràfic de bateria sota la vista principal per veure temperatura, bateria i voltatge amb més context."
 }
