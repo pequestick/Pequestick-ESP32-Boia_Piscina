@@ -129,6 +129,15 @@ struct AppState {
   String lowPowerStatus = "Mode estalvi profund desactivat";
   String resetReason = "Desconegut";
   String wakeupCause = "Desconegut";
+
+  String previousBootAction = "Sense marca persistent";
+  unsigned long previousBootActionUptimeSeconds = 0;
+  float previousBootBatteryVoltage = NAN;
+  float previousBootBatteryPercent = NAN;
+  String previousBootBatteryStatus = "UNKNOWN";
+  int previousBootRssiDbm = 0;
+  uint32_t previousBootFreeHeap = 0;
+  String previousBootSdStatus = "UNKNOWN";
 };
 
 extern AppState appState;

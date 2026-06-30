@@ -155,11 +155,17 @@ class ReleaseManifestTests(unittest.TestCase):
 
         self.assertIn("SD_BOOT_HISTORY_FILE", config)
         self.assertIn("resetReason", state)
+        self.assertIn("previousBootAction", state)
         self.assertIn("resetReasonText", sd)
         self.assertIn("ESP_RST_BROWNOUT", sd)
+        self.assertIn("BOOT_TRACE_NAMESPACE", sd)
+        self.assertIn("rememberBootTrace", sd)
+        self.assertIn("previous_action", sd)
+        self.assertIn("previous_battery_voltage", sd)
         self.assertIn("appendSdBootHistory", sd)
         self.assertIn("boot_history.jsonl", web)
         self.assertIn("wakeup_cause", web)
+        self.assertIn("previous_action", web)
 
     def test_storage_page_avoids_large_inline_sd_previews(self):
         web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")

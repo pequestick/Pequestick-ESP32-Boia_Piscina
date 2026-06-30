@@ -4180,6 +4180,38 @@ static String buildStatusJsonPayload() {
   json += jsonEscape(appState.wakeupCause);
   json += "\",";
 
+  json += "\"previous_action\":\"";
+  json += jsonEscape(appState.previousBootAction);
+  json += "\",";
+
+  json += "\"previous_action_uptime_seconds\":";
+  json += String(appState.previousBootActionUptimeSeconds);
+  json += ",";
+
+  json += "\"previous_battery_voltage\":";
+  json += isnan(appState.previousBootBatteryVoltage) ? String("null") : String(appState.previousBootBatteryVoltage, 3);
+  json += ",";
+
+  json += "\"previous_battery_percent\":";
+  json += isnan(appState.previousBootBatteryPercent) ? String("null") : String(appState.previousBootBatteryPercent, 0);
+  json += ",";
+
+  json += "\"previous_battery_status\":\"";
+  json += jsonEscape(appState.previousBootBatteryStatus);
+  json += "\",";
+
+  json += "\"previous_rssi_dbm\":";
+  json += String(appState.previousBootRssiDbm);
+  json += ",";
+
+  json += "\"previous_free_heap\":";
+  json += String(appState.previousBootFreeHeap);
+  json += ",";
+
+  json += "\"previous_sd_status\":\"";
+  json += jsonEscape(appState.previousBootSdStatus);
+  json += "\",";
+
   json += "\"configured_ssid\":\"";
   json += jsonEscape(configWifiSsid);
   json += "\",";

@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <FS.h>
+#include <Preferences.h>
 #include <SD.h>
 #include <SPI.h>
 #include <WiFi.h>
@@ -22,6 +23,7 @@ static unsigned long lastSdStructureCheckMillis = 0;
 static const unsigned long SD_REFRESH_INTERVAL_MS = 30000;
 static const unsigned long SD_STRUCTURE_CHECK_INTERVAL_MS = 300000;
 static const size_t SD_VIEW_MAX_BYTES_DEFAULT = 16384;
+static const char* BOOT_TRACE_NAMESPACE = "boottrace";
 
 static String runtimeStatsDay = "";
 static uint32_t runtimeStatsRecords = 0;
@@ -296,6 +298,50 @@ static String floatCsv(float value, uint8_t decimals) {
   return String(value, decimalPlaces);
 }
 
+static String jsonFloatOrNull(float value, uint8_t decimals) {
+  if (isnan(value)) return "null";
+  unsigned int decimalPlaces = decimals;
+  return String(value, decimalPlaces);
+}
+
+static void loadPreviousBootTrace() {
+  Preferences preferences;
+  if (!preferences.begin(BOOT_TRACE_NAMESPACE, true)) return;
+
+  appState.previousBootAction = preferences.getString("action", "Sense marca persistent");
+  appState.previousBootActionUptimeSeconds = preferences.getULong("uptime_s", 0);
+  appState.previousBootBatteryVoltage = preferences.getFloat("bat_v", NAN);
+  appState.previousBootBatteryPercent = preferences.getFloat("bat_pct", NAN);
+  appState.previousBootBatteryStatus = preferences.getString("bat_status", "UNKNOWN");
+  appState.previousBootRssiDbm = preferences.getInt("rssi", 0);
+  appState.previousBootFreeHeap = preferences.getUInt("heap", 0);
+  appState.previousBootSdStatus = preferences.getString("sd_status", "UNKNOWN");
+  preferences.end();
+}
+
+void rememberBootTrace(const String& action) {
+  static String lastAction = "";
+  static unsigned long lastWriteMillis = 0;
+
+  unsigned long now = millis();
+  if (action == lastAction && lastWriteMillis != 0 && now - lastWriteMillis < 5000UL) return;
+  lastAction = action;
+  lastWriteMillis = now;
+
+  Preferences preferences;
+  if (!preferences.begin(BOOT_TRACE_NAMESPACE, false)) return;
+
+  preferences.putString("action", action.substring(0, 64));
+  preferences.putULong("uptime_s", (unsigned long)getUptimeSeconds());
+  preferences.putFloat("bat_v", appState.lastBatteryVoltage);
+  preferences.putFloat("bat_pct", appState.lastBatteryPercent);
+  preferences.putString("bat_status", appState.batteryStatus.substring(0, 24));
+  preferences.putInt("rssi", WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0);
+  preferences.putUInt("heap", (uint32_t)ESP.getFreeHeap());
+  preferences.putString("sd_status", appState.sdStatus.substring(0, 24));
+  preferences.end();
+}
+
 static void resetRuntimeStatsForDay(const String& day) {
   runtimeStatsDay = day;
   runtimeStatsRecords = 0;
@@ -543,6 +589,17 @@ bool writeSdBootBlackbox() {
   file.println("  \"reset_reason\": \"" + jsonEscape(appState.resetReason) + "\",");
   file.println("  \"wakeup_cause\": \"" + jsonEscape(appState.wakeupCause) + "\",");
   file.println("  \"free_heap\": " + String((unsigned long)ESP.getFreeHeap()) + ",");
+  file.println("  \"battery_voltage\": " + jsonFloatOrNull(appState.lastBatteryVoltage, 3) + ",");
+  file.println("  \"battery_percent\": " + jsonFloatOrNull(appState.lastBatteryPercent, 0) + ",");
+  file.println("  \"battery_status\": \"" + jsonEscape(appState.batteryStatus) + "\",");
+  file.println("  \"previous_action\": \"" + jsonEscape(appState.previousBootAction) + "\",");
+  file.println("  \"previous_action_uptime_seconds\": " + String(appState.previousBootActionUptimeSeconds) + ",");
+  file.println("  \"previous_battery_voltage\": " + jsonFloatOrNull(appState.previousBootBatteryVoltage, 3) + ",");
+  file.println("  \"previous_battery_percent\": " + jsonFloatOrNull(appState.previousBootBatteryPercent, 0) + ",");
+  file.println("  \"previous_battery_status\": \"" + jsonEscape(appState.previousBootBatteryStatus) + "\",");
+  file.println("  \"previous_rssi_dbm\": " + String(appState.previousBootRssiDbm) + ",");
+  file.println("  \"previous_free_heap\": " + String(appState.previousBootFreeHeap) + ",");
+  file.println("  \"previous_sd_status\": \"" + jsonEscape(appState.previousBootSdStatus) + "\",");
   file.println("  \"read_interval_seconds\": " + String(configReadIntervalSeconds) + ",");
   file.println("  \"mqtt_publish_interval_seconds\": " + String(configMqttPublishIntervalSeconds) + ",");
   file.println("  \"deep_sleep_enabled\": " + String(configDeepSleepEnabled ? "true" : "false") + ",");
@@ -575,6 +632,29 @@ bool appendSdBootHistory() {
   file.print(jsonEscape(appState.wakeupCause));
   file.print("\",\"free_heap\":");
   file.print((unsigned long)ESP.getFreeHeap());
+  file.print(",\"battery_voltage\":");
+  file.print(jsonFloatOrNull(appState.lastBatteryVoltage, 3));
+  file.print(",\"battery_percent\":");
+  file.print(jsonFloatOrNull(appState.lastBatteryPercent, 0));
+  file.print(",\"battery_status\":\"");
+  file.print(jsonEscape(appState.batteryStatus));
+  file.print("\",\"previous_action\":\"");
+  file.print(jsonEscape(appState.previousBootAction));
+  file.print("\",\"previous_action_uptime_seconds\":");
+  file.print(appState.previousBootActionUptimeSeconds);
+  file.print(",\"previous_battery_voltage\":");
+  file.print(jsonFloatOrNull(appState.previousBootBatteryVoltage, 3));
+  file.print(",\"previous_battery_percent\":");
+  file.print(jsonFloatOrNull(appState.previousBootBatteryPercent, 0));
+  file.print(",\"previous_battery_status\":\"");
+  file.print(jsonEscape(appState.previousBootBatteryStatus));
+  file.print("\",\"previous_rssi_dbm\":");
+  file.print(appState.previousBootRssiDbm);
+  file.print(",\"previous_free_heap\":");
+  file.print(appState.previousBootFreeHeap);
+  file.print(",\"previous_sd_status\":\"");
+  file.print(jsonEscape(appState.previousBootSdStatus));
+  file.print("\"");
   file.print(",\"read_interval_seconds\":");
   file.print(configReadIntervalSeconds);
   file.print(",\"mqtt_publish_interval_seconds\":");
@@ -897,6 +977,8 @@ String sdDirectoryListingHtml(const String& path) {
 
 void initSdManager() {
   refreshBootReasonState();
+  loadPreviousBootTrace();
+  rememberBootTrace("setup:sd_init_start");
   appState.sdEnabled = isSdEnabled();
   appState.sdMounted = false;
   appState.sdStatus = isSdEnabled() ? "INIT" : "DISABLED";
@@ -908,6 +990,7 @@ void initSdManager() {
 
   if (!isSdEnabled()) {
     Serial.println("SD: desactivada per firmware");
+    rememberBootTrace("setup:sd_disabled");
     return;
   }
 
@@ -927,6 +1010,7 @@ void initSdManager() {
     appState.sdLastError = "No detecto la microSD. Revisa cablejat, format FAT32 i alimentacio 3V3.";
     Serial.print("SD ERROR: ");
     Serial.println(appState.sdLastError);
+    rememberBootTrace("setup:sd_mount_failed");
     return;
   }
 
@@ -940,7 +1024,9 @@ void initSdManager() {
   appendSdBootHistory();
   appState.sdMqttPendingCount = countNonEmptyLines(SD_MQTT_PENDING_FILE);
   appendSdSystemLog("BOOT", "Sistema arrencat amb microSD muntada. Reset=" + appState.resetReason + " Wakeup=" + appState.wakeupCause);
+  appendSdSystemLog("BOOTTRACE", "Accio anterior=" + appState.previousBootAction + " uptime=" + String(appState.previousBootActionUptimeSeconds) + "s bateria=" + jsonFloatOrNull(appState.previousBootBatteryVoltage, 3) + "V heap=" + String(appState.previousBootFreeHeap));
   refreshSdInfo();
+  rememberBootTrace("setup:sd_ready");
 
   Serial.print("SD: muntada. Tipus ");
   Serial.print(appState.sdCardType);

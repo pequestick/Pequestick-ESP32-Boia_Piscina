@@ -20,6 +20,7 @@ bool writeSdConfigSnapshot();
 bool writeSdBootBlackbox();
 bool appendSdBootHistory();
 bool writeSdVersionFile();
+void rememberBootTrace(const String& action);
 
 bool appendSdMqttPending(const String& payload);
 bool flushSdMqttPending(const String& topic, SdMqttPublishCallback publishCallback);

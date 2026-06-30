@@ -29,8 +29,10 @@ static void enterDeepSleepBetweenReadings() {
   appState.lowPowerSleepRequested = true;
   Serial.println(appState.lowPowerStatus);
 
+  rememberBootTrace("power:deep_sleep_start");
   appendSdSystemLog("POWER", appState.lowPowerStatus);
   if (configMqttEnabled) {
+    rememberBootTrace("mqtt:offline_before_sleep");
     publishOfflineAndDisconnect();
   }
 
@@ -177,20 +179,33 @@ void setup() {
   Serial.begin(115200);
   delay(2000);
 
+  rememberBootTrace("setup:start");
   loadConfig();
+  rememberBootTrace("setup:config_loaded");
   printHeader();
 
+  rememberBootTrace("setup:temperature_init");
   initTemperatureSensor();
+  rememberBootTrace("setup:hardware_init");
   initHardwareManager();
+  rememberBootTrace("setup:internal_env_init");
   initInternalEnvSensor();
+  rememberBootTrace("setup:battery_init");
   initBatteryMonitor();
+  rememberBootTrace("setup:battery_first_read");
+  performBatteryRead();
+  rememberBootTrace("setup:sd_init");
   initSdManager();
 
+  rememberBootTrace("setup:wifi_connect");
   connectWifi();
 
+  rememberBootTrace("setup:web_start");
   setupWebServer();
 
+  rememberBootTrace("setup:mqtt_init");
   initMqtt();
+  rememberBootTrace("setup:ready");
 
   Serial.println();
   Serial.println("Sistema preparat. Comencen lectures...");
@@ -206,26 +221,37 @@ void loop() {
 
   if (now - appState.lastWifiCheckMillis >= WIFI_CHECK_INTERVAL_SECONDS * 1000UL || appState.lastWifiCheckMillis == 0) {
     appState.lastWifiCheckMillis = now;
+    rememberBootTrace("wifi:check_start");
     checkWifiConnection();
+    rememberBootTrace("wifi:check_done");
   }
 
   if (configMqttEnabled && (now - appState.lastMqttCheckMillis >= MQTT_CHECK_INTERVAL_SECONDS * 1000UL || appState.lastMqttCheckMillis == 0)) {
     appState.lastMqttCheckMillis = now;
+    rememberBootTrace("mqtt:check_start");
     checkMqttConnection();
+    rememberBootTrace("mqtt:check_done");
   }
 
   if (now - appState.lastReadMillis >= (unsigned long)configReadIntervalSeconds * 1000UL || appState.lastReadMillis == 0) {
     appState.lastReadMillis = now;
+    rememberBootTrace("sensor:water_read_start");
     performTemperatureRead();
+    rememberBootTrace("sensor:internal_read_start");
     performInternalEnvRead();
+    rememberBootTrace("battery:read_start");
     performBatteryRead();
+    rememberBootTrace("sd:history_write_start");
     appendSdHistoryRecord();
+    rememberBootTrace("sensor:cycle_done");
     cycleReadDone = true;
   }
 
   if (configMqttEnabled && (now - appState.lastMqttPublishMillis >= (unsigned long)configMqttPublishIntervalSeconds * 1000UL || appState.lastMqttPublishMillis == 0)) {
     appState.lastMqttPublishMillis = now;
+    rememberBootTrace("mqtt:publish_start");
     publishMqttTelemetry();
+    rememberBootTrace("mqtt:publish_done");
     cyclePublishDone = true;
   }
 
