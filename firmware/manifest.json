@@ -1,10 +1,10 @@
 {
-  "version": "1.25.8-chart-hover-battery",
-  "build_sha": "0d59e55bad214efbf4b138b754dcfbcb7ac5a59f",
-  "build_short_sha": "0d59e55bad21",
-  "build_date": "2026-06-30T12:46:42Z",
-  "size": 1712688,
-  "sha256": "9523495329a6f7b34e16272c4198c24191a61dc928a7d7a18655e8ba0fbdf609",
+  "version": "1.25.9-chart-hover-scoped",
+  "build_sha": "1cb2f64056abbfb95586864084b4158c83d0fd5e",
+  "build_short_sha": "1cb2f64056ab",
+  "build_date": "2026-06-30T12:52:47Z",
+  "size": 1712816,
+  "sha256": "11849f71b26c601f4faa9527a9cd5e4844bef5c5831f4ea78d2e96ab6203bf01",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Afegeix tooltip al gràfic de temperatura i un mini gràfic de bateria sota la vista principal per veure temperatura, bateria i voltatge amb més context."
+  "notes": "Manté el tooltip i el mini gràfic de bateria a la pàgina principal, però mou el codi específic fora de les pàgines grans perquè OTA no quedi tallada."
 }
