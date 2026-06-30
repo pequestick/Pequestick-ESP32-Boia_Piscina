@@ -1,10 +1,10 @@
 {
-  "version": "1.25.5-help-page-slim",
-  "build_sha": "87a23a306062505c9d1a6a9565bf5df817f24c4f",
-  "build_short_sha": "87a23a306062",
-  "build_date": "2026-06-29T06:47:36Z",
-  "size": 1700336,
-  "sha256": "512ed2611b804f124b02751917129296f15e4a1f3e1f5417c173c012c1af695c",
+  "version": "1.25.6-reset-blackbox",
+  "build_sha": "0525026a0f17693faae82982f081f80babd4ae1f",
+  "build_short_sha": "0525026a0f17",
+  "build_date": "2026-06-30T11:08:22Z",
+  "size": 1710304,
+  "sha256": "b19cfe686adf207e0065da8587632b3c9c0edbd85e8898ac451ffc0c755ee79d",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Renderitza només la subsecció d'Ajuda oberta perquè Changelog, fitxers, MQTT, hardware i rescat no superin el límit pràctic de memòria del HTML."
+  "notes": "Afegeix una marca persistent de l'última acció crítica, bateria, RSSI, heap i estat SD al blackbox per diagnosticar PANIC i BROWNOUT."
 }
