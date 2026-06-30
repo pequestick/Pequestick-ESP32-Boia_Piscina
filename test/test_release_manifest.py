@@ -190,6 +190,8 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("sendHtmlResponse", web)
         self.assertIn("CONTENT_LENGTH_UNKNOWN", web)
         self.assertIn("server.sendContent", web)
+        self.assertIn(".ota-progress-card.hidden{display:none}", web)
+        self.assertIn("function dismissOtaProgress()", web)
         self.assertIn('String section = server.arg("section")', web)
         self.assertIn('if (section == "help-firmware")', web)
         self.assertIn('if (section == "help-files")', web)
