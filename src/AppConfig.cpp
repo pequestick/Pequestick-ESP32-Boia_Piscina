@@ -44,9 +44,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.27.0-mpu6050-motion";
-const char* FIRMWARE_CHANGE_TITLE = "v1.27.0 moviment MPU6050";
-const char* FIRMWARE_CHANGE_NOTES = "Canvia la microSD a CS GPIO21, MOSI GPIO20, CLK GPIO18 i MISO GPIO19, i afegeix lectura MPU6050/GY-521 al bus I2C SDA GPIO6/SCL GPIO7 amb inclinacio, acceleracio, MQTT, Home Assistant i /status.";
+const char* FIRMWARE_VERSION = "1.28.0-motion-controls";
+const char* FIRMWARE_CHANGE_TITLE = "v1.28.0 controls de moviment";
+const char* FIRMWARE_CHANGE_NOTES = "Afegeix controls web del MPU6050 a Sensors: calibratge zero, sensibilitat de moviment, deteccio de possible bany, alarma d'inclinacio, taxa de refresc configurable i resum d'estat a la portada.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
