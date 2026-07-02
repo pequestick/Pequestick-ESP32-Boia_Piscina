@@ -1,10 +1,10 @@
 {
-  "version": "1.25.9-chart-hover-scoped",
-  "build_sha": "1cb2f64056abbfb95586864084b4158c83d0fd5e",
-  "build_short_sha": "1cb2f64056ab",
-  "build_date": "2026-06-30T12:52:47Z",
-  "size": 1712816,
-  "sha256": "11849f71b26c601f4faa9527a9cd5e4844bef5c5831f4ea78d2e96ab6203bf01",
+  "version": "1.26.0-sd-pins-21-20-18-19",
+  "build_sha": "6ad82b984348b1aa48e2d5f4b101e0d502d99b33",
+  "build_short_sha": "6ad82b984348",
+  "build_date": "2026-07-02T09:44:55Z",
+  "size": 1712768,
+  "sha256": "c5a71b218bbe718f287af7284b50f314e9361ee8348db777a2ee4864f0cb015e",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Manté el tooltip i el mini gràfic de bateria a la pàgina principal, però mou el codi específic fora de les pàgines grans perquè OTA no quedi tallada."
+  "notes": "Canvia el bus SPI de la microSD a CS GPIO21, MOSI GPIO20, CLK GPIO18 i MISO GPIO19 segons el nou cablejat."
 }
