@@ -1,10 +1,10 @@
 {
-  "version": "1.27.0-mpu6050-motion",
-  "build_sha": "ee8edea3ab1eae3ceaf2fe681866f77dd32f37c9",
-  "build_short_sha": "ee8edea3ab1e",
-  "build_date": "2026-07-02T12:55:32Z",
+  "version": "1.28.0-motion-controls",
+  "build_sha": "0d0ac19c8977b7f4fac0d37c6fc04c49e1d7b944",
+  "build_short_sha": "0d0ac19c8977",
+  "build_date": "2026-07-02T13:28:23Z",
   "size": 1736512,
-  "sha256": "145f9e347ec6b73df9dbb91ce120031d6647f6a6d022f2c845155864c7bbbf7d",
+  "sha256": "92b84cee408107df3f93ecad97b2d861353042b5269aa28110bffca6f4b69626",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
-  "notes": "Canvia la microSD a CS GPIO21, MOSI GPIO20, CLK GPIO18 i MISO GPIO19, i afegeix lectura MPU6050/GY-521 al bus I2C SDA GPIO6/SCL GPIO7 amb inclinacio, acceleracio, MQTT, Home Assistant i /status."
+  "notes": "Afegeix controls web del MPU6050 a Sensors: calibratge zero, sensibilitat de moviment, deteccio de possible bany, alarma d'inclinacio, taxa de refresc configurable i resum d'estat a la portada."
 }
