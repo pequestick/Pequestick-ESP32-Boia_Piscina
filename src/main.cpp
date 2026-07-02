@@ -21,6 +21,7 @@
 AppState appState;
 static bool cycleReadDone = false;
 static bool cyclePublishDone = false;
+static unsigned long lastMotionLoopReadMillis = 0;
 
 static void enterDeepSleepBetweenReadings() {
   uint64_t sleepSeconds = configReadIntervalSeconds;
@@ -249,14 +250,18 @@ void loop() {
     performTemperatureRead();
     rememberBootTrace("sensor:internal_read_start");
     performInternalEnvRead();
-    rememberBootTrace("sensor:motion_read_start");
-    performMotionRead();
     rememberBootTrace("battery:read_start");
     performBatteryRead();
     rememberBootTrace("sd:history_write_start");
     appendSdHistoryRecord();
     rememberBootTrace("sensor:cycle_done");
     cycleReadDone = true;
+  }
+
+  if (now - lastMotionLoopReadMillis >= (unsigned long)configMotionReadIntervalSeconds * 1000UL || lastMotionLoopReadMillis == 0) {
+    lastMotionLoopReadMillis = now;
+    rememberBootTrace("sensor:motion_read_start");
+    performMotionRead();
   }
 
   if (configMqttEnabled && (now - appState.lastMqttPublishMillis >= (unsigned long)configMqttPublishIntervalSeconds * 1000UL || appState.lastMqttPublishMillis == 0)) {

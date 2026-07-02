@@ -60,6 +60,16 @@ const bool DEFAULT_BOARD_LED_MIRROR_STATUS = true;
 const bool DEFAULT_INTERNAL_ENV_ALARM_ENABLED = true;
 const float DEFAULT_INTERNAL_TEMP_ALARM_C = 50.0f;
 const float DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT = 80.0f;
+const uint16_t DEFAULT_MOTION_READ_INTERVAL_SECONDS = 5;
+const uint16_t MIN_MOTION_READ_INTERVAL_SECONDS = 1;
+const uint16_t MAX_MOTION_READ_INTERVAL_SECONDS = 300;
+const float DEFAULT_MOTION_TILT_ALARM_DEGREES = 45.0f;
+const float DEFAULT_MOTION_MOVING_DELTA_G = 0.18f;
+const float DEFAULT_MOTION_SPLASH_DELTA_G = 0.45f;
+const float MIN_MOTION_TILT_ALARM_DEGREES = 5.0f;
+const float MAX_MOTION_TILT_ALARM_DEGREES = 90.0f;
+const float MIN_MOTION_DELTA_G = 0.03f;
+const float MAX_MOTION_DELTA_G = 2.00f;
 
 // Bateria: BAT+ -> 100k -> GPIO1 -> 100k -> GND.
 // Pensat per una bateria Li-Ion/LiPo 1S. El percentatge és una estimació lineal
@@ -229,6 +239,12 @@ float configBatteryEmptyVoltage = DEFAULT_BATTERY_EMPTY_VOLTAGE;
 float configBatteryFullVoltage = DEFAULT_BATTERY_FULL_VOLTAGE;
 float configBatteryLowPercent = DEFAULT_BATTERY_LOW_PERCENT;
 float configBatteryCalibrationFactor = DEFAULT_BATTERY_CALIBRATION_FACTOR;
+uint16_t configMotionReadIntervalSeconds = DEFAULT_MOTION_READ_INTERVAL_SECONDS;
+float configMotionPitchZeroDeg = 0.0f;
+float configMotionRollZeroDeg = 0.0f;
+float configMotionTiltAlarmDegrees = DEFAULT_MOTION_TILT_ALARM_DEGREES;
+float configMotionMovingDeltaG = DEFAULT_MOTION_MOVING_DELTA_G;
+float configMotionSplashDeltaG = DEFAULT_MOTION_SPLASH_DELTA_G;
 
 static Preferences preferences;
 
@@ -496,6 +512,12 @@ void loadConfig() {
   configBatteryFullVoltage = preferences.getFloat("bat_full", DEFAULT_BATTERY_FULL_VOLTAGE);
   configBatteryLowPercent = preferences.getFloat("bat_low", DEFAULT_BATTERY_LOW_PERCENT);
   configBatteryCalibrationFactor = preferences.getFloat("bat_cal", DEFAULT_BATTERY_CALIBRATION_FACTOR);
+  configMotionReadIntervalSeconds = preferences.getUShort("mot_int", DEFAULT_MOTION_READ_INTERVAL_SECONDS);
+  configMotionPitchZeroDeg = preferences.getFloat("mot_p_zero", 0.0f);
+  configMotionRollZeroDeg = preferences.getFloat("mot_r_zero", 0.0f);
+  configMotionTiltAlarmDegrees = preferences.getFloat("mot_tilt", DEFAULT_MOTION_TILT_ALARM_DEGREES);
+  configMotionMovingDeltaG = preferences.getFloat("mot_move_g", DEFAULT_MOTION_MOVING_DELTA_G);
+  configMotionSplashDeltaG = preferences.getFloat("mot_splash_g", DEFAULT_MOTION_SPLASH_DELTA_G);
 
   preferences.end();
 
@@ -533,6 +555,12 @@ void loadConfig() {
   configBatteryFullVoltage = clampFloat(configBatteryFullVoltage, MIN_BATTERY_FULL_VOLTAGE, MAX_BATTERY_FULL_VOLTAGE);
   configBatteryLowPercent = clampFloat(configBatteryLowPercent, MIN_BATTERY_LOW_PERCENT, MAX_BATTERY_LOW_PERCENT);
   configBatteryCalibrationFactor = clampFloat(configBatteryCalibrationFactor, MIN_BATTERY_CALIBRATION_FACTOR, MAX_BATTERY_CALIBRATION_FACTOR);
+  configMotionReadIntervalSeconds = clampUint16(configMotionReadIntervalSeconds, MIN_MOTION_READ_INTERVAL_SECONDS, MAX_MOTION_READ_INTERVAL_SECONDS);
+  configMotionPitchZeroDeg = clampFloat(configMotionPitchZeroDeg, -90.0f, 90.0f);
+  configMotionRollZeroDeg = clampFloat(configMotionRollZeroDeg, -90.0f, 90.0f);
+  configMotionTiltAlarmDegrees = clampFloat(configMotionTiltAlarmDegrees, MIN_MOTION_TILT_ALARM_DEGREES, MAX_MOTION_TILT_ALARM_DEGREES);
+  configMotionMovingDeltaG = clampFloat(configMotionMovingDeltaG, MIN_MOTION_DELTA_G, MAX_MOTION_DELTA_G);
+  configMotionSplashDeltaG = clampFloat(configMotionSplashDeltaG, configMotionMovingDeltaG, MAX_MOTION_DELTA_G);
 
   if (configBatteryFullVoltage <= configBatteryEmptyVoltage + 0.10f) {
     configBatteryEmptyVoltage = DEFAULT_BATTERY_EMPTY_VOLTAGE;
@@ -1043,6 +1071,47 @@ void resetBatteryConfigToDefaults() {
   preferences.end();
 }
 
+void saveMotionConfig(uint16_t readIntervalSeconds, float tiltAlarmDegrees, float movingDeltaG, float splashDeltaG) {
+  configMotionReadIntervalSeconds = clampUint16(readIntervalSeconds, MIN_MOTION_READ_INTERVAL_SECONDS, MAX_MOTION_READ_INTERVAL_SECONDS);
+  configMotionTiltAlarmDegrees = clampFloat(tiltAlarmDegrees, MIN_MOTION_TILT_ALARM_DEGREES, MAX_MOTION_TILT_ALARM_DEGREES);
+  configMotionMovingDeltaG = clampFloat(movingDeltaG, MIN_MOTION_DELTA_G, MAX_MOTION_DELTA_G);
+  configMotionSplashDeltaG = clampFloat(splashDeltaG, configMotionMovingDeltaG, MAX_MOTION_DELTA_G);
+
+  preferences.begin("boia", false);
+  preferences.putUShort("mot_int", configMotionReadIntervalSeconds);
+  preferences.putFloat("mot_tilt", configMotionTiltAlarmDegrees);
+  preferences.putFloat("mot_move_g", configMotionMovingDeltaG);
+  preferences.putFloat("mot_splash_g", configMotionSplashDeltaG);
+  preferences.end();
+}
+
+void saveMotionZeroConfig(float pitchZeroDeg, float rollZeroDeg) {
+  configMotionPitchZeroDeg = clampFloat(pitchZeroDeg, -90.0f, 90.0f);
+  configMotionRollZeroDeg = clampFloat(rollZeroDeg, -90.0f, 90.0f);
+
+  preferences.begin("boia", false);
+  preferences.putFloat("mot_p_zero", configMotionPitchZeroDeg);
+  preferences.putFloat("mot_r_zero", configMotionRollZeroDeg);
+  preferences.end();
+}
+
+void resetMotionConfigToDefaults() {
+  configMotionReadIntervalSeconds = DEFAULT_MOTION_READ_INTERVAL_SECONDS;
+  configMotionPitchZeroDeg = 0.0f;
+  configMotionRollZeroDeg = 0.0f;
+  configMotionTiltAlarmDegrees = DEFAULT_MOTION_TILT_ALARM_DEGREES;
+  configMotionMovingDeltaG = DEFAULT_MOTION_MOVING_DELTA_G;
+  configMotionSplashDeltaG = DEFAULT_MOTION_SPLASH_DELTA_G;
+
+  preferences.begin("boia", false);
+  preferences.remove("mot_int");
+  preferences.remove("mot_p_zero");
+  preferences.remove("mot_r_zero");
+  preferences.remove("mot_tilt");
+  preferences.remove("mot_move_g");
+  preferences.remove("mot_splash_g");
+  preferences.end();
+}
 
 void saveGithubOtaConfig(bool enabled, const String& manifestUrl, bool allowSameVersionUpdate) {
   configGithubOtaEnabled = enabled;

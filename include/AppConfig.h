@@ -54,6 +54,16 @@ extern const bool DEFAULT_BOARD_LED_MIRROR_STATUS;
 extern const bool DEFAULT_INTERNAL_ENV_ALARM_ENABLED;
 extern const float DEFAULT_INTERNAL_TEMP_ALARM_C;
 extern const float DEFAULT_INTERNAL_HUMIDITY_ALARM_PERCENT;
+extern const uint16_t DEFAULT_MOTION_READ_INTERVAL_SECONDS;
+extern const uint16_t MIN_MOTION_READ_INTERVAL_SECONDS;
+extern const uint16_t MAX_MOTION_READ_INTERVAL_SECONDS;
+extern const float DEFAULT_MOTION_TILT_ALARM_DEGREES;
+extern const float DEFAULT_MOTION_MOVING_DELTA_G;
+extern const float DEFAULT_MOTION_SPLASH_DELTA_G;
+extern const float MIN_MOTION_TILT_ALARM_DEGREES;
+extern const float MAX_MOTION_TILT_ALARM_DEGREES;
+extern const float MIN_MOTION_DELTA_G;
+extern const float MAX_MOTION_DELTA_G;
 extern const float BATTERY_DIVIDER_RATIO;
 extern const float BATTERY_CALIBRATION_FACTOR;
 extern const float BATTERY_EMPTY_VOLTAGE;
@@ -138,8 +148,6 @@ extern const uint16_t WEB_SERVER_PORT;
 #define INTERNAL_ENV_I2C_ADDRESS 0x44
 #define MOTION_MPU6050_I2C_ADDRESS 0x68
 #define MOTION_MPU6050_ALT_I2C_ADDRESS 0x69
-#define MOTION_TILT_ALARM_DEGREES 45.0f
-#define MOTION_ACCEL_DELTA_ALARM_G 0.35f
 #define BATTERY_VOLTAGE_ADC_PIN 1
 
 // Bus SPI dedicat a microSD. Pins triats lliures respecte DS18B20, SHT41,
@@ -199,6 +207,12 @@ extern float configBatteryEmptyVoltage;
 extern float configBatteryFullVoltage;
 extern float configBatteryLowPercent;
 extern float configBatteryCalibrationFactor;
+extern uint16_t configMotionReadIntervalSeconds;
+extern float configMotionPitchZeroDeg;
+extern float configMotionRollZeroDeg;
+extern float configMotionTiltAlarmDegrees;
+extern float configMotionMovingDeltaG;
+extern float configMotionSplashDeltaG;
 
 // Configuracio persistent: temperatura
 extern uint16_t configReadIntervalSeconds;
@@ -307,5 +321,8 @@ void saveBoardLedConfig(bool enabled, bool mirrorStatus);
 void saveBatteryConfig(float emptyVoltage, float fullVoltage, float lowPercent, float calibrationFactor);
 void resetBatteryConfigToDefaults();
 void saveInternalEnvAlarmConfig(bool enabled, float temperatureC, float humidityPercent);
+void saveMotionConfig(uint16_t readIntervalSeconds, float tiltAlarmDegrees, float movingDeltaG, float splashDeltaG);
+void saveMotionZeroConfig(float pitchZeroDeg, float rollZeroDeg);
+void resetMotionConfigToDefaults();
 void saveGithubOtaConfig(bool enabled, const String& manifestUrl, bool allowSameVersionUpdate);
 String normalizedGithubManifestUrl(const String& manifestUrl);

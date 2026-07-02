@@ -64,6 +64,7 @@ void setMotionError(const String& message) {
   appState.motionFailedReads++;
   appState.motionConsecutiveErrors++;
   appState.motionStatus = appState.motionConsecutiveErrors >= 3 ? "ERROR" : "WARN";
+  appState.motionSummary = "Sensor sense dades";
   appState.motionLastError = message;
   Serial.print("ERROR MPU6050: ");
   Serial.println(message);
@@ -135,8 +136,10 @@ void performMotionRead() {
   float gy = (float)rawGy / 131.0f;
   float gz = (float)rawGz / 131.0f;
   float accelMagnitude = sqrtf(ax * ax + ay * ay + az * az);
-  float pitch = atan2f(-ax, sqrtf(ay * ay + az * az)) * 180.0f / PI;
-  float roll = atan2f(ay, az) * 180.0f / PI;
+  float rawPitch = atan2f(-ax, sqrtf(ay * ay + az * az)) * 180.0f / PI;
+  float rawRoll = atan2f(ay, az) * 180.0f / PI;
+  float pitch = rawPitch - configMotionPitchZeroDeg;
+  float roll = rawRoll - configMotionRollZeroDeg;
   float tilt = max(fabsf(pitch), fabsf(roll));
 
   if (!isfinite(accelMagnitude) || !isfinite(pitch) || !isfinite(roll)) {
@@ -156,9 +159,23 @@ void performMotionRead() {
   appState.lastMotionPitchDeg = pitch;
   appState.lastMotionRollDeg = roll;
   appState.lastMotionTiltDeg = tilt;
-  appState.motionMoving = fabsf(accelMagnitude - 1.0f) >= MOTION_ACCEL_DELTA_ALARM_G;
-  appState.motionTiltAlarm = tilt >= MOTION_TILT_ALARM_DEGREES;
-  appState.motionStatus = appState.motionTiltAlarm || appState.motionMoving ? "ALARM" : "OK";
+  float accelDelta = fabsf(accelMagnitude - 1.0f);
+  appState.motionMoving = accelDelta >= configMotionMovingDeltaG;
+  appState.motionSplashAlarm = accelDelta >= configMotionSplashDeltaG;
+  appState.motionTiltAlarm = tilt >= configMotionTiltAlarmDegrees;
+  if (appState.motionTiltAlarm) {
+    appState.motionStatus = "ALARM";
+    appState.motionSummary = "Inclinacio alta";
+  } else if (appState.motionSplashAlarm) {
+    appState.motionStatus = "ALARM";
+    appState.motionSummary = "Possible bany";
+  } else if (appState.motionMoving) {
+    appState.motionStatus = "MOVING";
+    appState.motionSummary = "Aigua amb moviment";
+  } else {
+    appState.motionStatus = "OK";
+    appState.motionSummary = "Aigua en calma";
+  }
   appState.motionLastError = "Cap error";
 
   Serial.print("MPU6050 moviment: pitch ");
@@ -168,4 +185,19 @@ void performMotionRead() {
   Serial.print(" deg · accel ");
   Serial.print(accelMagnitude, 2);
   Serial.println(" g");
+}
+
+void calibrateMotionZeroFromCurrent() {
+  if (isnan(appState.lastMotionPitchDeg) || isnan(appState.lastMotionRollDeg)) {
+    performMotionRead();
+  }
+  if (isnan(appState.lastMotionPitchDeg) || isnan(appState.lastMotionRollDeg)) {
+    return;
+  }
+
+  saveMotionZeroConfig(
+    configMotionPitchZeroDeg + appState.lastMotionPitchDeg,
+    configMotionRollZeroDeg + appState.lastMotionRollDeg
+  );
+  performMotionRead();
 }

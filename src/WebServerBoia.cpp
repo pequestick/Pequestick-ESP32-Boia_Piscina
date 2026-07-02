@@ -22,6 +22,7 @@
 #include "AuthManager.h"
 #include "BatteryMonitor.h"
 #include "SdManager.h"
+#include "MotionSensor.h"
 
 // ==========================
 // OBJECTE WEB SERVER
@@ -251,7 +252,7 @@ static void appendHtmlHeader(String& html, const String& title, bool autoRefresh
   html += "function updateGithubOtaStatus(d){var internetCls=d.internet_check_done?(d.internet_check_ok?'ok':'bad'):'info';var ghCls=d.github_update_checked?(d.github_update_ok?'ok':'bad'):'info';var updCls='info';if(d.github_update_checked){if(d.github_update_available)updCls='warn';else if(d.github_remote_older)updCls='bad';else if(d.github_update_ok)updCls='ok';}txt('ota-internet-main',d.internet_check_done?d.internet_check_message:'Comprovant...');txt('ota-internet-meta',(d.internet_check_details||'')+(d.internet_resolved_ip?' · DNS '+d.internet_resolved_ip:'')+(d.internet_check_done?' · última prova ara':''));txt('ota-github-main',d.github_update_checked?(d.github_update_ok?'Manifest llegit':'Manifest fallit'):'Comprovant...');txt('ota-github-version',d.github_update_version||'--');txt('ota-github-sha',d.github_update_sha_short||d.github_update_sha||'--');txt('ota-github-date',d.github_update_date||'--');txt('ota-update-main',d.github_update_message||'Encara no comprovat');txt('ota-update-details',d.github_update_details||'');cls('ota-internet-tile',internetCls);cls('ota-github-tile',ghCls);cls('ota-update-tile',updCls);cls('ota-internet-main',internetCls);cls('ota-github-main',ghCls);cls('ota-update-main',updCls);var b=document.getElementById('github-install-button');if(b){b.disabled=!(d.github_update_available||(d.github_remote_same_version&&d.github_allow_same_version_update));}}";
   html += "function updateOtaProgress(d){txt('live-internal-temp',d.internal_temperature_c===null?'Sense dades':d.internal_temperature_c+' °C');txt('live-internal-humidity',d.internal_humidity_percent===null?'Sense dades':d.internal_humidity_percent+' %');var card=document.getElementById('ota-progress-card');if(!card)return;var pct=parseInt(d.ota_progress_percent||0,10);var inProg=!!d.ota_in_progress;var phase=d.ota_progress_phase||'espera';var source=d.ota_progress_source||'cap';var active=(source!=='cap'&&phase!=='espera')||inProg;var interrupted=sessionStorage.getItem('boiaOtaPending')==='1'&&!active;if(interrupted){active=true;source='OTA';phase='interrompuda';}if(phase==='error'||phase==='completada')sessionStorage.removeItem('boiaOtaPending');if(active)card.classList.remove('hidden');else card.classList.add('hidden');setOtaModal(active);var fill=document.getElementById('ota-progress-fill');var pctEl=document.getElementById('ota-progress-percent');var phaseEl=document.getElementById('ota-progress-phase');var msgEl=document.getElementById('ota-progress-message');var bytesEl=document.getElementById('ota-progress-bytes');card.classList.remove('done','error');if(phase==='error'||interrupted)card.classList.add('error');if(phase==='completada')card.classList.add('done');if(fill){fill.classList.remove('indeterminate');if(inProg&&(!pct||pct<1)){fill.classList.add('indeterminate');fill.style.width='38%';}else{fill.style.width=Math.max(0,Math.min(100,pct))+'%';}}if(pctEl)pctEl.textContent=(pct?pct:0)+'%';if(phaseEl)phaseEl.textContent=(source||'OTA')+' · '+phase;if(msgEl)msgEl.textContent=interrupted?'L actualitzacio ha perdut la connexio o la boia ha reiniciat. Comprova la versio i el log abans de repetir-la.':(d.ota_last_message||'Esperant accio OTA');if(bytesEl)bytesEl.textContent=bytesHuman(d.ota_progress_bytes)+' / '+bytesHuman(d.ota_progress_total);var log=document.getElementById('ota-log');if(log&&d.ota_log!==undefined){var atBottom=(log.scrollTop+log.clientHeight+24)>=log.scrollHeight;log.textContent=d.ota_log||'Sense log OTA';if(atBottom)log.scrollTop=log.scrollHeight;}}";
   html += "function runOtaAutoChecks(){if(location.pathname!=='/maintenance'||location.search.indexOf('section=mnt-ota')<0)return;txt('ota-internet-main','Comprovant...');txt('ota-github-main','Comprovant...');fetch('/internet-check-run',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){applyStatus(d);return fetch('/github-check-update-run',{cache:'no-store'});}).then(function(r){return r.json();}).then(function(d){applyStatus(d);}).catch(function(){txt('ota-update-main','No puc actualitzar estat OTA');txt('ota-update-details','La comprovació automàtica ha fallat. Prova els botons manuals.');});}";
-  html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-battery',d.battery_percent===null?'Sense dades':d.battery_percent+' %');txt('live-battery-voltage',d.battery_voltage===null?'Sense dades':d.battery_voltage+' V');txt('live-battery-remaining',d.battery_remaining_text||'Calculant');txt('live-battery-remaining-detail',d.battery_remaining_detail||'Esperant dades');txt('sys-battery-remaining',d.battery_remaining_text||'Calculant');txt('sys-battery-remaining-detail',d.battery_remaining_detail||'Esperant dades');txt('live-motion-status',d.motion_status||'UNKNOWN');txt('live-motion-pitch',d.motion_pitch_deg===null?'Sense dades':d.motion_pitch_deg+' °');txt('live-motion-roll',d.motion_roll_deg===null?'Sense dades':d.motion_roll_deg+' °');txt('live-motion-tilt',d.motion_tilt_deg===null?'Sense dades':d.motion_tilt_deg+' °');txt('live-motion-accel',d.motion_accel_g===null?'Sense dades':d.motion_accel_g+' g');txt('live-motion-reads',(d.motion_valid_reads||0)+'/'+(d.motion_total_reads||0));txt('live-motion-alarm',d.motion_tilt_alarm?'Alarma':(d.motion_moving?'Moviment':'Normal'));var mc=document.getElementById('motion-status-card');if(mc){mc.classList.remove('ok','warn','bad');mc.classList.add(d.motion_status==='OK'||d.motion_status==='READY'?'ok':(d.motion_status==='ALARM'||d.motion_status==='ERROR'?'bad':'warn'));}txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',uptimeHuman(d.uptime_seconds));txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-sd',d.sd_mounted,d.sd_enabled&&!d.sd_mounted,d.sd_enabled?(d.sd_mounted?'OK':'Error'):'Off');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateGithubOtaStatus(d);updateOtaProgress(d);}";
+  html += "function applyStatus(d){txt('live-temp',d.temperature_c===null?'Sense dades':d.temperature_c);txt('live-battery',d.battery_percent===null?'Sense dades':d.battery_percent+' %');txt('live-battery-voltage',d.battery_voltage===null?'Sense dades':d.battery_voltage+' V');txt('live-battery-remaining',d.battery_remaining_text||'Calculant');txt('live-battery-remaining-detail',d.battery_remaining_detail||'Esperant dades');txt('sys-battery-remaining',d.battery_remaining_text||'Calculant');txt('sys-battery-remaining-detail',d.battery_remaining_detail||'Esperant dades');txt('live-motion-status',d.motion_status||'UNKNOWN');txt('live-motion-summary',d.motion_summary||'Sense dades');txt('live-motion-pitch',d.motion_pitch_deg===null?'Sense dades':d.motion_pitch_deg+' °');txt('live-motion-roll',d.motion_roll_deg===null?'Sense dades':d.motion_roll_deg+' °');txt('live-motion-tilt',d.motion_tilt_deg===null?'Sense dades':d.motion_tilt_deg+' °');txt('live-motion-accel',d.motion_accel_g===null?'Sense dades':d.motion_accel_g+' g');txt('live-motion-reads',(d.motion_valid_reads||0)+'/'+(d.motion_total_reads||0));txt('live-motion-alarm',d.motion_tilt_alarm?'Inclinacio alta':(d.motion_splash_alarm?'Possible bany':(d.motion_moving?'Moviment':'Normal')));var mc=document.getElementById('motion-status-card');if(mc){mc.classList.remove('ok','warn','bad');mc.classList.add(d.motion_status==='OK'||d.motion_status==='READY'?'ok':(d.motion_status==='ALARM'||d.motion_status==='ERROR'?'bad':'warn'));}txt('live-wifi',d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Desconnectat'));txt('live-ip',d.ip);txt('live-rssi',d.rssi_dbm===null?'Sense senyal':d.rssi_dbm+' dBm');txt('live-mqtt',d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Desconnectat'):'Desactivat');txt('live-uptime',uptimeHuman(d.uptime_seconds));txt('live-sensor',d.sensor_status||'UNKNOWN');txt('live-reads',d.valid_reads+'/'+d.total_reads);txt('live-hostname',d.device_hostname);txt('live-device-name',d.device_name);service('svc-wifi',d.wifi_connected,d.wifi_ap_active?false:true,d.wifi_connected?'Connectat':(d.wifi_ap_active?'AP setup':'Error'));service('svc-ap',d.wifi_ap_active,false,d.wifi_ap_active?'Actiu':'Inactiu');service('svc-mqtt',d.mqtt_enabled&&d.mqtt_connected,d.mqtt_enabled&&!d.mqtt_connected,d.mqtt_enabled?(d.mqtt_connected?'Connectat':'Error'):'Off');service('svc-ha',d.ha_discovery_enabled&&d.ha_discovery_published,d.ha_discovery_enabled&&!d.ha_discovery_published,d.ha_discovery_enabled?(d.ha_discovery_published?'OK':'Pendent'):'Off');service('svc-sensor',d.sensor_status==='OK',d.sensor_status==='ERROR',d.sensor_status||'UNKNOWN');service('svc-sd',d.sd_mounted,d.sd_enabled&&!d.sd_mounted,d.sd_enabled?(d.sd_mounted?'OK':'Error'):'Off');service('svc-ota',!d.ota_in_progress,d.ota_in_progress,d.ota_in_progress?'En curs':'Disponible');updateGithubOtaStatus(d);updateOtaProgress(d);}";
   html += "function startWS(){if(location.pathname==='/login'||location.pathname==='/change-password')return;try{var ws=new WebSocket('ws://'+location.hostname+':81/');ws.onmessage=function(ev){try{applyStatus(JSON.parse(ev.data));}catch(e){}};ws.onclose=function(){setTimeout(startWS,3000);};ws.onerror=function(){try{ws.close();}catch(e){}};}catch(e){}}";
   html += "function bindConfirms(){document.querySelectorAll('form[data-confirm]').forEach(function(f){if(f.id==='ota-local-form'||f.id==='github-install-form')return;f.addEventListener('submit',function(e){if(!confirm(f.getAttribute('data-confirm'))){e.preventDefault();}});});}";
   html += "function bindAccordion(){document.querySelectorAll('.menu-toggle').forEach(function(btn){btn.addEventListener('click',function(){var g=btn.closest('.menu-group');if(!g)return;var isOpen=g.classList.contains('open');document.querySelectorAll('.menu-group.has-sub').forEach(function(x){x.classList.remove('open');});if(!isOpen)g.classList.add('open');});});}";
@@ -595,24 +596,13 @@ static String buildStatusPage() {
   html += "<div id='motion-status-card' class='card ";
   html += (appState.motionStatus == "OK" || appState.motionStatus == "READY") ? "ok" : ((appState.motionStatus == "ALARM" || appState.motionStatus == "ERROR") ? "bad" : "warn");
   html += "'>";
-  html += "<h2>Moviment / MPU6050</h2>";
+  html += "<h2>Estat moviment</h2>";
   html += "<div class='grid3'>";
-  html += "<div class='item'><div class='label'>Estat</div><div class='value' id='live-motion-status'>" + htmlEscape(appState.motionStatus) + "</div><div class='small' id='live-motion-alarm'>";
-  html += appState.motionTiltAlarm ? "Alarma" : (appState.motionMoving ? "Moviment" : "Normal");
+  html += "<div class='item'><div class='label'>Resum</div><div class='value' id='live-motion-summary'>" + htmlEscape(appState.motionSummary) + "</div><div class='small' id='live-motion-alarm'>";
+  html += appState.motionTiltAlarm ? "Inclinacio alta" : (appState.motionSplashAlarm ? "Possible bany" : (appState.motionMoving ? "Moviment" : "Normal"));
   html += "</div></div>";
-  html += "<div class='item'><div class='label'>Pitch</div><div class='value' id='live-motion-pitch'>";
-  html += isnan(appState.lastMotionPitchDeg) ? "Sense dades" : formatTemperature(appState.lastMotionPitchDeg, 1) + " °";
-  html += "</div></div>";
-  html += "<div class='item'><div class='label'>Roll</div><div class='value' id='live-motion-roll'>";
-  html += isnan(appState.lastMotionRollDeg) ? "Sense dades" : formatTemperature(appState.lastMotionRollDeg, 1) + " °";
-  html += "</div></div>";
-  html += "<div class='item'><div class='label'>Inclinació màxima</div><div class='value' id='live-motion-tilt'>";
-  html += isnan(appState.lastMotionTiltDeg) ? "Sense dades" : formatTemperature(appState.lastMotionTiltDeg, 1) + " °";
-  html += "</div><div class='small'>Alarma a " + String(MOTION_TILT_ALARM_DEGREES, 0) + " °</div></div>";
-  html += "<div class='item'><div class='label'>Acceleració</div><div class='value' id='live-motion-accel'>";
-  html += isnan(appState.lastMotionAccelMagnitudeG) ? "Sense dades" : formatTemperature(appState.lastMotionAccelMagnitudeG, 2) + " g";
-  html += "</div><div class='small'>Moviment si es desvia més de " + String(MOTION_ACCEL_DELTA_ALARM_G, 2) + " g</div></div>";
-  html += "<div class='item'><div class='label'>Lectures vàlides</div><div class='value' id='live-motion-reads'>" + String((unsigned long)appState.motionValidReads) + "/" + String((unsigned long)appState.motionTotalReads) + "</div><div class='small'>" + htmlEscape(appState.motionLastError) + "</div></div>";
+  html += "<div class='item'><div class='label'>Estat sensor</div><div class='value' id='live-motion-status'>" + htmlEscape(appState.motionStatus) + "</div><div class='small'>MPU6050 / GY-521</div></div>";
+  html += "<div class='item'><div class='label'>Configuració</div><div class='value' style='font-size:15px'><a class='action-link' href='/config?section=motion-sensor'>Veure sensors</a></div><div class='small'>Detall, zero i sensibilitat</div></div>";
   html += "</div></div>";
 
   appendPageEnd(html);
@@ -887,9 +877,9 @@ static String buildConfigPage() {
   String html = "";
   appendPageStart(html, "config", false);
 
-  static const char* labels[] = {"Temperatura aigua", "Calibratge sonda", "Reset temperatura"};
-  static const char* anchors[] = {"temp-reading", "temp-calibration", "temp-reset"};
-  appendSubTabs(html, "Sensors", labels, anchors, 3);
+  static const char* labels[] = {"Temperatura aigua", "Calibratge sonda", "MPU6050", "Moviment", "Reset"};
+  static const char* anchors[] = {"temp-reading", "temp-calibration", "motion-sensor", "motion-config", "temp-reset"};
+  appendSubTabs(html, "Sensors", labels, anchors, 5);
 
   html += "<div id='temp-reading' class='card'>";
   html += "<h2>Temperatura aigua · DS18B20</h2>";
@@ -994,6 +984,47 @@ static String buildConfigPage() {
   html += "</div>";
 
   html += "</form>";
+  html += "</div>";
+
+  html += "<div id='motion-sensor' class='card ";
+  html += (appState.motionStatus == "OK" || appState.motionStatus == "READY" || appState.motionStatus == "MOVING") ? "ok" : ((appState.motionStatus == "ALARM" || appState.motionStatus == "ERROR") ? "bad" : "warn");
+  html += "'>";
+  html += "<h2>Moviment / MPU6050</h2>";
+  html += "<div class='grid3'>";
+  html += "<div class='item'><div class='label'>Resum</div><div class='value' id='live-motion-summary'>" + htmlEscape(appState.motionSummary) + "</div><div class='small' id='live-motion-alarm'>";
+  html += appState.motionTiltAlarm ? "Inclinacio alta" : (appState.motionSplashAlarm ? "Possible bany" : (appState.motionMoving ? "Moviment" : "Normal"));
+  html += "</div></div>";
+  html += "<div class='item'><div class='label'>Estat sensor</div><div class='value' id='live-motion-status'>" + htmlEscape(appState.motionStatus) + "</div><div class='small'>" + htmlEscape(appState.motionLastError) + "</div></div>";
+  html += "<div class='item'><div class='label'>Lectures vàlides</div><div class='value' id='live-motion-reads'>" + String((unsigned long)appState.motionValidReads) + "/" + String((unsigned long)appState.motionTotalReads) + "</div><div class='small'>Refresc cada " + String(configMotionReadIntervalSeconds) + " s mentre la web és desperta.</div></div>";
+  html += "<div class='item'><div class='label'>Pitch</div><div class='value' id='live-motion-pitch'>";
+  html += isnan(appState.lastMotionPitchDeg) ? "Sense dades" : formatTemperature(appState.lastMotionPitchDeg, 1) + " °";
+  html += "</div><div class='small'>Zero: " + formatTemperature(configMotionPitchZeroDeg, 1) + " °</div></div>";
+  html += "<div class='item'><div class='label'>Roll</div><div class='value' id='live-motion-roll'>";
+  html += isnan(appState.lastMotionRollDeg) ? "Sense dades" : formatTemperature(appState.lastMotionRollDeg, 1) + " °";
+  html += "</div><div class='small'>Zero: " + formatTemperature(configMotionRollZeroDeg, 1) + " °</div></div>";
+  html += "<div class='item'><div class='label'>Inclinació màxima</div><div class='value' id='live-motion-tilt'>";
+  html += isnan(appState.lastMotionTiltDeg) ? "Sense dades" : formatTemperature(appState.lastMotionTiltDeg, 1) + " °";
+  html += "</div><div class='small'>Alarma a " + String(configMotionTiltAlarmDegrees, 0) + " °</div></div>";
+  html += "<div class='item'><div class='label'>Acceleració</div><div class='value' id='live-motion-accel'>";
+  html += isnan(appState.lastMotionAccelMagnitudeG) ? "Sense dades" : formatTemperature(appState.lastMotionAccelMagnitudeG, 2) + " g";
+  html += "</div><div class='small'>Moviment ≥ " + String(configMotionMovingDeltaG, 2) + " g · bany ≥ " + String(configMotionSplashDeltaG, 2) + " g</div></div>";
+  html += "<div class='item'><div class='label'>Bus I2C</div><div class='value'>0x";
+  html += appState.motionI2cAddress == 0 ? String("--") : String(appState.motionI2cAddress, HEX);
+  html += "</div><div class='small'>SDA GPIO" + String(INTERNAL_ENV_I2C_SDA_PIN) + " · SCL GPIO" + String(INTERNAL_ENV_I2C_SCL_PIN) + "</div></div>";
+  html += "</div>";
+  html += "<form method='POST' action='/motion-zero' data-confirm='Posar la posició actual de la boia com a zero?'><button type='submit'>Posar posició actual a zero</button></form>";
+  html += "</div>";
+
+  html += "<div id='motion-config' class='card'>";
+  html += "<h2>Configuració moviment</h2>";
+  html += "<form method='POST' action='/motion-config'><div class='grid'>";
+  html += "<div><div class='label'>Taxa de refresc MPU6050, en segons</div><input name='motion_read_interval' type='number' min='" + String(MIN_MOTION_READ_INTERVAL_SECONDS) + "' max='" + String(MAX_MOTION_READ_INTERVAL_SECONDS) + "' step='1' value='" + String(configMotionReadIntervalSeconds) + "' required></div>";
+  html += "<div><div class='label'>Alarma inclinació, en graus</div><input name='motion_tilt_alarm' type='number' min='" + floatText(MIN_MOTION_TILT_ALARM_DEGREES, 0) + "' max='" + floatText(MAX_MOTION_TILT_ALARM_DEGREES, 0) + "' step='1' value='" + floatText(configMotionTiltAlarmDegrees, 0) + "' required></div>";
+  html += "<div><div class='label'>Sensibilitat moviment, delta g</div><input name='motion_moving_delta' type='number' min='" + floatText(MIN_MOTION_DELTA_G, 2) + "' max='" + floatText(MAX_MOTION_DELTA_G, 2) + "' step='0.01' value='" + floatText(configMotionMovingDeltaG, 2) + "' required></div>";
+  html += "<div><div class='label'>Possible bany, delta g</div><input name='motion_splash_delta' type='number' min='" + floatText(MIN_MOTION_DELTA_G, 2) + "' max='" + floatText(MAX_MOTION_DELTA_G, 2) + "' step='0.01' value='" + floatText(configMotionSplashDeltaG, 2) + "' required></div>";
+  html += "</div><p class='small'>Delta g és la desviació respecte 1 g. Un valor baix detecta onades petites; un valor alt evita falsos avisos. El llindar de possible bany no pot quedar per sota del llindar de moviment.</p>";
+  html += "<div class='buttons'><button type='submit'>Guardar moviment</button></div></form>";
+  html += "<form method='POST' action='/motion-config-reset' data-confirm='Restaurar zero i sensibilitat del MPU6050?'><button class='secondary' type='submit'>Restaurar moviment</button></form>";
   html += "</div>";
 
   html += "<div id='temp-reset' class='card'>";
@@ -2992,6 +3023,45 @@ static void handleBatteryConfigResetPost() {
   );
 }
 
+static void handleMotionConfigPost() {
+  uint16_t intervalSeconds = server.hasArg("motion_read_interval")
+    ? (uint16_t)server.arg("motion_read_interval").toInt()
+    : DEFAULT_MOTION_READ_INTERVAL_SECONDS;
+  float tiltAlarm = server.hasArg("motion_tilt_alarm") ? server.arg("motion_tilt_alarm").toFloat() : DEFAULT_MOTION_TILT_ALARM_DEGREES;
+  float movingDelta = server.hasArg("motion_moving_delta") ? server.arg("motion_moving_delta").toFloat() : DEFAULT_MOTION_MOVING_DELTA_G;
+  float splashDelta = server.hasArg("motion_splash_delta") ? server.arg("motion_splash_delta").toFloat() : DEFAULT_MOTION_SPLASH_DELTA_G;
+
+  saveMotionConfig(intervalSeconds, tiltAlarm, movingDelta, splashDelta);
+  performMotionRead();
+  appState.lastMqttPublishMillis = 0;
+
+  sendHtmlResponse(
+    200,
+    buildSavedPage("Moviment guardat", "La sensibilitat i la taxa de refresc del MPU6050 ja estan actives.", false)
+  );
+}
+
+static void handleMotionZeroPost() {
+  calibrateMotionZeroFromCurrent();
+  appState.lastMqttPublishMillis = 0;
+
+  sendHtmlResponse(
+    200,
+    buildSavedPage("Moviment calibrat", "La posicio actual de la boia queda com a zero de pitch i roll.", false)
+  );
+}
+
+static void handleMotionConfigResetPost() {
+  resetMotionConfigToDefaults();
+  performMotionRead();
+  appState.lastMqttPublishMillis = 0;
+
+  sendHtmlResponse(
+    200,
+    buildSavedPage("Moviment restaurat", "S'han restaurat el zero, la sensibilitat i el refresc del MPU6050.", false)
+  );
+}
+
 static void handleMqttPublishNowPost() {
   if (!configMqttEnabled || !isMqttConnected()) {
     sendHtmlResponse(400, buildSavedPage("MQTT no connectat", "No puc publicar telemetria perquè MQTT no esta connectat.", false));
@@ -4141,6 +4211,10 @@ static String buildStatusJsonPayload() {
   json += jsonEscape(appState.motionStatus);
   json += "\",";
 
+  json += "\"motion_summary\":\"";
+  json += jsonEscape(appState.motionSummary);
+  json += "\",";
+
   json += "\"motion_last_error\":\"";
   json += jsonEscape(appState.motionLastError);
   json += "\",";
@@ -4169,8 +4243,28 @@ static String buildStatusJsonPayload() {
   json += appState.motionMoving ? "true" : "false";
   json += ",";
 
+  json += "\"motion_splash_alarm\":";
+  json += appState.motionSplashAlarm ? "true" : "false";
+  json += ",";
+
   json += "\"motion_tilt_alarm\":";
   json += appState.motionTiltAlarm ? "true" : "false";
+  json += ",";
+
+  json += "\"motion_read_interval_seconds\":";
+  json += String(configMotionReadIntervalSeconds);
+  json += ",";
+
+  json += "\"motion_tilt_alarm_degrees\":";
+  json += String(configMotionTiltAlarmDegrees, 1);
+  json += ",";
+
+  json += "\"motion_moving_delta_g\":";
+  json += String(configMotionMovingDeltaG, 2);
+  json += ",";
+
+  json += "\"motion_splash_delta_g\":";
+  json += String(configMotionSplashDeltaG, 2);
   json += ",";
 
   json += "\"motion_valid_reads\":";
@@ -4728,6 +4822,9 @@ void setupWebServer() {
   server.on("/internal-env-alarm", HTTP_POST, handleInternalEnvAlarmPost);
   server.on("/battery-config", HTTP_POST, handleBatteryConfigPost);
   server.on("/battery-config-reset", HTTP_POST, handleBatteryConfigResetPost);
+  server.on("/motion-config", HTTP_POST, handleMotionConfigPost);
+  server.on("/motion-zero", HTTP_POST, handleMotionZeroPost);
+  server.on("/motion-config-reset", HTTP_POST, handleMotionConfigResetPost);
   server.on("/user-credentials", HTTP_POST, handleUserCredentialsPost);
   server.on("/mqtt-publish-now", HTTP_POST, handleMqttPublishNowPost);
   server.on("/config-export", HTTP_GET, handleConfigExport);

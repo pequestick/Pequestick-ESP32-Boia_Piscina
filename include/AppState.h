@@ -48,8 +48,10 @@ struct AppState {
   float lastMotionRollDeg = NAN;
   float lastMotionTiltDeg = NAN;
   bool motionMoving = false;
+  bool motionSplashAlarm = false;
   bool motionTiltAlarm = false;
   String motionStatus = "UNKNOWN";
+  String motionSummary = "Sense dades";
   String motionLastError = "Encara no s'ha fet cap lectura";
 
   unsigned long batteryLastReadMillis = 0;

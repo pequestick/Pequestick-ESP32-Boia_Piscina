@@ -2,3 +2,4 @@
 
 void initMotionSensor();
 void performMotionRead();
+void calibrateMotionZeroFromCurrent();
