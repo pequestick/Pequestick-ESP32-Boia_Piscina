@@ -159,6 +159,8 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("performMotionRead()", main)
         self.assertIn("motion_pitch_deg", web)
         self.assertIn("motion_tilt_alarm", web)
+        self.assertIn("Moviment / MPU6050", web)
+        self.assertIn("live-motion-pitch", web)
         self.assertIn('discoveryTopic("sensor", "motion_pitch")', mqtt)
         self.assertIn('discoveryTopic("binary_sensor", "motion_tilt_alarm")', mqtt)
 
