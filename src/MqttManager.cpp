@@ -420,6 +420,20 @@ void publishHomeAssistantDiscovery() {
   sensorStatusExtra += "\"icon\":\"mdi:thermometer-alert\",";
   sensorStatusExtra += "\"entity_category\":\"diagnostic\"";
 
+  String motionAngleExtra = "";
+  motionAngleExtra += "\"unit_of_measurement\":\"°\",";
+  motionAngleExtra += "\"state_class\":\"measurement\",";
+  motionAngleExtra += "\"icon\":\"mdi:angle-acute\"";
+
+  String motionAccelExtra = "";
+  motionAccelExtra += "\"unit_of_measurement\":\"g\",";
+  motionAccelExtra += "\"state_class\":\"measurement\",";
+  motionAccelExtra += "\"icon\":\"mdi:axis-arrow\"";
+
+  String motionStatusExtra = "";
+  motionStatusExtra += "\"icon\":\"mdi:axis-arrow-info\",";
+  motionStatusExtra += "\"entity_category\":\"diagnostic\"";
+
   String consecutiveErrorsExtra = "";
   consecutiveErrorsExtra += "\"state_class\":\"measurement\",";
   consecutiveErrorsExtra += "\"icon\":\"mdi:counter\",";
@@ -525,6 +539,41 @@ void publishHomeAssistantDiscovery() {
   ok &= mqttPublishRetained(
     discoveryTopic("sensor", "sd_mqtt_pending"),
     buildBaseSensorConfig("Buffer MQTT pendent", deviceId + "_sd_mqtt_pending", mqttTopic("sd_mqtt_pending"), sdPendingExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "motion_pitch"),
+    buildBaseSensorConfig("Inclinacio pitch", deviceId + "_motion_pitch", mqttTopic("motion_pitch"), motionAngleExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "motion_roll"),
+    buildBaseSensorConfig("Inclinacio roll", deviceId + "_motion_roll", mqttTopic("motion_roll"), motionAngleExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "motion_tilt"),
+    buildBaseSensorConfig("Inclinacio maxima", deviceId + "_motion_tilt", mqttTopic("motion_tilt"), motionAngleExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "motion_accel_g"),
+    buildBaseSensorConfig("Acceleracio boia", deviceId + "_motion_accel_g", mqttTopic("motion_accel_g"), motionAccelExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "motion_status"),
+    buildBaseSensorConfig("Estat moviment", deviceId + "_motion_status", mqttTopic("motion_status"), motionStatusExtra)
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("binary_sensor", "motion_tilt_alarm"),
+    buildAlarmBinarySensorConfig("Alarma inclinacio boia", deviceId + "_motion_tilt_alarm", mqttTopic("motion_tilt_alarm"), "\"device_class\":\"problem\",\"icon\":\"mdi:axis-arrow-alert\"")
+  );
+
+  ok &= mqttPublishRetained(
+    discoveryTopic("binary_sensor", "motion_moving"),
+    buildAlarmBinarySensorConfig("Moviment boia", deviceId + "_motion_moving", mqttTopic("motion_moving"), "\"icon\":\"mdi:wave\"")
   );
 
   ok &= mqttPublishRetained(
@@ -1062,6 +1111,28 @@ static String buildTelemetryJsonPayload() {
   telemetry += floatPayload(configInternalHumidityAlarmPercent, 1);
   telemetry += ",";
 
+  telemetry += "\"motion_status\":\"";
+  telemetry += jsonEscape(appState.motionStatus);
+  telemetry += "\",";
+  telemetry += "\"motion_pitch_deg\":";
+  telemetry += isnan(appState.lastMotionPitchDeg) ? String("null") : floatPayload(appState.lastMotionPitchDeg, 1);
+  telemetry += ",";
+  telemetry += "\"motion_roll_deg\":";
+  telemetry += isnan(appState.lastMotionRollDeg) ? String("null") : floatPayload(appState.lastMotionRollDeg, 1);
+  telemetry += ",";
+  telemetry += "\"motion_tilt_deg\":";
+  telemetry += isnan(appState.lastMotionTiltDeg) ? String("null") : floatPayload(appState.lastMotionTiltDeg, 1);
+  telemetry += ",";
+  telemetry += "\"motion_accel_g\":";
+  telemetry += isnan(appState.lastMotionAccelMagnitudeG) ? String("null") : floatPayload(appState.lastMotionAccelMagnitudeG, 2);
+  telemetry += ",";
+  telemetry += "\"motion_moving\":";
+  telemetry += appState.motionMoving ? "true" : "false";
+  telemetry += ",";
+  telemetry += "\"motion_tilt_alarm\":";
+  telemetry += appState.motionTiltAlarm ? "true" : "false";
+  telemetry += ",";
+
   telemetry += "\"total_reads\":";
   telemetry += String(appState.totalReads);
   telemetry += ",";
@@ -1168,6 +1239,21 @@ void publishMqttTelemetry() {
   }
   mqttPublishRetained(mqttTopic("battery_status"), appState.batteryStatus);
   mqttPublishRetained(mqttTopic("internal_env_status"), appState.internalEnvStatus);
+  mqttPublishRetained(mqttTopic("motion_status"), appState.motionStatus);
+  if (!isnan(appState.lastMotionPitchDeg)) {
+    mqttPublishRetained(mqttTopic("motion_pitch"), floatPayload(appState.lastMotionPitchDeg, 1));
+  }
+  if (!isnan(appState.lastMotionRollDeg)) {
+    mqttPublishRetained(mqttTopic("motion_roll"), floatPayload(appState.lastMotionRollDeg, 1));
+  }
+  if (!isnan(appState.lastMotionTiltDeg)) {
+    mqttPublishRetained(mqttTopic("motion_tilt"), floatPayload(appState.lastMotionTiltDeg, 1));
+  }
+  if (!isnan(appState.lastMotionAccelMagnitudeG)) {
+    mqttPublishRetained(mqttTopic("motion_accel_g"), floatPayload(appState.lastMotionAccelMagnitudeG, 2));
+  }
+  mqttPublishRetained(mqttTopic("motion_moving"), appState.motionMoving ? "ON" : "OFF");
+  mqttPublishRetained(mqttTopic("motion_tilt_alarm"), appState.motionTiltAlarm ? "ON" : "OFF");
   bool internalTempAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalTemperatureC) && appState.lastInternalTemperatureC >= configInternalTempAlarmC;
   bool internalHumidityAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalHumidityPercent) && appState.lastInternalHumidityPercent >= configInternalHumidityAlarmPercent;
   mqttPublishRetained(mqttTopic("internal_temperature_alarm"), internalTempAlarm ? "ON" : "OFF");

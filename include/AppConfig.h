@@ -132,10 +132,14 @@ extern const uint16_t WEB_SERVER_PORT;
 #define INTERNAL_BOARD_LED_PIN 8
 #define INTERNAL_BOARD_LED_IS_RGB 1
 
-// Bus I2C del sensor ambiental intern SHT41.
+// Bus I2C compartit del sensor ambiental intern SHT41 i el MPU6050/GY-521.
 #define INTERNAL_ENV_I2C_SDA_PIN 6
 #define INTERNAL_ENV_I2C_SCL_PIN 7
 #define INTERNAL_ENV_I2C_ADDRESS 0x44
+#define MOTION_MPU6050_I2C_ADDRESS 0x68
+#define MOTION_MPU6050_ALT_I2C_ADDRESS 0x69
+#define MOTION_TILT_ALARM_DEGREES 45.0f
+#define MOTION_ACCEL_DELTA_ALARM_G 0.35f
 #define BATTERY_VOLTAGE_ADC_PIN 1
 
 // Bus SPI dedicat a microSD. Pins triats lliures respecte DS18B20, SHT41,

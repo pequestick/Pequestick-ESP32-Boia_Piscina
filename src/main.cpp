@@ -10,6 +10,7 @@
 #include "WebServerBoia.h"
 #include "HardwareManager.h"
 #include "InternalEnvSensor.h"
+#include "MotionSensor.h"
 #include "BatteryMonitor.h"
 #include "SdManager.h"
 
@@ -78,7 +79,7 @@ void printHeader() {
   Serial.println("================================");
   Serial.print("BOIA PISCINA - ");
   Serial.println(FIRMWARE_VERSION);
-  Serial.println("ESP32-C6 + DS18B20 + SHT41 + bateria GPIO1 + microSD + Wi-Fi + MQTT + HA + OTA");
+  Serial.println("ESP32-C6 + DS18B20 + SHT41 + MPU6050 + bateria GPIO1 + microSD + Wi-Fi + MQTT + HA + OTA");
   Serial.println("v1.18 - microSD com a caixa negra: historics diaris, stats, logs, blackbox i buffer MQTT");
   Serial.println("================================");
 
@@ -89,6 +90,13 @@ void printHeader() {
   Serial.print(INTERNAL_ENV_I2C_SDA_PIN);
   Serial.print(" · SCL GPIO");
   Serial.println(INTERNAL_ENV_I2C_SCL_PIN);
+
+  Serial.print("MPU6050 I2C: SDA GPIO");
+  Serial.print(INTERNAL_ENV_I2C_SDA_PIN);
+  Serial.print(" · SCL GPIO");
+  Serial.print(INTERNAL_ENV_I2C_SCL_PIN);
+  Serial.print(" · adreca 0x");
+  Serial.println(MOTION_MPU6050_I2C_ADDRESS, HEX);
 
   Serial.print("ADC bateria: GPIO");
   Serial.print(BATTERY_VOLTAGE_ADC_PIN);
@@ -190,6 +198,8 @@ void setup() {
   initHardwareManager();
   rememberBootTrace("setup:internal_env_init");
   initInternalEnvSensor();
+  rememberBootTrace("setup:motion_init");
+  initMotionSensor();
   rememberBootTrace("setup:battery_init");
   initBatteryMonitor();
   rememberBootTrace("setup:battery_first_read");
@@ -239,6 +249,8 @@ void loop() {
     performTemperatureRead();
     rememberBootTrace("sensor:internal_read_start");
     performInternalEnvRead();
+    rememberBootTrace("sensor:motion_read_start");
+    performMotionRead();
     rememberBootTrace("battery:read_start");
     performBatteryRead();
     rememberBootTrace("sd:history_write_start");

@@ -1766,6 +1766,7 @@ static void appendHardwareSection(String& html) {
   html += String(INTERNAL_BOARD_LED_PIN);
   html += "</div><div class='small'>LED RGB intern preparat per ESP32-C6 DevKitC-1. Es pot desactivar o fer servir com a mirall del LED extern des de Sistema → LEDs de placa.</div></div>";
   html += "<div class='item'><div class='label'>microSD SPI</div><div class='value'>GPIO" + String(SD_SPI_CS_PIN) + " / " + String(SD_SPI_MOSI_PIN) + " / " + String(SD_SPI_CLK_PIN) + " / " + String(SD_SPI_MISO_PIN) + "</div><div class='small'>CS GPIO" + String(SD_SPI_CS_PIN) + ", MOSI GPIO" + String(SD_SPI_MOSI_PIN) + ", CLK GPIO" + String(SD_SPI_CLK_PIN) + ", MISO GPIO" + String(SD_SPI_MISO_PIN) + ". Alimenta el mòdul a 3V3 i GND comú.</div></div>";
+  html += "<div class='item'><div class='label'>MPU6050 / GY-521</div><div class='value'>I2C GPIO" + String(INTERNAL_ENV_I2C_SDA_PIN) + " / GPIO" + String(INTERNAL_ENV_I2C_SCL_PIN) + "</div><div class='small'>VCC a 3V3, GND comú, SDA a GPIO" + String(INTERNAL_ENV_I2C_SDA_PIN) + ", SCL a GPIO" + String(INTERNAL_ENV_I2C_SCL_PIN) + ". AD0 a GND o sense tocar per 0x68; també es prova 0x69.</div></div>";
   html += "<div class='item'><div class='label'>Alimentació</div><div class='value'>5V estable</div><div class='small'>Alimenta la placa per USB/5V segons la teva placa. La DS18B20 millor a 3V3 per evitar nivells de dades de 5V. El mòdul microSD, a 3V3.</div></div>";
   html += "</div></div>";
 
@@ -1814,6 +1815,7 @@ static void appendFutureExpansionSection(String& html) {
   html += "<div class='item'><div class='label'>Temperatura interna</div><div class='value'>SHT41 actiu</div><div class='small'>Mesura la temperatura dins del tub per separat de l'aigua.</div></div>";
   html += "<div class='item'><div class='label'>Humitat interna</div><div class='value'>SHT41 actiu</div><div class='small'>Permet detectar condensació o entrada d'aigua abans que afecti l'electrònica.</div></div>";
   html += "<div class='item'><div class='label'>Bateria</div><div class='value'>Activa GPIO1</div><div class='small'>Lectura de tensió amb divisor 100k/100k, percentatge estimat i publicació MQTT/HA.</div></div>";
+  html += "<div class='item'><div class='label'>Moviment</div><div class='value'>MPU6050 actiu</div><div class='small'>Mesura inclinació, acceleració i possible moviment de la boia amb el GY-521 al bus I2C intern.</div></div>";
   html += "<div class='item'><div class='label'>Placa solar</div><div class='value'>Preparada</div><div class='small'>Futur control de tensió solar, estat de càrrega i diagnòstic de si realment està carregant.</div></div>";
   html += "</div></div>";
 
@@ -1821,8 +1823,8 @@ static void appendFutureExpansionSection(String& html) {
   html += "<h2>GPIO reservats per ampliacions</h2>";
   html += "<p class='hint'>Els pins del bus ambiental ja estan assignats. La bateria ja queda activa a GPIO1; solar i carregador continuen reservats fins definir el hardware final.</p>";
   html += "<div class='grid'>";
-  html += "<div class='item'><div class='label'>I2C SDA intern</div><div class='value'>" + htmlEscape(futurePinText(INTERNAL_ENV_I2C_SDA_PIN)) + "</div><div class='small'>SHT41 actiu, adreça 0x44.</div></div>";
-  html += "<div class='item'><div class='label'>I2C SCL intern</div><div class='value'>" + htmlEscape(futurePinText(INTERNAL_ENV_I2C_SCL_PIN)) + "</div><div class='small'>Mateix bus I2C intern.</div></div>";
+  html += "<div class='item'><div class='label'>I2C SDA intern</div><div class='value'>" + htmlEscape(futurePinText(INTERNAL_ENV_I2C_SDA_PIN)) + "</div><div class='small'>SHT41 0x44 i MPU6050 0x68/0x69 al mateix bus.</div></div>";
+  html += "<div class='item'><div class='label'>I2C SCL intern</div><div class='value'>" + htmlEscape(futurePinText(INTERNAL_ENV_I2C_SCL_PIN)) + "</div><div class='small'>Mateix bus I2C intern per ambient i moviment.</div></div>";
   html += "<div class='item'><div class='label'>ADC bateria</div><div class='value'>GPIO" + String(BATTERY_VOLTAGE_ADC_PIN) + "</div><div class='small'>BAT+ -> 100 kΩ -> GPIO" + String(BATTERY_VOLTAGE_ADC_PIN) + " -> 100 kΩ -> GND. Mesura estimada: " + batteryVoltageText() + " / " + batteryPercentText() + ". Mai posar BAT+ directe a l'ESP32.</div></div>";
   html += "<div class='item'><div class='label'>ADC solar</div><div class='value'>" + htmlEscape(futurePinText(SOLAR_VOLTAGE_ADC_PIN)) + "</div><div class='small'>Per saber si la placa solar està donant tensió útil.</div></div>";
   html += "<div class='item'><div class='label'>Estat carregador</div><div class='value'>" + htmlEscape(futurePinText(CHARGER_STATUS_PIN)) + "</div><div class='small'>Opcional: pin CHG/STDBY/FAULT si el mòdul carregador ho exposa.</div></div>";
@@ -4111,6 +4113,50 @@ static String buildStatusJsonPayload() {
   json += "\"internal_env_last_error\":\"";
   json += jsonEscape(appState.internalEnvLastError);
   json += "\",";
+
+  json += "\"motion_status\":\"";
+  json += jsonEscape(appState.motionStatus);
+  json += "\",";
+
+  json += "\"motion_last_error\":\"";
+  json += jsonEscape(appState.motionLastError);
+  json += "\",";
+
+  json += "\"motion_i2c_address\":";
+  json += appState.motionI2cAddress == 0 ? String("null") : String(appState.motionI2cAddress);
+  json += ",";
+
+  json += "\"motion_pitch_deg\":";
+  json += isnan(appState.lastMotionPitchDeg) ? String("null") : String(appState.lastMotionPitchDeg, 1);
+  json += ",";
+
+  json += "\"motion_roll_deg\":";
+  json += isnan(appState.lastMotionRollDeg) ? String("null") : String(appState.lastMotionRollDeg, 1);
+  json += ",";
+
+  json += "\"motion_tilt_deg\":";
+  json += isnan(appState.lastMotionTiltDeg) ? String("null") : String(appState.lastMotionTiltDeg, 1);
+  json += ",";
+
+  json += "\"motion_accel_g\":";
+  json += isnan(appState.lastMotionAccelMagnitudeG) ? String("null") : String(appState.lastMotionAccelMagnitudeG, 2);
+  json += ",";
+
+  json += "\"motion_moving\":";
+  json += appState.motionMoving ? "true" : "false";
+  json += ",";
+
+  json += "\"motion_tilt_alarm\":";
+  json += appState.motionTiltAlarm ? "true" : "false";
+  json += ",";
+
+  json += "\"motion_valid_reads\":";
+  json += String(appState.motionValidReads);
+  json += ",";
+
+  json += "\"motion_total_reads\":";
+  json += String(appState.motionTotalReads);
+  json += ",";
 
   bool internalTempAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalTemperatureC) && appState.lastInternalTemperatureC >= configInternalTempAlarmC;
   bool internalHumidityAlarm = configInternalEnvAlarmEnabled && !isnan(appState.lastInternalHumidityPercent) && appState.lastInternalHumidityPercent >= configInternalHumidityAlarmPercent;

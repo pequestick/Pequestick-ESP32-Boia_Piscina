@@ -44,9 +44,9 @@ const char* DEVICE_NAME = "Boia Piscina";
 const char* DEFAULT_DEVICE_HOSTNAME = "boia-piscina";
 // Versio mestra del firmware. GitHub Actions llegeix aquesta constant
 // automaticament per generar firmware/manifest.json.
-const char* FIRMWARE_VERSION = "1.26.0-sd-pins-21-20-18-19";
-const char* FIRMWARE_CHANGE_TITLE = "v1.26.0 pinatge SD actualitzat";
-const char* FIRMWARE_CHANGE_NOTES = "Canvia el bus SPI de la microSD a CS GPIO21, MOSI GPIO20, CLK GPIO18 i MISO GPIO19 segons el nou cablejat.";
+const char* FIRMWARE_VERSION = "1.27.0-mpu6050-motion";
+const char* FIRMWARE_CHANGE_TITLE = "v1.27.0 moviment MPU6050";
+const char* FIRMWARE_CHANGE_NOTES = "Canvia la microSD a CS GPIO21, MOSI GPIO20, CLK GPIO18 i MISO GPIO19, i afegeix lectura MPU6050/GY-521 al bus I2C SDA GPIO6/SCL GPIO7 amb inclinacio, acceleracio, MQTT, Home Assistant i /status.";
 const char* DEFAULT_GITHUB_MANIFEST_URL = "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/manifest.json";
 const bool DEFAULT_GITHUB_OTA_ENABLED = true;
 const bool DEFAULT_GITHUB_ALLOW_SAME_VERSION_UPDATE = false;
@@ -115,7 +115,7 @@ const char* SD_HISTORY_FILE = "/boia/history/boot.csv";
 const char* FUTURE_INTERNAL_ENV_SENSOR = "SHT41 actiu per temperatura i humitat interna";
 const char* FUTURE_BATTERY_MONITOR = "Lectura activa de tensio bateria via divisor 100k/100k + ADC GPIO1";
 const char* FUTURE_SOLAR_CHARGER = "Placa solar + carregador Li-Ion/LiFePO4 amb proteccio";
-const char* FUTURE_EXPANSION_BUS = "I2C intern reservat per sensors ambientals";
+const char* FUTURE_EXPANSION_BUS = "I2C intern actiu amb SHT41 i MPU6050";
 
 // Xarxa avançada per defecte. DHCP per defecte: és el més segur.
 const bool DEFAULT_WIFI_USE_STATIC_IP = false;

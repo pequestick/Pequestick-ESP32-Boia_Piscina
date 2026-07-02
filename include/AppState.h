@@ -31,6 +31,27 @@ struct AppState {
   String internalEnvStatus = "UNKNOWN";
   String internalEnvLastError = "Encara no s'ha fet cap lectura";
 
+  unsigned long motionLastReadMillis = 0;
+  uint32_t motionTotalReads = 0;
+  uint32_t motionValidReads = 0;
+  uint32_t motionFailedReads = 0;
+  uint32_t motionConsecutiveErrors = 0;
+  uint8_t motionI2cAddress = 0;
+  float lastMotionAccelXG = NAN;
+  float lastMotionAccelYG = NAN;
+  float lastMotionAccelZG = NAN;
+  float lastMotionGyroXDps = NAN;
+  float lastMotionGyroYDps = NAN;
+  float lastMotionGyroZDps = NAN;
+  float lastMotionAccelMagnitudeG = NAN;
+  float lastMotionPitchDeg = NAN;
+  float lastMotionRollDeg = NAN;
+  float lastMotionTiltDeg = NAN;
+  bool motionMoving = false;
+  bool motionTiltAlarm = false;
+  String motionStatus = "UNKNOWN";
+  String motionLastError = "Encara no s'ha fet cap lectura";
+
   unsigned long batteryLastReadMillis = 0;
   uint32_t batteryTotalReads = 0;
   uint32_t batteryValidReads = 0;

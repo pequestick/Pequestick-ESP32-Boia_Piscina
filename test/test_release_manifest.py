@@ -141,6 +141,27 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("#define SD_SPI_CLK_PIN 18", config)
         self.assertIn("#define SD_SPI_MISO_PIN 19", config)
 
+    def test_mpu6050_motion_sensor_is_wired_to_status_mqtt_and_ha(self):
+        config = Path("include/AppConfig.h").read_text(encoding="utf-8")
+        state = Path("include/AppState.h").read_text(encoding="utf-8")
+        sensor = Path("src/MotionSensor.cpp").read_text(encoding="utf-8")
+        main = Path("src/main.cpp").read_text(encoding="utf-8")
+        mqtt = Path("src/MqttManager.cpp").read_text(encoding="utf-8")
+        web = Path("src/WebServerBoia.cpp").read_text(encoding="utf-8")
+
+        self.assertIn("#define MOTION_MPU6050_I2C_ADDRESS 0x68", config)
+        self.assertIn("#define MOTION_MPU6050_ALT_I2C_ADDRESS 0x69", config)
+        self.assertIn("lastMotionPitchDeg", state)
+        self.assertIn("MPU6050_REG_WHO_AM_I", sensor)
+        self.assertIn("MPU6050_REG_PWR_MGMT_1", sensor)
+        self.assertIn("performMotionRead", sensor)
+        self.assertIn("initMotionSensor()", main)
+        self.assertIn("performMotionRead()", main)
+        self.assertIn("motion_pitch_deg", web)
+        self.assertIn("motion_tilt_alarm", web)
+        self.assertIn('discoveryTopic("sensor", "motion_pitch")', mqtt)
+        self.assertIn('discoveryTopic("binary_sensor", "motion_tilt_alarm")', mqtt)
+
     def test_deep_sleep_battery_saver_is_configurable_and_guarded(self):
         config = Path("src/AppConfig.cpp").read_text(encoding="utf-8")
         header = Path("include/AppConfig.h").read_text(encoding="utf-8")
