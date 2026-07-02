@@ -160,6 +160,7 @@ void performMotionRead() {
   appState.lastMotionRollDeg = roll;
   appState.lastMotionTiltDeg = tilt;
   float accelDelta = fabsf(accelMagnitude - 1.0f);
+  appState.lastMotionAccelDeltaG = accelDelta;
   appState.motionMoving = accelDelta >= configMotionMovingDeltaG;
   appState.motionSplashAlarm = accelDelta >= configMotionSplashDeltaG;
   appState.motionTiltAlarm = tilt >= configMotionTiltAlarmDegrees;

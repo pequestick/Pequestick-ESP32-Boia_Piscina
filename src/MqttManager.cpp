@@ -562,6 +562,11 @@ void publishHomeAssistantDiscovery() {
   );
 
   ok &= mqttPublishRetained(
+    discoveryTopic("sensor", "motion_accel_delta_g"),
+    buildBaseSensorConfig("Desviacio acceleracio boia", deviceId + "_motion_accel_delta_g", mqttTopic("motion_accel_delta_g"), motionAccelExtra)
+  );
+
+  ok &= mqttPublishRetained(
     discoveryTopic("sensor", "motion_status"),
     buildBaseSensorConfig("Estat moviment", deviceId + "_motion_status", mqttTopic("motion_status"), motionStatusExtra)
   );
@@ -1139,6 +1144,9 @@ static String buildTelemetryJsonPayload() {
   telemetry += "\"motion_accel_g\":";
   telemetry += isnan(appState.lastMotionAccelMagnitudeG) ? String("null") : floatPayload(appState.lastMotionAccelMagnitudeG, 2);
   telemetry += ",";
+  telemetry += "\"motion_accel_delta_g\":";
+  telemetry += isnan(appState.lastMotionAccelDeltaG) ? String("null") : floatPayload(appState.lastMotionAccelDeltaG, 2);
+  telemetry += ",";
   telemetry += "\"motion_moving\":";
   telemetry += appState.motionMoving ? "true" : "false";
   telemetry += ",";
@@ -1268,6 +1276,9 @@ void publishMqttTelemetry() {
   }
   if (!isnan(appState.lastMotionAccelMagnitudeG)) {
     mqttPublishRetained(mqttTopic("motion_accel_g"), floatPayload(appState.lastMotionAccelMagnitudeG, 2));
+  }
+  if (!isnan(appState.lastMotionAccelDeltaG)) {
+    mqttPublishRetained(mqttTopic("motion_accel_delta_g"), floatPayload(appState.lastMotionAccelDeltaG, 2));
   }
   mqttPublishRetained(mqttTopic("motion_moving"), appState.motionMoving ? "ON" : "OFF");
   mqttPublishRetained(mqttTopic("motion_splash_alarm"), appState.motionSplashAlarm ? "ON" : "OFF");

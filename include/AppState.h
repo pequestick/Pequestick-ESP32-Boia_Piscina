@@ -47,6 +47,7 @@ struct AppState {
   float lastMotionPitchDeg = NAN;
   float lastMotionRollDeg = NAN;
   float lastMotionTiltDeg = NAN;
+  float lastMotionAccelDeltaG = NAN;
   bool motionMoving = false;
   bool motionSplashAlarm = false;
   bool motionTiltAlarm = false;
