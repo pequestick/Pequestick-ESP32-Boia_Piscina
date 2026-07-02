@@ -134,6 +134,13 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertIn("return base + \"/\" + name;", sd)
         self.assertNotIn("clean + itemPath", sd)
 
+    def test_sd_spi_pins_match_current_wiring(self):
+        config = Path("include/AppConfig.h").read_text(encoding="utf-8")
+        self.assertIn("#define SD_SPI_CS_PIN 21", config)
+        self.assertIn("#define SD_SPI_MOSI_PIN 20", config)
+        self.assertIn("#define SD_SPI_CLK_PIN 18", config)
+        self.assertIn("#define SD_SPI_MISO_PIN 19", config)
+
     def test_deep_sleep_battery_saver_is_configurable_and_guarded(self):
         config = Path("src/AppConfig.cpp").read_text(encoding="utf-8")
         header = Path("include/AppConfig.h").read_text(encoding="utf-8")
