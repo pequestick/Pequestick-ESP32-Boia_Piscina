@@ -146,16 +146,11 @@ static String buildDeviceInfoJsonPart() {
 static String appendCommonAvailabilityAndDevice(const String& extraFields) {
   String json = "";
 
-  json += "\"availability_topic\":\"" + jsonEscape(mqttAvailabilityTopic()) + "\",";
-  json += "\"payload_available\":\"online\",";
-  json += "\"payload_not_available\":\"offline\"";
-
   if (extraFields.length() > 0) {
-    json += ",";
     json += extraFields;
+    json += ",";
   }
 
-  json += ",";
   json += buildDeviceInfoJsonPart();
 
   return json;
@@ -1307,12 +1302,22 @@ void publishMqttTelemetry() {
   appState.mqttPublishCount++;
 }
 
-void publishOfflineAndDisconnect() {
+static void publishAvailabilityAndDisconnect(const char* payload) {
   if (mqttClient.connected()) {
     String availability = mqttAvailabilityTopic();
-    mqttClient.publish(availability.c_str(), "offline", true);
+    mqttClient.publish(availability.c_str(), payload, true);
+    mqttClient.loop();
+    delay(100);
     mqttClient.disconnect();
   }
+}
+
+void publishOfflineAndDisconnect() {
+  publishAvailabilityAndDisconnect("offline");
+}
+
+void publishStandbyAndDisconnect() {
+  publishAvailabilityAndDisconnect("standby");
 }
 
 void reconfigureMqtt() {

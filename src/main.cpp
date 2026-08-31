@@ -34,8 +34,8 @@ static void enterDeepSleepBetweenReadings() {
   rememberBootTrace("power:deep_sleep_start");
   appendSdSystemLog("POWER", appState.lowPowerStatus);
   if (configMqttEnabled) {
-    rememberBootTrace("mqtt:offline_before_sleep");
-    publishOfflineAndDisconnect();
+    rememberBootTrace("mqtt:standby_before_sleep");
+    publishStandbyAndDisconnect();
   }
 
   WiFi.disconnect(true, true);

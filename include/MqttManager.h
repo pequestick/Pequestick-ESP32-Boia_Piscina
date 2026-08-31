@@ -21,3 +21,4 @@ String mqttCommandPublishDiscoveryTopic();
 String haDiscoveryBaseTopic();
 
 void publishOfflineAndDisconnect();
+void publishStandbyAndDisconnect();
