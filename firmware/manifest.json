@@ -1,10 +1,10 @@
 {
   "version": "1.28.0-motion-controls",
-  "build_sha": "f844f45dc60d7d7abdec5891df804f6a73cf2af1",
-  "build_short_sha": "f844f45dc60d",
-  "build_date": "2026-07-02T14:32:38Z",
-  "size": 1738448,
-  "sha256": "bb817117761786f97e4b2b44288ed211f2bea50446d15cc2847403121c25869f",
+  "build_sha": "11afd89be2556ee143ffe87773e87f6ca2f37973",
+  "build_short_sha": "11afd89be255",
+  "build_date": "2026-08-31T10:26:49Z",
+  "size": 1738256,
+  "sha256": "9fd5ee1659ffcd1f74351ccf4035d72fa5974b5d9edd4adf165c9d431ccabadc",
   "firmware_url": "https://raw.githubusercontent.com/pequestick/Pequestick-ESP32-Boia_Piscina/main/firmware/firmware.bin",
   "notes": "Afegeix controls web del MPU6050 a Sensors: calibratge zero, sensibilitat de moviment, deteccio de possible bany, alarma d'inclinacio, taxa de refresc configurable i resum d'estat a la portada."
 }
